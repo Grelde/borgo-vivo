@@ -1,5 +1,11 @@
 # Changelog
 
+## v34.1 – 2026-11-27
+Ritocco (solo grafica): sentieri curvi.
+- I sentieri nati dal passaggio degli abitanti non si disegnano più come segmenti dritti a gradini tra celle: le celle in fila si ammorbidiscono (media coi vicini, due passate) e ogni tratto è una curva con tangente continua; capi e incroci restano fermi. Le diagonali ridondanti vengono ignorate.
+- Valido per tutti e quattro i livelli. Le strade tracciate dal giocatore restano come prima. Nessuna regola di gioco cambia (`curveOn` in `src/render.js`).
+- Provato su un percorso a gradini in un canvas reale (gradini → linea morbida, angolo arrotondato); nel gioco intero non provato in un browser WebGL.
+
 ## v34 – 2026-11-27
 Funzione nuova (solo grafica e testi): carichi visibili per chi costruisce e per chi lavora al magazzino.
 - **Chi costruisce va al magazzino a prendere i materiali:** la regola c'era già (magazzinieri, aiutanti e adulti senza lavoro vanno a mani vuote al magazzino, prelevano e portano il carico al cantiere); ora si vede. Nella scheda il ruolo dice "Va al magazzino a prendere il legno/la pietra per il cantiere" e poi "Porta il legno/la pietra al cantiere".
