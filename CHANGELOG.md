@@ -1,5 +1,12 @@
 # Changelog
 
+## v45 – 2026-11-27
+Funzione nuova: passaggi tra lotti che diventano giardino; bordi diagonali al posto della scaletta.
+- **Passaggi inutilizzati:** ogni cella di passaggio tra due lotti (a contatto con un altro lotto) che per un anno intero nessuno ha calpestato viene aggiunta al giardino accanto (fino a 3 celle per volta, tetto 36 celle, dentro la zona residenziale, solo se le porte restano raggiungibili). Il giorno-ultimo-passaggio di ogni cella non è salvato: dopo un caricamento l'anno riparte da quel momento.
+- **Taglio diagonale:** quando il bordo del giardino è a scaletta (almeno due gradini da una cella) viene sostituito da un taglio a 45° che passa per gli angoli rientranti. La **staccionata** corre in linea retta lungo la diagonale (tratti dritti uniti in una sola asse) e il **terreno** del giardino è disegnato come poligono, quindi non a quadretti; le celle d'angolo tagliate spostano un po' i loro oggetti verso l'interno e non ospitano il blocco 3×3.
+- `Sim.lotOutline(b)` calcola il contorno (usato da staccionata e terreno); la vecchia diagonale dei triangoli e `fenceCells` restano solo per le altre strutture (recinto dell'ovile).
+- Test: `tests/lanes.js` (oltre un anno di partita: gli ampliamenti arrivano), `tests/lotti.js` (contorni chiusi, area = celle − mezza cella per angolo tagliato, 50 lati diagonali nella prova). Grafica non verificata in un browser WebGL.
+
 ## v44 – 2026-11-27
 Funzione nuova: mercanti, denari e rotte commerciali con le 4 città vicine, tramite la Merceria.
 - **Denari:** nuova valuta del paese (chip "Denari" in alto; cassa iniziale 80). Il paese vende e compra a denari dalle carovane; un clic sul chip, o sul tasto 💰, apre il **registro delle rotte** (pergamena). Anche il pannello della Merceria mostra i denari e rimanda al registro.

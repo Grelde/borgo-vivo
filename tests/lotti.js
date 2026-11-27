@@ -55,10 +55,15 @@ if(behind/tot<0.7){bad++;console.log('troppe celle davanti alla casa');}
 // i giardini restano nella zona residenziale
 let fuori=0;for(const h of hs)for(const i of h.gcells.concat(h.ext))if(G.dist[i]!==1)fuori++;
 console.log('celle di giardino fuori dalla zona residenziale',fuori);if(fuori){bad++;}
-// passaggio: nessuna cella di un lotto è a contatto (anche in diagonale) con un altro lotto
-const own=new Map();for(const h of hs)for(const i of h.cells.concat(h.ext))own.set(i,h.id);
-let touch=0;for(const [i,id] of own){const x=i%N,y=(i/N)|0;let t2=false;for(let dy=-1;dy<=1&&!t2;dy++)for(let dx=-1;dx<=1;dx++){const j=(y+dy)*N+x+dx,o=own.get(j);if(o&&o!==id){t2=true;break;}}if(t2)touch++;}
-console.log('celle di lotto a contatto con un altro lotto',touch);if(touch)bad++;
+// passaggio: tra casa e giardino di base di due lotti c'è sempre una cella libera; solo le celle di ampliamento (ext, anche prese ai passaggi inutilizzati per un anno) possono toccare un altro lotto
+const own=new Map();for(const h of hs)for(const i of h.cells)own.set(i,h.id);
+let touch=0;for(const [i,id] of own){const x=i%N,y=(i/N)|0;let t2=false;for(let dy=-1;dy<=1&&!t2;dy++)for(let dx=-1;dx<=1;dx++){const o=own.get((y+dy)*N+x+dx);if(o&&o!==id){t2=true;break;}}if(t2)touch++;}
+console.log('celle di base a contatto con un altro lotto',touch);if(touch)bad++;
+// contorno: poligoni chiusi, area = celle - mezza cella per ogni angolo tagliato in diagonale
+let olBad=0,diagN=0;for(const h of hs){const ol=Sim.lotOutline(h);let area=0;
+  for(const loop of ol.loops){for(let i=0;i<loop.length;i++){const e=loop[i],f=loop[(i+1)%loop.length];if(e.x1!==f.x0||e.y1!==f.y0)olBad++;area+=(e.x0*e.y1-e.x1*e.y0)/2;if(e.diag)diagN++;}}
+  const cells=h.gcells.length+h.ext.length;if(Math.abs(area-(cells-0.5*ol.cut.size))>1e-6){olBad++;console.log('area contorno',h.id,area,cells,ol.cut.size);}}
+console.log('lati diagonali nei contorni',diagN);if(olBad){bad++;console.log('contorni non validi',olBad);}
 const seen=new Map();for(const h of hs)for(const i of h.cells){if(seen.has(i)){bad++;console.log('sovrapposizione');break;}seen.set(i,h.id);}
 // ingresso verso la strada: se una strada tracciata tocca il lotto, la porta sta sulla strada o accanto
 let withRoad=0,facing=0;

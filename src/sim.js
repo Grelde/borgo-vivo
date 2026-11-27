@@ -82,6 +82,7 @@ const hooks={building(){},done(){},removed(){},villager(){},trees(){},rocks(){},
 let seed=7;
 const tree=new Uint8Array(N*N),rock=new Uint8Array(N*N),ore=new Uint8Array(N*N),water=new Uint8Array(N*N),sap=new Uint8Array(N*N),road=new Uint8Array(N*N),dist=new Uint8Array(N*N),occ=new Int32Array(N*N),field=new Int32Array(N*N),door=new Uint8Array(N*N),cen=new Uint8Array(N*N),gate=new Int32Array(N*N);const gatedSet=new Set();
 // wear: solo per le strade tracciate dal giocatore (usura lenta). plev/phit/pexp: livello del sentiero, passaggi nella finestra corrente, istante di scadenza del livello.
+const lastStep=new Float32Array(N*N); // v44: ultimo passaggio di un abitante su ogni cella libera (non salvato: dopo un caricamento riparte da adesso)
 const wear=new Float32Array(N*N),jit=new Float32Array(N*N),attr=new Float32Array(N*N),sapT=new Float32Array(N*N),plev=new Uint8Array(N*N),phit=new Uint8Array(N*N),pexp=new Float32Array(N*N);
 const EDICT0=()=>({noUpgrade:false,noImmig:false,birthBonus:false,schoolMandatory:false,quarantine:false,woodDuty:false});
 // ---- v44: commercio. Le 4 città vicine (una per lato della mappa) mandano carovane alla Merceria, ma solo sulle rotte che il giocatore ha sbloccato.
@@ -252,7 +253,7 @@ function init(sd,mode){
   seed=sd||7;S.mode=mode==='river'?'river':'lake';
   for(const a of [tree,rock,ore,water,sap,road,dist,door,cen])a.fill(0);
   gate.fill(0);gatedSet.clear();
-  occ.fill(0);field.fill(0);wear.fill(0);plev.fill(0);phit.fill(0);pexp.fill(0);attr.fill(0);sapT.fill(0);
+  occ.fill(0);field.fill(0);lastStep.fill(0);wear.fill(0);plev.fill(0);phit.fill(0);pexp.fill(0);attr.fill(0);sapT.fill(0);
   buildings.clear();stCache=null;villagers=[];vmap.clear();reg.clear();resv.clear();plantResv.clear();nextId=1;guests.length=0;
   S.t=0;S.festA=[];S.fests=0;festSeq=0;S.edicts=EDICT0();S.births=0;S.deaths=0;S.buried=0;S.unburied=0;S.wh={wood:0,stone:0,iron:0};S.xf={wood:0,stone:0,iron:0};S.stock={wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0};S.inflight={wood:0,stone:0,iron:0};S.grow=0;S.left=0;S.att={joy:0,unemp:0,a:0,bonus:0};S.barters=0;S.helps=0;S.visits=0;S.settled=0;S.season=0;S.year=1;S.frozen=false;acc.a1=0;acc.a05=0;acc.farm=0;acc.attr=99;for(const k in told)delete told[k];
   S.deathsBy={age:0,cold:0,hunger:0,ill:0};S.plague={on:false,since:0,dead:0};S.inherits=0;S.cured=0;S.sickTot=0;S.moves=0;S.made={};S.delivered=0;S.coins=COINS0;S.routes=mkRoutes();S.tradeOpt={sell:true,buy:true};S.tlog=[];S.trade={sold:0,bought:0,visits:0};
@@ -577,6 +578,7 @@ function route(v,goal,tocc){
 function stepOn(i){
   if(road[i])return;
   if(occ[i]||tree[i]||rock[i]||ore[i]||field[i]||water[i])return;
+  lastStep[i]=S.t;
   const L=plev[i];
   if(L<MAXP){
     phit[i]++;
@@ -1355,6 +1357,61 @@ function lotShape(hw,hh,r){
   if(dg)dg=[dg[0][0]-mx,dg[0][1]-my,dg[1][0]-mx,dg[1][1]-my];
   return {kind,diag:dg,hx,hy,hw:Math.max(...H.map(c=>c[0]))-hx+1,hh:Math.max(...H.map(c=>c[1]))-hy+1,g:G,w:Math.max(...all.map(c=>c[0]))-mx+1,h:Math.max(...all.map(c=>c[1]))-my+1,dc};
 }
+// v45.1: contorno del giardino (gcells+ext) come poligoni in coordinate d'angolo di cella. Dove il bordo è a scaletta (almeno due gradini 1×1) diventa un taglio diagonale
+// che passa per gli angoli rientranti: la staccionata e il terreno seguono la diagonale. Ritorna {loops:[[{x0,y0,x1,y1,skip,diag}]], cut:Map(cella -> [dx,dy] verso l'angolo tagliato)}.
+const outlineCache=new WeakMap();
+function lotOutline(b){
+  const key=b.gcells.length+':'+b.ext.length+':'+b.door;
+  const c0=outlineCache.get(b);if(c0&&c0.key===key)return c0.v;
+  const Gs=new Set(b.gcells.concat(b.ext)),sk=new Set([b.door]);
+  for(let yy=b.hy;yy<b.hy+b.hh;yy++)for(let xx=b.hx;xx<b.hx+b.hw;xx++)sk.add(yy*N+xx);
+  const out=new Map(),E=[];
+  const add=(x0,y0,x1,y1,skip)=>{const e={x0,y0,x1,y1,skip};E.push(e);const k=x0+','+y0;let l=out.get(k);if(!l){l=[];out.set(k,l);}l.push(e);};
+  for(const c of Gs){const x=c%N,y=(c/N)|0;
+    if(!Gs.has(c-N))add(x,y,x+1,y,sk.has(c-N));
+    if(!Gs.has(c+1))add(x+1,y,x+1,y+1,sk.has(c+1));
+    if(!Gs.has(c+N))add(x+1,y+1,x,y+1,sk.has(c+N));
+    if(!Gs.has(c-1))add(x,y+1,x,y,sk.has(c-1));}
+  const used=new Set(),raw=[];
+  for(const e0 of E){if(used.has(e0))continue;
+    const loop=[];let e=e0;
+    while(e&&!used.has(e)){used.add(e);loop.push(e);
+      const cand=(out.get(e.x1+','+e.y1)||[]).filter(f=>!used.has(f));
+      if(!cand.length)break;
+      if(cand.length===1)e=cand[0];
+      else{const dx=e.x1-e.x0,dy=e.y1-e.y0;let best=cand[0],bs=-9;
+        for(const f of cand){const fx=f.x1-f.x0,fy=f.y1-f.y0,cr=dx*fy-dy*fx,dt=dx*fx+dy*fy,sc=cr>0?2:dt>0?1:0;if(sc>bs){bs=sc;best=f;}}
+        e=best;}
+    }
+    if(loop.length>=4)raw.push(loop);}
+  const cut=new Map(),loops=[];
+  const dirOf=e=>[e.x1-e.x0,e.y1-e.y0],crs=(a,b2)=>{const [ax,ay]=dirOf(a),[bx,by]=dirOf(b2);return ax*by-ay*bx;};
+  const isU=e=>!e.skip&&Math.abs(e.x1-e.x0)+Math.abs(e.y1-e.y0)===1;
+  for(const loop of raw){
+    const n=loop.length;let st=-1;
+    for(let i=0;i<n;i++){const a=loop[(i+n-1)%n],b2=loop[i];if(!(isU(a)&&isU(b2)&&crs(a,b2)!==0)){st=i;break;}}
+    if(st<0){loops.push(loop.map(e=>({...e,diag:false})));continue;}
+    const res=[];let cnt=0;
+    while(cnt<n){
+      const idx=(st+cnt)%n;let len=1,last=0;
+      while(cnt+len<n){const a=loop[(idx+len-1)%n],b2=loop[(idx+len)%n];if(!(isU(a)&&isU(b2)))break;const c=crs(a,b2);if(c===0)break;const sg=c>0?1:-1;if(last!==0&&sg===last)break;last=sg;len++;}
+      if(len>=4){
+        const es=[];for(let k=0;k<len;k++)es.push(loop[(idx+k)%n]);
+        const pts=[[es[0].x0,es[0].y0]];
+        for(let k=1;k<len;k++){const a=es[k-1],b2=es[k],c=crs(a,b2),vx=a.x1,vy=a.y1;
+          if(c<0)pts.push([vx,vy]); // angolo rientrante: resta
+          else{ // angolo sporgente: tagliato; la cella d'angolo sposta dentro i suoi oggetti
+            const [ax,ay]=dirOf(a),[bx,by]=dirOf(b2),cx=Math.floor(vx+0.5*(-ax+bx)),cy=Math.floor(vy+0.5*(-ay+by));
+            cut.set(cy*N+cx,[ax-bx,ay-by]);}}
+        pts.push([es[len-1].x1,es[len-1].y1]);
+        for(let k=0;k<pts.length-1;k++){const dx=pts[k+1][0]-pts[k][0],dy=pts[k+1][1]-pts[k][1];res.push({x0:pts[k][0],y0:pts[k][1],x1:pts[k+1][0],y1:pts[k+1][1],skip:false,diag:dx!==0&&dy!==0});}
+      }else for(let k=0;k<len;k++){const e=loop[(idx+k)%n];res.push({...e,diag:false});}
+      cnt+=len;
+    }
+    loops.push(res);
+  }
+  const v={loops,cut};outlineCache.set(b,{key,v});return v;
+}
 function expandGarden(b){
   // il giardino si allarga dalle sue celle di bordo (non da quelle verso la casa) fino alla strada/sentiero (meno di 3 tile = 9 celle) o al giardino di un vicino:
   // con una strada diagonale il bordo segue la diagonale. Dalla v32 funziona su giardini di forma qualsiasi e non supera 24 celle in tutto.
@@ -1420,6 +1477,23 @@ function growGarden(hcs,doorCell,hx,hy,hw,hh,target,seed,pp){
     lot.add(best);g.push(best);
   }
   return g.length>=9?g:null;
+}
+// v44: le celle di passaggio tra due lotti (a contatto con l'altro lotto) che per un anno intero nessuno ha calpestato diventano giardino
+function claimLane(b){
+  const room=ROADMAX-b.gcells.length-b.ext.length;if(room<=0||S.t<YEARL)return false;
+  const lot=new Set(b.cells.concat(b.ext)),cand=new Set();
+  for(const c of b.gcells.concat(b.ext))for(let k=0;k<4;k++){
+    const x=c%N+GX[k],y=((c/N)|0)+GY[k];if(x<0||y<0||x>=N||y>=N)continue;const i=y*N+x;
+    if(lot.has(i)||dist[i]!==1||road[i]||plev[i]>=PATH||!doorFree(i)||!foreignNear(i,b.id))continue;
+    if(S.t-lastStep[i]<YEARL)continue;
+    cand.add(i);
+  }
+  const cells=[...cand].slice(0,Math.min(room,3));
+  if(!cells.length||!reachable(b.door,cells))return false;
+  const xs=cells.map(i=>i%N),ys=cells.map(i=>(i/N)|0);
+  if(!doorsOK(Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys),cells))return false;
+  for(const i of cells){b.ext.push(i);occ[i]=b.id;}
+  occStamp++;hooks.ground();hooks.regarden(b);return true;
 }
 function trySpawnHouse(){
   const t=BT.house;if(uncommitted('wood')<t.cost.wood||uncommitted('stone')<t.cost.stone)return;
@@ -1834,6 +1908,7 @@ function houseTick(b){
   b.attr=attr[b.cell];b.fun=funOf(b);
   // v36.1: il giardino cresce piano piano verso la strada più vicina (non solo al salto di livello)
   if(b.gcells.length+b.ext.length<ROADMAX&&hash(S.t|0,b.id*13)<0.25)expandGarden(b);
+  if(b.gcells.length+b.ext.length<ROADMAX&&hash(S.t|0,b.id*29)<0.2)claimLane(b);
   birthTick(b);
   const f=b.flags;f.heat=b.warm;
   f.food=TYPES.filter(tp=>S.t-b.ate[tp]<DAY*2).length>=(b.level>=3?3:2)&&b.hungry<30;
@@ -2355,7 +2430,7 @@ function importState(d){
   for(const k in SAVE_GRIDS)SAVE_GRIDS[k].set(tmp[k]);
   seed=d.seed;for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;jit[i]=hash(x,y+500)*0.15;}
   for(const k of Object.keys(S))delete S[k];
-  Object.assign(S,Sx);
+  Object.assign(S,Sx);lastStep.fill(S.t||0);
   S.edicts=Object.assign(EDICT0(),S.edicts);S.stock=Object.assign({wood:0,stone:0,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0},S.stock);
   for(const k of ['wh','xf','inflight'])S[k]=Object.assign({wood:0,stone:0,iron:0},S[k]);
   S.coins=Number.isFinite(S.coins)?S.coins:COINS0;{const rt=Array.isArray(S.routes)?S.routes:[];S.routes=mkRoutes().map(r=>Object.assign(r,rt.find(x=>x&&x.id===r.id)||{}));}S.tradeOpt=Object.assign({sell:true,buy:true},S.tradeOpt);S.tlog=Array.isArray(S.tlog)?S.tlog:[];S.trade=Object.assign({sold:0,bought:0,visits:0},S.trade);
@@ -2377,7 +2452,7 @@ function importState(d){
   for(const g of guests)hooks.villager(g);
   hooks.trees();hooks.rocks();hooks.saps();hooks.ground();
 }
-return {SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
+return {lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
   TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
