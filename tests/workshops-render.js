@@ -19,10 +19,10 @@ eval(fs.readFileSync(__dirname+'/../dist/all.js','utf8').replace('requestAnimati
 __begin(process.argv[2]||'lake');
 const S=Sim.S;let fails=0;const ok=(c,m)=>{console.log((c?'  ok ':'  ERRORE ')+m);if(!c)fails++;};
 Sim.paintDistrict(78,78,111,108,1);Sim.paintDistrict(114,84,135,114,3);Sim.paintDistrict(60,60,90,92,5);
-const NEW=['carpenter','mason','smithy','bakery','weaver','tailor','fisher','hunter','sheepfold','tavern','hall'];
+const NEW=['carpenter','mason','smithy','bakery','weaver','tailor','fisher','hunter','sheepfold','tavern','hall','mercery'];
 const placed={};
 function put(type,x0,y0){for(let r=0;r<70;r+=3)for(let dy=-r;dy<=r;dy+=3)for(let dx=-r;dx<=r;dx+=3){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;for(const rot of [0,1,2,3]){S.stock.wood=Math.max(S.stock.wood,200);S.stock.stone=Math.max(S.stock.stone,200);S.stock.iron=Math.max(S.stock.iron,20);S.stock.flour=Math.max(S.stock.flour,20);const res=Sim.place(type,x0+dx,y0+dy,rot);if(res.ok)return res.b;}}return null;}
-const pos={carpenter:[96,96],mason:[100,100],smithy:[104,96],bakery:[108,100],weaver:[96,106],tailor:[100,108],fisher:[120,141],hunter:[70,78],sheepfold:[70,70],tavern:[110,90],hall:[90,86]};
+const pos={carpenter:[96,96],mason:[100,100],smithy:[104,96],bakery:[108,100],weaver:[96,106],tailor:[100,108],fisher:[120,141],hunter:[70,78],sheepfold:[70,70],tavern:[110,90],hall:[90,86],mercery:[104,84]};
 let t=0;
 for(const k of NEW){placed[k]=put(k,pos[k][0],pos[k][1]);for(let i=0;i<(k==='carpenter'||k==='mason'?3000:400);i++){Sim.step(0.05);t+=0.05;}}
 for(let i=0;i<20000;i++){Sim.step(0.05);if(i%200===0){S.stock.wood=Math.max(S.stock.wood,200);S.stock.stone=Math.max(S.stock.stone,200);S.stock.iron=Math.max(S.stock.iron,20);S.stock.flour=Math.max(S.stock.flour,20);}}

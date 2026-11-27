@@ -1,5 +1,17 @@
 # Changelog
 
+## v38 – 2026-11-27
+Funzione nuova: la **Merceria**, il negozio dei prodotti lavorati.
+- **Che cosa vende:** attrezzi (fucina), pane (forno), tessuto (telaio) e abiti (sartoria), cioè i prodotti degli edifici che non sono materie prime né prodotti dei giardini. Pesce e carne di pescatori e cacciatori restano consegne dirette alle case; il baratto dei banchi del mercato (prodotti dei giardini) non cambia.
+- **Come funziona:** con un **merciaio** al lavoro, gli addetti delle botteghe portano la merce agli scaffali della merceria (fino a 40 pezzi per merce, a carichi da 6) invece di consegnarla alle case. Le famiglie entro 135 celle mandano un adulto a ritirare ciò che manca (commissione a piedi, 3 pezzi alla volta: attrezzi se ne hanno meno di 1, pane meno di 2, tessuto per le case con sartoria meno di 2, abiti dal livello 3 meno di 1). Il testo del ruolo dice "Compra pane alla merceria" e "Porta la merce alla merceria".
+- **Sarto:** la sartoria prende il tessuto dai telai oppure dagli scaffali della merceria (se aperta).
+- **Rete di sicurezza:** se la merceria non c'è, non ha addetti, è in quarantena o lo scaffale di quella merce è pieno, le botteghe consegnano alle case come nella v37: nessuna filiera si blocca. Chi vive a più di 135 celle dalla merceria non può ritirare; per loro valgono baratto al mercato e consegne dirette quando lo scaffale è pieno.
+- **Costi e prezzo:** 10 legno, 6 pietra, 4 assi (senza falegnameria si pagano in legno); 2 posti (1 voluto); un po' piacevole (attrattiva +0,8 entro 18 celle). La merce si ritira gratis: il gioco non ha ancora una moneta, quindi "vendere" vuol dire per ora distribuire.
+- Interfaccia: voce **Merceria** nel menu Botteghe, modello 3D (tettoia rossa, pezze di stoffa, insegna con rocchetto), pannello con addetti e scaffali.
+- **Scorte:** la merce delle botteghe può arrivare agli scaffali anche dalle scorte di Magazzino e Granaio (v37), non solo da quella pronta in bottega.
+- Test: `tests/merceria.js` (senza merceria, con merceria aperta, scaffale pieno, sarto che usa il tessuto degli scaffali, merceria chiusa); `tests/workshops-render.js` include la merceria; gli altri test restano verdi. Grafica non provata in un browser WebGL.
+- Limiti: rese, scorte (40) e soglie di ritiro sono stime da tarare; la merce non ha prezzo né moneta; chi ritira fa una sola merce per viaggio; il merciaio non esce a consegnare, sta in bottega.
+
 ## v37.1 – 2026-11-27
 Ritocco: movimento più sinuoso agli angoli.
 - Agli angoli del percorso l'abitante taglia dolcemente la curva (raggio 0,6 celle, al massimo 0,3 celle fuori dal centro) invece di girare di scatto sul centro della cella; il corpo ruota gradualmente verso la direzione di marcia. L'ultima cella del percorso si raggiunge sempre esattamente.

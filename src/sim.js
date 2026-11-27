@@ -30,6 +30,8 @@ const BT={
   tailor:{name:'Sartoria',w:6,h:6,cost:{wood:10,stone:4,planks:2},time:11,slots:2,want:1},
   fisher:{name:'Capanna del pescatore',w:6,h:6,cost:{wood:8,stone:0},time:8,slots:2,want:1,need:'water'},
   hunter:{name:'Capanna del cacciatore',w:6,h:6,cost:{wood:8,stone:0},time:8,slots:2,want:1,need:'forest'},
+  // v38: la Merceria vende i prodotti lavorati delle botteghe (attrezzi, pane, tessuto, abiti): le botteghe li portano qui, le famiglie vengono a prenderli
+  mercery:{name:'Merceria',w:6,h:6,cost:{wood:10,stone:6,planks:4},time:12,slots:2,want:1},
   tavern:{name:'Taverna',w:9,h:6,cost:{wood:12,stone:8,planks:4},time:14,slots:2,want:1},
   hall:{name:'Sala delle feste',w:9,h:9,cost:{wood:14,stone:14,planks:6},time:18,slots:2,want:1},
   plaza:{name:'Piazza con fontana',w:9,h:9,cost:{wood:0,stone:14},time:10,slots:0,want:0},
@@ -45,7 +47,7 @@ const BT={
   stall:{name:'Banco del mercato',w:2,h:2,cost:{wood:0,stone:0},time:0,slots:0,want:0}
 };
 // attrattiva: [forza, raggio in celle]. Positivo = piacevole, negativo = rumore e disagio.
-const ATTR={church:[4,36],well:[2.5,24],stall:[1.2,18],wood:[-3,24],quarry:[-4.5,33],mine:[-5,36],farm:[-1.5,18],forester:[0.6,18],granary:[-0.8,15],mill:[-1.5,21],inn:[1,21],sheepfold:[-0.8,15],school:[1,18],infirmary:[0.5,15],cemetery:[-0.5,15],plaza:[3.2,30],flowers:[0.9,12],statue:[2,21],carpenter:[-1.2,18],mason:[-1.2,18],smithy:[-1.8,21],bakery:[0.4,15],weaver:[-0.3,12],tailor:[0.2,12],fisher:[-0.3,12],hunter:[-0.4,12],tavern:[1.6,24],hall:[2.6,30]};
+const ATTR={church:[4,36],well:[2.5,24],stall:[1.2,18],wood:[-3,24],quarry:[-4.5,33],mine:[-5,36],farm:[-1.5,18],forester:[0.6,18],granary:[-0.8,15],mill:[-1.5,21],inn:[1,21],sheepfold:[-0.8,15],school:[1,18],infirmary:[0.5,15],cemetery:[-0.5,15],plaza:[3.2,30],flowers:[0.9,12],statue:[2,21],carpenter:[-1.2,18],mason:[-1.2,18],smithy:[-1.8,21],bakery:[0.4,15],weaver:[-0.3,12],tailor:[0.2,12],mercery:[0.8,18],fisher:[-0.3,12],hunter:[-0.4,12],tavern:[1.6,24],hall:[2.6,30]};
 const DECO={flowers:1,statue:1};
 const NOGATE={house:1,stall:1,flowers:1,statue:1,plaza:1,well:1,cemetery:1};
 // Tempo (v20): 1 anno di vita = AGEY secondi; un'annata del calendario (4 stagioni) = YEARL secondi = 10 anni di vita.
@@ -60,7 +62,7 @@ const DIS={
   flux:{n:'Dissenteria',dur:[30,60],mort:0.0007},
   plague:{n:'Peste',dur:[70,120],mort:0.0035}
 };
-const TRADENAME={wood:'taglialegna',quarry:'cavatore',mine:'minatore',forester:'guardaboschi',farm:'contadino',store:'magazziniere',mill:'mugnaio',school:'maestro',inn:'oste',sheepfold:'pastore',infirmary:'erborista',carpenter:'falegname',mason:'muratore',smithy:'fabbro',bakery:'panettiere',weaver:'tessitore',tailor:'sarto',fisher:'pescatore',hunter:'cacciatore',tavern:'taverniere',hall:'musicante'};
+const TRADENAME={wood:'taglialegna',quarry:'cavatore',mine:'minatore',forester:'guardaboschi',farm:'contadino',store:'magazziniere',mill:'mugnaio',school:'maestro',inn:'oste',sheepfold:'pastore',infirmary:'erborista',carpenter:'falegname',mason:'muratore',smithy:'fabbro',bakery:'panettiere',weaver:'tessitore',tailor:'sarto',fisher:'pescatore',hunter:'cacciatore',tavern:'taverniere',hall:'musicante',mercery:'merciaio'};
 // tratti di carattere (negativi): ogni abitante ne ha al massimo uno; i figli lo ereditano da un genitore con probabilità 35%
 const TRAITS={pigro:{n:'Pigro',d:'Lavora più lentamente e controvoglia.'},cagionevole:{n:'Cagionevole',d:'Si ammala più facilmente.'},brontolone:{n:'Brontolone',d:'Si lamenta di tutto: è sempre meno felice degli altri.'},litigioso:{n:'Litigioso',d:'Litiga con chi vive in casa e ne abbassa la felicità.'}};
 const TRAITK=Object.keys(TRAITS);
@@ -244,6 +246,7 @@ function addBuilding(type,x,y,done,o){
   if(type==='inn')Object.assign(b,{pantry:0,guestsIn:0,horses:0});
   if(type==='school'||type==='infirmary')b.pupils=0;
   if(WS[type])b.out={tools:0,bread:0,cloth:0,clothes:0,fish:0,meat:0};
+  if(type==='mercery')b.shelf={tools:0,bread:0,cloth:0,clothes:0};
   if(type==='church')b.cem=null;
   if(type==='cemetery')b.owner=o.owner;
   if(type==='wood'||type==='quarry'||type==='mine')b.buf=0;
@@ -662,19 +665,40 @@ function startTransfer(v,b){
 // Ogni addetto compie cicli di WS[tipo].t secondi dentro l'edificio; il prodotto resta in b.out e lo porta a casa chi ne ha più bisogno.
 // A parità di tempo una bottega vera rende molto più di quella di un giardino (fabbro: 3 attrezzi per ferro ogni 10 s contro 1 ogni ~30 s).
 const OUTCAP=30,BAND=135,PROD={smithy:'tools',bakery:'bread',weaver:'cloth',tailor:'clothes',fisher:'fish',hunter:'meat'};
+// v38: Merceria. Con un merciaio al lavoro, le botteghe portano qui attrezzi, pane, tessuto e abiti (scaffali fino a SHELFCAP per merce) invece di consegnarli alle case; le famiglie
+// mandano un adulto a ritirare ciò che manca (commissione 'merc'). Pesce e carne restano consegne dirette. Se la merceria è chiusa o lo scaffale è pieno si consegna alle case come prima.
+const MERC=['tools','bread','cloth','clothes'],SHELFCAP=40,MERC_LOT=6,MERC_LOW={tools:1,bread:2,cloth:2,clothes:1};
+const merceryOpen=o=>o.type==='mercery'&&o.state==='done'&&o.workers.length>0;
+function merceryFor(cell,g){let best=null,bd=1e9;for(const o of buildings.values()){if(!merceryOpen(o))continue;const d=cellDist(o.cell,cell);if(d>BAND||o.shelf[g]>=SHELFCAP)continue;if(d<bd){bd=d;best=o;}}return best;}
+function merceryErrand(h){
+  if(S.edicts.quarantine)return null;
+  let pick=null,bs=0;
+  for(const o of buildings.values()){
+    if(!merceryOpen(o))continue;
+    const d=cellDist(o.cell,h.cell);if(d>BAND)continue;
+    for(const g of MERC){
+      if(o.shelf[g]<1||h.goods[g]>=MERC_LOW[g])continue;
+      const n=needOfGood(h,g);if(n<=0)continue;
+      const sc=n*3-d*0.02;if(!pick||sc>bs){bs=sc;pick={b:o,g};}
+    }
+  }
+  return pick;
+}
 function woolSrc(b){let best=null;for(const o of buildings.values())if(o.type==='sheepfold'&&o.state==='done'&&o.buf>=1&&cellDist(o.cell,b.cell)<BAND&&(!best||o.buf>best.buf))best=o;return best;}
-function clothSrc(b){let best=null;for(const o of buildings.values())if(o.type==='weaver'&&o.state==='done'&&o.out.cloth>=1&&cellDist(o.cell,b.cell)<BAND&&(!best||o.out.cloth>best.out.cloth))best=o;return best;}
+// il sarto prende il tessuto dai telai oppure dagli scaffali della merceria (se è aperta)
+function clothSrc(b){let best=null,bn=0;for(const o of buildings.values()){let n=0;if(o.type==='weaver'&&o.state==='done')n=o.out.cloth;else if(merceryOpen(o))n=o.shelf.cloth;if(n>=1&&cellDist(o.cell,b.cell)<BAND&&n>bn){best=o;bn=n;}}return best;}
 function planksWanted(){for(const b of buildings.values())if(b.state==='site'){const c=costRes(b);if((c.planks||0)-b.got.planks-b.fly.planks>0)return true;}return false;}
 const WS={
   carpenter:{t:6,why:'Serve legno nel magazzino (o il magazzino delle assi è pieno)',can:b=>S.stock.wood>=1&&S.stock.planks<PLANK_CAP&&stockRoom('planks')>=2&&(S.stock.wood>=10||planksWanted()),run:b=>{S.stock.wood--;S.stock.planks=Math.min(PLANK_CAP,S.stock.planks+2);}},
   smithy:{t:10,why:'Serve ferro nel magazzino (miniera) o le scorte di attrezzi sono piene',can:b=>S.stock.iron>=1&&b.out.tools<OUTCAP,run:b=>{S.stock.iron--;b.out.tools+=3;}},
   bakery:{t:8,why:'Serve farina dal mulino o le scorte di pane sono piene',can:b=>S.stock.flour>=1&&b.out.bread<OUTCAP,run:b=>{S.stock.flour--;b.out.bread+=3;}},
   weaver:{t:9,why:'Serve lana: costruisci un ovile con i pastori e una zona di pascolo',can:b=>b.out.cloth<OUTCAP&&!!woolSrc(b),run:b=>{const o=woolSrc(b);if(o){o.buf--;b.out.cloth+=2;}}},
-  tailor:{t:10,why:'Serve tessuto: costruisci un telaio del tessitore',can:b=>b.out.clothes<OUTCAP&&!!clothSrc(b),run:b=>{const o=clothSrc(b);if(o){o.out.cloth--;b.out.clothes+=2;}}},
+  tailor:{t:10,why:'Serve tessuto: costruisci un telaio del tessitore',can:b=>b.out.clothes<OUTCAP&&!!clothSrc(b),run:b=>{const o=clothSrc(b);if(o){if(o.type==='mercery')o.shelf.cloth--;else o.out.cloth--;b.out.clothes+=2;}}},
   fisher:{t:7,why:'Con il ghiaccio non si pesca (o le scorte di pesce sono piene)',can:b=>!S.frozen&&b.out.fish<OUTCAP,run:b=>{b.out.fish+=2;}},
   hunter:{t:8,why:"D'inverno la selvaggina è scarsa (o le scorte di carne sono piene)",can:b=>b.out.meat<OUTCAP&&(S.season!==3||Math.random()<0.5),run:b=>{b.out.meat+=2;}},
   tavern:{t:12,can:b=>true,run:b=>{}},
-  hall:{t:14,can:b=>true,run:b=>{}}
+  hall:{t:14,can:b=>true,run:b=>{}},
+  mercery:{t:10,can:b=>true,run:b=>{}}
 };
 // quanto serve un bene a una casa (0 = niente)
 function needOfGood(h,g){
@@ -689,6 +713,16 @@ function needOfGood(h,g){
   return 0;
 }
 function startDeliver(v,b,g){
+  if(MERC.includes(g)){
+    const m=merceryFor(b.cell,g);
+    if(m){
+      // la merce si prende prima da quella pronta nella bottega, poi dalla scorta di Magazzino/Granaio (stk = quanta viene dalla scorta)
+      const avail=b.out[g]+Math.max(0,Math.floor(S.stock[g]||0));
+      const q=Math.min(avail,MERC_LOT,SHELFCAP-m.shelf[g]);
+      if(q>=1&&route(v,m.cell,m.id)){const fo=Math.min(q,b.out[g]);b.out[g]-=fo;S.stock[g]-=q-fo;v.cargo={g,q,h:m.id,from:b.id,stk:q-fo};v.carry=g;v.cq=q;v.state='toDeliver';return true;}
+      return false;
+    }
+  }
   let best=null,bs=-1e9;
   for(const h of buildings.values()){
     if(h.type!=='house'||h.state!=='done'||!h.members.length)continue;
@@ -839,18 +873,19 @@ function quietSpot(x,y,r){for(const b of buildings.values())if(NOISY[b.type]&&Ma
 function huntOK(x,y){return countNear(tree,x,y,15)>=16&&quietSpot(x,y,36);}
 function fishOK(x,y){return countNear(water,x,y,18,1)>=27;}
 function startErrand(v,h){
-  let kind=null,tgt=-1,tocc=0,src=0;
+  let kind=null,tgt=-1,tocc=0,src=0,mg=null;
   if(h.craft&&h.goods.iron<1&&S.stock.iron>0){const st=nearestStore(v.cell);if(st){kind='iron';tgt=st.cell;tocc=st.id;}}
   if(!kind&&h.bake&&h.goods.flour<1&&S.stock.flour>0){const m=nearestOf('mill',v.cell,240);if(m){kind='flour';tgt=m.cell;tocc=m.id;}}
   if(!kind&&h.weave&&h.goods.wool<1){let ov=null;for(const o of buildings.values())if(o.type==='sheepfold'&&o.state==='done'&&o.buf>=1&&(!ov||o.buf>ov.buf))ov=o;if(ov){kind='wool';tgt=ov.cell;tocc=ov.id;src=ov.id;}}
   if(!kind&&h.tailor&&h.goods.cloth<1){for(const o of buildings.values())if(o.type==='house'&&o!==h&&o.state==='done'&&o.weave&&o.goods.cloth>=2&&Math.hypot(o.cell%N-h.cell%N,(o.cell/N|0)-(h.cell/N|0))<135){kind='cloth';tgt=o.cell;tocc=o.id;src=o.id;break;}}
+  if(!kind){const mc=merceryErrand(h);if(mc){kind='merc';tgt=mc.b.cell;tocc=mc.b.id;src=mc.b.id;mg=mc.g;}}
   // v23: la legna da ardere non si raccoglie più con una commissione: la produce il giardino delle case con la coltura 'wood' (vedi la produzione dei giardini). Qui restano solo pesca e caccia.
   if(!kind&&Math.random()<0.3){
     if(h.side==='fish'&&h.goods.fish<8&&!S.frozen&&fishOK(h.hx,h.hy)){tgt=shoreTarget(h.cell,66);if(tgt>=0)kind='fish';}
     else if(h.side==='hunt'&&h.goods.meat<8&&huntOK(h.hx,h.hy)){tgt=treeTarget(h.cell,48,true);if(tgt>=0)kind='hunt';}
   }
   if(!kind||!route(v,tgt,tocc))return false;
-  v.err={kind,q:0,src};v.state='toErr';return true;
+  v.err={kind,q:0,src,g:mg};v.state='toErr';return true;
 }
 // ---- vita quotidiana ----
 function eatOne(b,v){
@@ -943,7 +978,8 @@ function onArrive(v){
     case 'toShop':{const sb=v.job&&buildings.get(v.job),sp=sb&&WS[sb.type];if(!sp){v.state='idle';break;}v.inside=true;v.state='shop';v.timer=sp.t;break;}
     case 'toDeliver':{
       const c=v.cargo,h=c&&buildings.get(c.h);
-      if(c&&h)h.goods[c.g]=Math.min(12,h.goods[c.g]+c.q);
+      if(c&&h&&h.type==='mercery'){h.shelf[c.g]=Math.min(SHELFCAP,h.shelf[c.g]+c.q);S.stocked=(S.stocked|0)+c.q;}
+      else if(c&&h)h.goods[c.g]=Math.min(12,h.goods[c.g]+c.q);
       else if(c){const fb=buildings.get(c.from);if(fb&&fb.out)fb.out[c.g]+=c.q-(c.stk|0);S.stock[c.g]+=c.stk|0;}
       if(c)S.delivered=(S.delivered|0)+c.q;
       v.cargo=null;v.carry=null;v.state='idle';break;}
@@ -961,7 +997,14 @@ function onArrive(v){
     case 'toErr':{
       const h=buildings.get(v.home);if(!h){v.state='idle';break;}
       const k=v.err.kind;
-      if(k==='wool'||k==='cloth'){
+      if(k==='merc'){
+        const so=buildings.get(v.err.src),g=v.err.g;
+        if(!so||!so.shelf||!g){v.err=null;v.state='idle';break;}
+        const n=needOfGood(h,g),q=Math.min(3,so.shelf[g]|0,Math.ceil(n));
+        if(n<=0||q<=0){v.err=null;v.state='idle';break;}
+        so.shelf[g]-=q;v.carry=g;v.cq=q;
+        if(route(v,h.cell,h.id))v.state='toHomeErr';else{so.shelf[g]+=q;v.carry=null;v.err=null;v.state='idle';}
+      }else if(k==='wool'||k==='cloth'){
         const so=buildings.get(v.err.src);if(!so){v.state='idle';break;}
         let q=0;
         if(k==='wool'){q=Math.min(3,so.buf|0);so.buf-=q;}else{q=Math.min(2,so.goods.cloth-1);if(q>0)so.goods.cloth-=q;}
@@ -977,7 +1020,7 @@ function onArrive(v){
       break;}
     case 'toHomeErr':{
       const h=buildings.get(v.home);
-      if(h&&v.err){const key=ERRKEY[v.err.kind],cp=key==='firewood'?fuelCap():12;h.goods[key]=Math.min(cp,h.goods[key]+(v.cq||1));}
+      if(h&&v.err){const key=v.err.kind==='merc'?v.err.g:ERRKEY[v.err.kind],cp=key==='firewood'?fuelCap():12;h.goods[key]=Math.min(cp,h.goods[key]+(v.cq||1));if(v.err.kind==='merc')S.fetched=(S.fetched|0)+(v.cq||1);}
       v.carry=null;v.err=null;v.state='idle';break;}
     case 'toCollect':{
       const c=v.cargo,st=nearestStore(v.cell);v.carry=c.res;v.cq=c.q;
@@ -1040,7 +1083,7 @@ function abortTask(v){
     case 'toStoreC':{const c=v.cargo;if(c){S.stock[c.res]+=Math.min(c.q,stockRoom(c.res));S.inflight[c.res]-=c.q;}break;}
     case 'toStore':{const t=v.task;if(t){const st=buildings.get(t.site);S.stock[t.res]++;if(st&&st.fly[t.res]>0)st.fly[t.res]--;}break;}
     case 'toSite':{const t=v.task,st=t&&buildings.get(t.site);if(st&&st.state==='site'){st.got[t.res]++;st.fly[t.res]--;}else if(t)S.stock[t.res]++;break;}
-    case 'toHomeErr':{if(h&&v.err){const key=ERRKEY[v.err.kind],cp=key==='firewood'?fuelCap():12;h.goods[key]=Math.min(cp,h.goods[key]+(v.cq||1));}break;}
+    case 'toHomeErr':{if(h&&v.err){const key=v.err.kind==='merc'?v.err.g:ERRKEY[v.err.kind],cp=key==='firewood'?fuelCap():12;h.goods[key]=Math.min(cp,h.goods[key]+(v.cq||1));}break;}
     case 'toHomeF':{if(h)h.goods.grain=Math.min(12,h.goods.grain+(v.cq||1));break;}
     case 'toGranary':S.stock.grain+=Math.min(v.cq||1,stockRoom('grain'));break;
     case 'toStockG':{const c=v.cargo;if(c){const fb=buildings.get(c.from);if(fb&&fb.out)fb.out[c.g]+=c.q;}break;}
@@ -1931,11 +1974,11 @@ function roleText(v){
     case 'toMarket':return 'Baratta al mercato';
     case 'toHomeT':return v.cargo?'Torna col baratto':'Torna dal mercato';
     case 'toErr':case 'doErr':case 'toHomeErr':{const k=v.err&&v.err.kind;
-      return k==='wool'?'Ritira la lana all\'ovile':k==='cloth'?'Compra tessuto dal tessitore':k==='fish'?'Pesca':k==='hunt'?'Va a caccia':k==='iron'?'Ritira il ferro al magazzino':k==='flour'?'Ritira la farina al mulino':'Raccoglie legna da ardere';}
+      return k==='merc'?('Compra '+(GN[v.err.g]||'merce')+' alla merceria'):k==='wool'?'Ritira la lana all\'ovile':k==='cloth'?'Compra tessuto dal tessitore':k==='fish'?'Pesca':k==='hunt'?'Va a caccia':k==='iron'?'Ritira il ferro al magazzino':k==='flour'?'Ritira la farina al mulino':'Raccoglie legna da ardere';}
     case 'toPlant':case 'plant':return 'Pianta alberi';
     case 'toMill':case 'mill':return 'Macina il grano';
     case 'toShop':case 'shop':{const jb=v.job&&buildings.get(v.job);return jb&&TRADENAME[jb.type]?TRADENAME[jb.type][0].toUpperCase()+TRADENAME[jb.type].slice(1)+' al lavoro':'Al lavoro in bottega';}
-    case 'toDeliver':return 'Porta la merce alle famiglie';
+    case 'toDeliver':{const mh=v.cargo&&buildings.get(v.cargo.h);return mh&&mh.type==='mercery'?'Porta la merce alla merceria':'Porta la merce alle famiglie';}
     case 'toStockG':{const sb=v.cargo&&buildings.get(v.cargo.s);return sb&&sb.type==='granary'?'Porta le scorte al granaio':'Porta le scorte al magazzino';}
     case 'toGranary':return 'Porta il grano al granaio';
     case 'toGraze':case 'graze':return 'Porta le pecore al pascolo';
@@ -1947,7 +1990,7 @@ function roleText(v){
   }
   if(v.child)return v.age<6?'Gioca in giardino':'Gioca';
   const b=v.job&&buildings.get(v.job);
-  if(b){const R={school:'Maestro',inn:'Oste',sheepfold:'Pastore',wood:'Taglialegna',quarry:'Cavatore',mine:'Minatore',forester:'Guardaboschi',mill:'Mugnaio',farm:'Contadino',store:'Magazziniere',infirmary:'Erborista',carpenter:'Falegname',mason:'Muratore',smithy:'Fabbro',bakery:'Panettiere',weaver:'Tessitore',tailor:'Sarto',fisher:'Pescatore',hunter:'Cacciatore',tavern:'Taverniere',hall:'Musicante'};if(R[b.type])return R[b.type];}
+  if(b){const R={school:'Maestro',inn:'Oste',sheepfold:'Pastore',wood:'Taglialegna',quarry:'Cavatore',mine:'Minatore',forester:'Guardaboschi',mill:'Mugnaio',farm:'Contadino',store:'Magazziniere',infirmary:'Erborista',carpenter:'Falegname',mason:'Muratore',smithy:'Fabbro',bakery:'Panettiere',weaver:'Tessitore',tailor:'Sarto',fisher:'Pescatore',hunter:'Cacciatore',tavern:'Taverniere',hall:'Musicante',mercery:'Merciaio'};if(R[b.type])return R[b.type];}
   const h=v.home&&buildings.get(v.home);
   if(h){if(h.tailor)return 'Sarto';if(h.weave)return 'Tessitore';if(h.bake)return 'Panettiere';if(h.craft)return 'Artigiano';return h.crop==='veg'?"Cura l'orto":h.crop==='eggs'?'Alleva galline':h.crop==='wood'?'Raccoglie legna da ardere':'Alleva maiali e pecore';}
   return 'In cerca di una casa';
@@ -1977,7 +2020,7 @@ function stats(){
 }
 return {SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
-  WS,PROD,FUN,OUTCAP,PLANK_CAP,costOf,siteReady,
+  WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,
   STORE_KEYS,GRAN_KEYS,GRAN_TOTAL,CENTER_CAP,setPolicy,storeInfo,stockRoom,capRes,
   _t:{chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
   grids:{tree,rock,ore,water,sap,sapT,road,dist,occ,wear,plev,field,door,attr,cen},guests:()=>guests,buildings:()=>buildings,villagers:()=>villagers};

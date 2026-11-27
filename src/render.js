@@ -730,6 +730,22 @@ const BUILD={
     for(const [x,z] of[[-1.9,1.2],[-1.5,1.35],[-1.7,.95]])cyl(g,.26,.26,.5,10,MAT.logD,x,.25,z);
     bx(g,.8,.06,.4,MAT.log,.9,.5,1.35);for(const sx of[.6,1.2])bx(g,.06,.5,.06,MAT.timber,sx,.25,1.35);
     return g;},
+  mercery(b){const g=new THREE.Group();
+    bx(g,3.4,1.2,2.2,MAT.plaster,-.2,.6,-.2);bx(g,3.5,.1,2.3,MAT.timber,-.2,1.2,-.2);bx(g,3.0,.9,2.0,MAT.wattle,-.2,1.7,-.2);
+    for(const x of[-1.7,-.5,.9,1.3])bx(g,.09,2.15,.09,MAT.timber,x,1.07,.93);
+    gab(g,3.6,2.1,1.0,MAT.tile,2.15,-.2,-.2);
+    bx(g,.55,.9,.06,MAT.door,.6,.46,.92);bx(g,1.3,.6,.06,MAT.glass,-.9,.8,.92);for(const x of[-.9,.3])bx(g,.4,.4,.06,MAT.glass,x,1.75,.82);
+    chim(g,1.0,2.7,-.7,.7);
+    // tettoia rossa sul banco e pezze di stoffa colorate
+    bx(g,2.6,.07,.9,MAT.red,-.5,1.1,1.4).rotation.x=.3;
+    for(const x of[-1.75,.75])bx(g,.06,1.1,.06,MAT.timber,x,.55,1.8);
+    bx(g,2.2,.5,.45,MAT.log,-.5,.25,1.45);
+    for(const [c,x] of[[MAT.cloth,-1.3],[MAT.blue,-.95],[MAT.cream,-.6],[MAT.gold,-.25],[MAT.leaf,.1]])bx(g,.28,.3,.32,c,x,.65,1.45);
+    // insegna a bandiera con rocchetto d'oro
+    bx(g,.08,.08,.7,MAT.timber,1.75,1.7,1.25);bx(g,.45,.45,.05,MAT.plaster,1.75,1.38,1.58);cyl(g,.12,.12,.16,8,MAT.gold,1.75,1.38,1.64,Math.PI/2,0);
+    // balle di tessuto e cassette accanto alla porta
+    cyl(g,.2,.2,.5,10,MAT.cloth,1.3,.25,1.4);bx(g,.4,.3,.4,MAT.fw,1.45,.15,1.0);
+    return g;},
   hall(b){const g=new THREE.Group();
     bx(g,4.6,.18,5.0,MAT.stoneD,0,.09,0);
     bx(g,4.0,1.9,2.4,MAT.plaster,0,1.1,-1.1);for(const x of[-1.9,-.95,0,.95,1.9])bx(g,.12,1.9,2.5,MAT.timber,x,1.1,-1.1);
@@ -949,6 +965,7 @@ const TOOLS=[
   {id:'fisher',label:'Capanna del pescatore',key:'',hint:'Sulla riva di un lago o di un fiume. Pesce per le famiglie (2 ogni 7 s per pescatore); con il ghiaccio non si pesca.'},
   {id:'hunter',label:'Capanna del cacciatore',key:'',hint:'Vicino a un bosco fitto. Porta carne alle famiglie (2 ogni 8 s per cacciatore); d\'inverno la selvaggina è scarsa.'},
   {id:'sheepfold',label:'Ovile',key:'',hint:'Costruisci l\'ovile dentro una zona Pascolo (tasto P): la zona intorno si chiude con un recinto, i pastori portano le pecore a brucare lì dentro e producono la lana per il tessitore.'},
+  {id:'mercery',label:'Merceria',key:'',hint:'Con un merciaio: le botteghe portano qui attrezzi, pane, tessuto e abiti (fino a 40 per merce) e le famiglie entro 135 celle vengono a ritirare ciò che manca. Se è chiusa o lo scaffale è pieno, le botteghe consegnano alle case.'},
   {id:'tavern',label:'Taverna',key:'',hint:'Con un taverniere: chi abita entro 36 celle ha +4 di felicità. Attrae nuovi abitanti.'},
   {id:'hall',label:'Sala delle feste',key:'',hint:'Con un musicante: chi abita entro 45 celle ha +6 di felicità. Molto piacevole.'},
   {id:'granary',label:'Granaio',key:'b',hint:'Le fattorie portano qui il grano in eccedenza. Il mulino lo macina.'},
@@ -970,7 +987,7 @@ const CATS=[
   {id:'tools',label:'Strumenti',ids:['select','pan','demolish']},
   {id:'zone',label:'Zone e strade',ids:['d1','d2','d3','d4','d5','undistrict','road']},
   {id:'prod',label:'Produzione',ids:['wood','quarry','mine','forester','granary','mill']},
-  {id:'shop',label:'Botteghe',ids:['carpenter','mason','smithy','bakery','sheepfold','weaver','tailor','fisher','hunter']},
+  {id:'shop',label:'Botteghe',ids:['carpenter','mason','smithy','bakery','sheepfold','weaver','tailor','fisher','hunter','mercery']},
   {id:'serv',label:'Servizi',ids:['store','well','school','infirmary','church','inn','tavern','hall']},
   {id:'deco',label:'Decorazioni',ids:['plaza','flowers','statue']}];
 const CATOF={};CATS.forEach(c=>c.ids.forEach(i=>{CATOF[i]=c.id;}));
@@ -1032,6 +1049,11 @@ function refreshSel(){
     const w=Sim.villagers().filter(v=>v.job===b.id);
     info=`Muratori: ${w.length}/${b.want} · assi nel magazzino: ${S.stock.planks}`;
     list=w.map((v,i)=>`<div>Muratore ${i+1}: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>Portano i materiali ai cantieri e costruiscono il 60% più in fretta. Senza lavori aiutano le famiglie e portano i materiali ai magazzini.</div>'+(w.length===0?`<div>Nessun muratore: servono abitanti liberi.</div>`:'');
+  }
+  else if(b.type==='mercery'){
+    const w=Sim.villagers().filter(v=>v.job===b.id),GLM={tools:'attrezzi',bread:'pane',cloth:'tessuto',clothes:'abiti'};
+    info=`Addetti: ${w.length}/${b.want} · scaffali: `+Object.keys(GLM).map(k=>`${GLM[k]} ${b.shelf[k]}/${Sim.SHELFCAP}`).join(', ');
+    list=w.map((v,i)=>`<div>Merciaio ${i+1}: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>Fucina, forno, telaio e sartoria portano qui i loro prodotti; le famiglie entro 135 celle mandano qualcuno a ritirare ciò che manca. Il sarto prende qui il tessuto.</div>'+(w.length===0?'<div>Nessun merciaio: la merceria è chiusa e le botteghe consegnano direttamente alle case. Servono abitanti liberi.</div>':'');
   }
   else if(Sim.WS[b.type]){
     const w=Sim.villagers().filter(v=>v.job===b.id),g=Sim.PROD[b.type],spec=Sim.WS[b.type];
