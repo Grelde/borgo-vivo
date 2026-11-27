@@ -45,8 +45,8 @@ body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--seri
 #goals li.done::before{background:var(--moss);border-color:var(--moss)}
 #goals em{font-style:normal;color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap}
 
-#edicts{position:absolute;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(12,8,3,.62);padding:12px}
-#edicts[hidden]{display:none}
+#edicts,#trade{position:absolute;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(12,8,3,.62);padding:12px}
+#edicts[hidden],#trade[hidden]{display:none}
 .edBox{position:relative;width:min(600px,100%);max-height:92vh;overflow:auto;background:linear-gradient(#ecdcae,#d8c48c);color:#3a2812;border:3px solid #6b4a2b;border-radius:6px;box-shadow:0 10px 40px rgba(0,0,0,.6),inset 0 0 40px rgba(120,80,30,.35);padding:18px 20px 16px}
 .edBox h2{margin:0 0 2px;font-family:Georgia,'Times New Roman',serif;font-size:24px;text-align:center;letter-spacing:.04em;color:#4a2f12}
 .edBox .sub{margin:0 0 12px;text-align:center;font-size:13px;opacity:.8;font-style:italic}
@@ -75,6 +75,20 @@ body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--seri
 .svC .btn:disabled{opacity:.45;cursor:default}
 .svF{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px}
 @media (max-width:560px){.svC{grid-template-columns:1fr}.svB{justify-content:flex-start}.svC .btn,.svF .btn{min-height:44px}}
+
+.trTop{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin:2px 0 8px}
+.trPurse{font-family:Georgia,serif;font-size:18px;color:#3a1f0c}
+.trPurse b{font-size:24px}
+.trOpt{display:flex;gap:6px;flex-wrap:wrap}
+.trOpt .btn{background:#5a3c1c;color:#fff0cc;border-color:#3a2410;font-size:12px}
+.trOpt .btn.off{background:rgba(255,246,214,.55);color:#5a3c1c}
+.trRule{font-size:12px;line-height:1.4;margin:0 0 6px;opacity:.85}
+.trWarn{font-size:13px;margin:4px 0 6px;padding:6px 10px;border-radius:5px;background:rgba(140,47,35,.14);color:#7a2a1c}
+.trP{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:12px;margin-top:3px}
+.trP em{font-style:normal;font-weight:bold;color:#5a3c1c}
+.trP span{white-space:nowrap}
+.trLog h4{margin:10px 0 4px;font-family:Georgia,serif;font-size:14px;color:#4a2f12}
+.trLog div{font-size:12px;line-height:1.35;border-bottom:1px dashed rgba(90,60,25,.3);padding:3px 0}
 @media (max-width:560px){.edC{grid-template-columns:44px 1fr}.edC .ic{width:42px;height:42px;font-size:22px}.edC .btn{grid-column:1/-1}}
 #camctl{position:absolute;top:104px;right:16px;display:flex;flex-direction:column;gap:5px}
 #camctl .btn{width:36px;height:36px;padding:0;font-size:18px;line-height:1}
@@ -247,6 +261,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
       <span class="chip" title="Ferro nei magazzini"><i class="sw" style="background:#55575c"></i>Ferro <b id="rIron">0</b></span>
       <span class="chip" title="Assi di legno prodotte dalla falegnameria: servono a molti cantieri"><i class="sw p"></i>Assi <b id="rPlanks">0</b></span>
+      <span class="chip clk" id="chipCoins" role="button" tabindex="0" title="Denari in cassa. Clicca per aprire il registro delle rotte commerciali."><i class="sw" style="background:#d6ad4e"></i>Denari <b id="rCoins">0</b></span>
       <span class="chip" title="Grano nei granai · farina nei mulini"><i class="sw" style="background:#d6b24e"></i>Grano·Farina <b id="rGrain">0</b></span>
       <span class="chip" title="Cibo nelle scorte delle famiglie"><i class="sw f"></i>Cibo <b id="rFood">0</b></span>
       <span class="chip" title="Legna da ardere nelle case · fabbisogno di tutte le case"><i class="sw w"></i>Legna case <b id="rFire">0</b></span>
@@ -272,6 +287,9 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
   <div id="saves" hidden role="dialog" aria-label="Salvataggi">
     <div class="edBox"><h2>Salvataggi</h2><p class="sub">Il borgo si salva da solo ogni minuto e quando chiudi la pagina. Qui puoi tenere anche salvataggi tuoi, o portare la partita su un altro dispositivo con un file.</p><div id="svList"></div><div class="svF"><button class="btn" id="svExport" type="button">Esporta in un file</button><button class="btn" id="svImport" type="button">Importa da un file</button></div><button class="btn x" id="svClose" type="button">Chiudi</button></div>
   </div>
+  <div id="trade" hidden role="dialog" aria-label="Rotte commerciali">
+    <div class="edBox"><h2>Rotte commerciali</h2><p class="sub">Quattro città vicine mandano carovane alla Merceria: apri le rotte con i denari.</p><div id="trList"></div><button class="btn x" id="trClose" type="button">Chiudi</button></div>
+  </div>
   <div id="card" hidden role="dialog" aria-label="Scheda abitante">
     <div class="cardBox"><div id="cardBody"></div><div class="acts"><button class="btn" id="cardHome" type="button">Vai alla casa</button><button class="btn" id="cardClose" type="button">Chiudi</button></div></div>
   </div>
@@ -285,6 +303,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
     <button class="btn" id="camOut" title="Allontana">−</button>
     <button class="btn" id="rotBtn" title="Ruota l'edificio (R): la freccia gialla indica l'ingresso" style="display:none">⟳</button>
     <button class="btn" id="edictBtn" title="Emana Editto: decreti del borgo">📜</button>
+    <button class="btn" id="tradeBtn" title="Rotte commerciali e denari">💰</button>
     <button class="btn" id="saveBtn" title="Salvataggi (Ctrl+S salva nel posto 1)">💾</button>
     <button class="btn on" id="zoneBtn" title="Zone di caccia e pesca (J): icona arco e freccia = caccia, icona pesce = pesca">🏹</button>
     <button class="btn" id="attrBtn" title="Mappa dell'attrattiva (V): verde piacevole, rosso rumoroso">☺</button>

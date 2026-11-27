@@ -24,6 +24,8 @@ node tests/save.js               # salvataggio: ciclo esporta/importa e salvatag
 node tests/save-render.js        # salvataggio lato interfaccia (richiede ./build.sh)
 node tests/population.js         # malattie, eredità, editti (lento)
 node tests/legna.js              # legna e giardini puri (lento)
+node tests/commercio.js          # merceria, rotte e carovane (lento)
+node tests/commercio-render.js   # grafica del commercio (DOM finto)
 ```
 Dopo ogni modifica: `./build.sh`, aggiornare `CHANGELOG.md`, commit.
 

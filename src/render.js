@@ -900,6 +900,7 @@ Sim.hooks.villager=function(v){
   const load=new THREE.Mesh(new THREE.BoxGeometry(.36,.2,.2),MAT.log);load.position.set(0,.5,-.2);load.visible=false;gp.add(load);
   gp.scale.setScalar(0.8);gp.position.set(v.x,0,v.z);
   if(v.guest){hood.material=L(v.kind==='merchant'?0x2f5a3c:v.kind==='pilgrim'?0x6b5a3a:0x4a4a68);
+    if(v.caravan){const ct=new THREE.Group();bx(ct,.7,.1,1.0,MAT.log,0,.38,0);for(const sx of[-.4,.4])cyl(ct,.24,.24,.06,10,MAT.logD,sx,.26,0,0,Math.PI/2);bx(ct,.55,.34,.6,MAT.cloth,0,.62,-.05);bx(ct,.3,.22,.3,MAT.hay,.1,.86,.1);bx(ct,.05,.05,.8,MAT.timber,0,.45,.75);ct.position.set(0,0,-1.55);gp.add(ct);gp.userData.cart=ct;}
     if(v.horse){const hs=new THREE.Group();bx(hs,.5,.5,1.1,MAT.horse,0,.55,-.2);bx(hs,.22,.5,.25,MAT.horse,0,.95,.45);for(const sx of[-.16,.16])for(const sz of[-.55,.15])bx(hs,.1,.35,.1,MAT.horse,sx,.18,sz);bx(hs,.55,.1,.5,MAT.cloth,0,.82,-.2);gp.add(hs);gp.userData.horse=hs;}}
   if(!v.guest){const vh=new THREE.Mesh(new THREE.SphereGeometry(.6,6,5),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));vh.position.y=.55;vh.userData.vid=v.id;gp.add(vh);vpick.push(vh);}
   scene.add(gp);vms.set(v.id,{gp,load,carry:null,body,mat,ill:false});
@@ -1056,8 +1057,8 @@ function refreshSel(){
   }
   else if(b.type==='mercery'){
     const w=Sim.villagers().filter(v=>v.job===b.id),GLM={tools:'attrezzi',bread:'pane',cloth:'tessuto',clothes:'abiti'};
-    info=`Addetti: ${w.length}/${b.want} · scaffali: `+Object.keys(GLM).map(k=>`${GLM[k]} ${b.shelf[k]}/${Sim.SHELFCAP}`).join(', ');
-    list=w.map((v,i)=>`<div>Merciaio ${i+1}: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>Fucina, forno, telaio e sartoria portano qui i loro prodotti; le famiglie entro 135 celle mandano qualcuno a ritirare ciò che manca. Il sarto prende qui il tessuto.</div>'+(w.length===0?'<div>Nessun merciaio: la merceria è chiusa e le botteghe consegnano direttamente alle case. Servono abitanti liberi.</div>':'');
+    info=`Addetti: ${w.length}/${b.want} · scaffali: `+Object.keys(GLM).map(k=>`${GLM[k]} ${b.shelf[k]}/${Sim.SHELFCAP}`).join(', ')+` · denari ${S.coins}`;
+    list=w.map((v,i)=>`<div>Merciaio ${i+1}: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>Fucina, forno, telaio e sartoria portano qui i loro prodotti; le famiglie entro 135 celle mandano qualcuno a ritirare ciò che manca. Il sarto prende qui il tessuto.</div>'+(w.length===0?'<div>Nessun merciaio: la merceria è chiusa e le botteghe consegnano direttamente alle case. Servono abitanti liberi.</div>':'')+`<div>Commercio: con un merciaio le carovane delle città di cui hai aperto la rotta vengono qui a comprare e vendere a denari (rotte aperte ${S.routes.filter(r=>r.open).length}/4). <span class="lk" data-trade="1">Apri il registro delle rotte</span></div>`;
   }
   else if(Sim.WS[b.type]){
     const w=Sim.villagers().filter(v=>v.job===b.id),g=Sim.PROD[b.type],spec=Sim.WS[b.type];
@@ -1200,6 +1201,52 @@ $('edictBtn').addEventListener('click',()=>openEdicts($('edicts').hidden));
 $('edClose').addEventListener('click',()=>openEdicts(false));
 $('edicts').addEventListener('click',ev=>{if(ev.target===$('edicts')){openEdicts(false);return;}const bt=ev.target.closest&&ev.target.closest('[data-ed]');if(!bt)return;const k=bt.getAttribute('data-ed');const on=!(S.edicts&&S.edicts[k]);Sim.setEdict(k,on);const e=EDICTS.find(x=>x.k===k);toast(on?`Editto emanato: ${e.t}`:`Editto ritirato: ${e.t}`);renderEdicts();});
 addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!$('edicts').hidden)openEdicts(false);});
+
+// ---------- commercio: registro delle rotte (v44) ----------
+let tradeCache='';
+const TDIR={w:'⬅',n:'⬆',e:'➡',s:'⬇'};
+const tgood=(k,q,p)=>`${Sim.TGN[k]}${q?' ×'+q:''}${p?' ('+p+')':''}`;
+const tprices=o=>Object.keys(o).map(k=>`<span>${Sim.TGN[k]} ${o[k]}</span>`).join('');
+const daysTxt=sec=>{const d=sec/Sim.DAY;return d<0.5?'poche ore':d<1.5?'circa 1 giorno':'circa '+Math.round(d)+' giorni';};
+function tradeRule(){
+  const K=Sim.T_KEEP,T=Sim.T_TARGET;
+  return `Il merciaio vende ciò che supera la scorta da tenere (legno ${K.wood}, pietra ${K.stone}, ferro ${K.iron}, assi ${K.planks}; per cibo, attrezzi e abiti il fabbisogno delle case più ${K.tools}-${K.bread} pezzi) e compra ciò che manca (legno sotto ${T.wood}, pietra ${T.stone}, ferro ${T.iron}, assi ${T.planks} e solo con una falegnameria; attrezzi, pane, tessuto e abiti per gli scaffali della merceria, pesce e carne per le case secondo il bisogno). Al massimo ${Sim.VISIT_CAP} pezzi per merce a visita, e spende al massimo metà della cassa.`;
+}
+function renderTrade(force){
+  if($('trade').hidden)return;
+  const st=Sim.tradeStatus(),O=S.tradeOpt,live=Sim.guests().filter(g=>g.caravan);
+  const hasHub=[...Sim.buildings().values()].some(b=>b.type==='mercery'&&b.state==='done');
+  let h=`<div class="trTop"><div class="trPurse">Denari in cassa: <b>${S.coins}</b></div><div class="trOpt"><button class="btn${O.sell?'':' off'}" type="button" data-topt="sell">Vendi eccedenze: ${O.sell?'sì':'no'}</button><button class="btn${O.buy?'':' off'}" type="button" data-topt="buy">Compra il necessario: ${O.buy?'sì':'no'}</button></div></div>`;
+  h+=`<p class="trRule">${tradeRule()}</p>`;
+  if(!st.ok)h+=`<div class="trWarn">${esc(st.why)}</div>`;
+  h+=Sim.ROUTE_IDS.map(id=>{
+    const T=Sim.TOWNS[id],r=S.routes.find(x=>x.id===id);
+    let state='';
+    if(r.open){
+      const coming=live.some(g=>g.route===id);
+      state=`<span class="fx">Rotta aperta · ${r.visits} visite · incassati ${r.earned} · spesi ${r.spent} · `+(!st.ok?'carovane ferme':coming?'una carovana è in arrivo':r.blocked?'la carovana non trova la strada fino alla Merceria: libera un passaggio dal bordo della mappa':'prossima carovana tra '+daysTxt(r.next))+`</span>`;
+    }else state=`<span class="fx">${hasHub?`Rotta chiusa: aprirla costa ${T.cost} denari.`:'Rotta chiusa: serve prima una Merceria.'}</span>`;
+    const btn=r.open?'':`<button class="btn" type="button" data-route="${id}" title="Costa ${T.cost} denari">Apri · ${T.cost}</button>`;
+    return `<div class="edC${r.open?' on':''}"><div class="ic">${TDIR[id]}</div><div><b>${T.name} <small>· a ${T.side}</small></b><span class="d">${T.desc}</span><div class="trP"><em>Vende a te:</em>${tprices(T.sells)}</div><div class="trP"><em>Compra da te:</em>${tprices(T.buys)}</div>${state}</div>${btn}<div class="seal">✠</div></div>`;
+  }).join('');
+  const lg=(S.tlog||[]).slice(0,8);
+  h+=`<div class="trLog"><h4>Ultime carovane · incassati ${S.trade.sold} · spesi ${S.trade.bought}</h4>`+(lg.length?lg.map(e=>{const T=Sim.TOWNS[e.route];
+    const sv=e.sold.length?'vendute: '+e.sold.map(x=>tgood(x.k,x.q,x.p)).join(', ')+' = +'+e.earned:'',bg=e.bought.length?'comprate: '+e.bought.map(x=>tgood(x.k,x.q,x.p)).join(', ')+' = −'+e.spent:'';
+    return `<div><b>${T.name}</b> · ${Sim.dateStr(e.t)} — ${[sv,bg].filter(Boolean).join(' · ')||'nessuno scambio'}</div>`;}).join(''):'<div>Nessuna carovana è ancora passata.</div>')+`</div>`;
+  if(force||h!==tradeCache){tradeCache=h;$('trList').innerHTML=h;}
+}
+function openTrade(v){$('trade').hidden=!v;$('tradeBtn').classList.toggle('on',!!v);if(v)renderTrade(true);}
+$('tradeBtn').addEventListener('click',()=>openTrade($('trade').hidden));
+$('trClose').addEventListener('click',()=>openTrade(false));
+{const el=$('chipCoins');el.addEventListener('click',()=>openTrade(true));el.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();ev.stopPropagation();openTrade(true);}});}
+$('trade').addEventListener('click',ev=>{
+  if(ev.target===$('trade')){openTrade(false);return;}
+  const rt=ev.target.closest&&ev.target.closest('[data-route]');
+  if(rt){const res=Sim.unlockRoute(rt.getAttribute('data-route'));toast(res.msg,!res.ok);renderTrade(true);return;}
+  const op=ev.target.closest&&ev.target.closest('[data-topt]');
+  if(op){const k=op.getAttribute('data-topt');Sim.setTradeOpt(k,!S.tradeOpt[k]);renderTrade(true);}
+});
+addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!$('trade').hidden)openTrade(false);});
 $('zSet').addEventListener('click',()=>{const b=selB();if(!b)return;zoneEdit=zoneEdit===b.id?null:b.id;if(zoneEdit)toast(document.body.classList.contains('touch')?'Tocca la mappa dove vuoi il centro della zona di lavoro. Ritocca il pulsante per annullare.':'Clicca sulla mappa il centro della zona di lavoro. Tasto destro per annullare.');refreshSel();});
 $('zMinus').addEventListener('click',()=>{const b=selB();if(!b)return;const r=(b.zone?b.zone.r:(b.type==='forester'?72:39))-6;Sim.setZone(b.id,b.zone?b.zone.c:b.cell,r);refreshSel();});
 $('zPlus').addEventListener('click',()=>{const b=selB();if(!b)return;const r=(b.zone?b.zone.r:(b.type==='forester'?72:39))+6;Sim.setZone(b.id,b.zone?b.zone.c:b.cell,r);refreshSel();});
@@ -1442,7 +1489,7 @@ function renderCard(){
 $('cardClose').addEventListener('click',closeCard);
 $('card').addEventListener('click',ev=>{if(ev.target===$('card')){closeCard();return;}const l=ev.target.closest&&ev.target.closest('[data-v]');if(l)openCard(+l.getAttribute('data-v'));});
 $('cardHome').addEventListener('click',()=>{const v=Sim.villagers().find(x=>x.id===cardId);const b=v&&v.home&&Sim.buildings().get(v.home);if(!b)return;closeCard();const [cx,cz]=footCenter(b);cam.x=cx;cam.z=cz;cam.goal=Math.min(cam.goal,34);select(b.id);});
-$('selList').addEventListener('click',ev=>{const l=ev.target.closest&&ev.target.closest('[data-v]');if(l)openCard(+l.getAttribute('data-v'));});
+$('selList').addEventListener('click',ev=>{if(ev.target.closest&&ev.target.closest('[data-trade]')){openTrade(true);return;}const l=ev.target.closest&&ev.target.closest('[data-v]');if(l)openCard(+l.getAttribute('data-v'));});
 addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!$('card').hidden)closeCard();});
 
 // ---------- v27: pannello dettagli Abitanti e Felicità ----------
@@ -1550,11 +1597,11 @@ let hudT=0;const PHN={work:'lavoro',meal:'pasto',evening:'sera',night:'notte'};
 function updateHUD(){
   const st=Sim.stats();
   capNow=st.capRes||80;capStoneNow=st.capStone||80;if(attrOn)groundDirty=true;
-  $('rWood').textContent=`${S.stock.wood}/${capNow}`;$('rStone').textContent=`${S.stock.stone}/${capStoneNow}`;$('rFood').textContent=st.food;$('rIron').textContent=`${S.stock.iron}`;$('rPlanks').textContent=`${S.stock.planks}`;$('rGrain').textContent=`${S.stock.grain}·${S.stock.flour}`;
+  $('rWood').textContent=`${S.stock.wood}/${capNow}`;$('rStone').textContent=`${S.stock.stone}/${capStoneNow}`;$('rFood').textContent=st.food;$('rIron').textContent=`${S.stock.iron}`;$('rPlanks').textContent=`${S.stock.planks}`;$('rCoins').textContent=st.coins;$('rGrain').textContent=`${S.stock.grain}·${S.stock.flour}`;
   $('rDay').textContent=`${Sim.SEASONS[st.season]} ${st.day%Sim.SEASON_DAYS+1}/${Sim.SEASON_DAYS} · annata ${st.year} · ${PHN[st.ph]}`;
   $('rPop').textContent=`${st.pop}/${st.cap}`+(st.children?` (👶${st.children})`:'');$('rJobs').textContent=`${st.jobs}/${st.slots}`;$('rBarter').textContent=st.barters;
   $('rFire').textContent=`${st.fire}/${st.fireNeed}`;$('rSick').textContent=st.sick+(st.plague?' ☣':'');$('chipSick').classList.toggle('alert',st.sick>0);$('rWell').textContent=Math.round(st.avgJoy)+(st.unhappy?' · '+st.unhappy+' tristi':'');$('chipJoy').classList.toggle('alert',st.unhappy>0&&st.avgJoy<45);
-  checkGoals(st);refreshSel();if(cardId)renderCard();renderPop(st);
+  checkGoals(st);refreshSel();if(cardId)renderCard();renderPop(st);renderTrade();
   for(const t of TOOLS)if(BT[t.id])toolBtns[t.id].classList.toggle('poor',!Sim.afford(t.id));
 }
 

@@ -7,6 +7,7 @@ global.window={innerWidth:900,devicePixelRatio:1,matchMedia:()=>({matches:false}
 global.matchMedia=()=>({matches:false});
 global.document.body={classList:{contains(){return false},add(){},remove(){},toggle(){}}};
 global.addEventListener=()=>{};
+global.localStorage={getItem:()=>null,setItem(){},removeItem(){}};global.location={search:'?seme=7'};
 let frames=0;global.__frames=0;
 global.requestAnimationFrame=(f)=>{if(frames++<300)setTimeout(()=>f(performance.now()+frames*16),0);};
 global.performance=require('perf_hooks').performance;

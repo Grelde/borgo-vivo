@@ -84,8 +84,23 @@ const tree=new Uint8Array(N*N),rock=new Uint8Array(N*N),ore=new Uint8Array(N*N),
 // wear: solo per le strade tracciate dal giocatore (usura lenta). plev/phit/pexp: livello del sentiero, passaggi nella finestra corrente, istante di scadenza del livello.
 const wear=new Float32Array(N*N),jit=new Float32Array(N*N),attr=new Float32Array(N*N),sapT=new Float32Array(N*N),plev=new Uint8Array(N*N),phit=new Uint8Array(N*N),pexp=new Float32Array(N*N);
 const EDICT0=()=>({noUpgrade:false,noImmig:false,birthBonus:false,schoolMandatory:false,quarantine:false,woodDuty:false});
+// ---- v44: commercio. Le 4 città vicine (una per lato della mappa) mandano carovane alla Merceria, ma solo sulle rotte che il giocatore ha sbloccato.
+// Prezzi in denari per pezzo: `sells` = ciò che la città vende al paese, `buys` = ciò che la città compra dal paese.
+const COINS0=80,VISIT_CAP=6,CARAVAN_GAP=220,TRADE_STAY=8,MAXCARAV=3,BUY_SHARE=0.5; // a ogni visita il merciaio spende al massimo la metà dei denari in cassa (così si può risparmiare per le rotte)
+const TOWNS={
+  w:{id:'w',name:'Valmora',side:'ovest',desc:'Borgo di fondovalle, famoso per lana e tessuti.',cost:60,sells:{cloth:5,clothes:11,fish:2},buys:{wood:3,stone:4,bread:3}},
+  n:{id:'n',name:'Rocca Alta',side:'nord',desc:'Città di montagna con miniere di ferro e fucine.',cost:150,sells:{iron:6,tools:9,stone:3},buys:{bread:4,meat:4,clothes:14,wood:3}},
+  e:{id:'e',name:'Porto Fiorito',side:'est',desc:'Porto sul fiume: assi di legno, pesce e tessuti da lontano.',cost:300,sells:{planks:4,fish:2,cloth:5},buys:{iron:9,tools:12,stone:4,planks:6}},
+  s:{id:'s',name:'Campomaggio',side:'sud',desc:'Piana fertile con una grande fiera: pane, carne e attrezzi.',cost:500,sells:{bread:2,meat:3,tools:9},buys:{cloth:7,clothes:14,iron:8,planks:6,fish:3}}
+};
+const ROUTE_IDS=['w','n','e','s'];
+const TGN={wood:'legno',stone:'pietra',planks:'assi',iron:'ferro',tools:'attrezzi',bread:'pane',fish:'pesce',meat:'carne',cloth:'tessuto',clothes:'abiti'};
+// si vende solo sopra T_KEEP (più il fabbisogno delle case per cibo, attrezzi e abiti) e si compra solo sotto T_TARGET: così non si compra e vende lo stesso bene
+const T_KEEP={wood:60,stone:45,iron:24,planks:18,tools:14,bread:20,cloth:14,clothes:12,fish:25,meat:25},T_TARGET={wood:30,stone:20,iron:10,planks:10,tools:8,bread:10,cloth:6,clothes:6,fish:10,meat:10};
+const mkRoutes=()=>ROUTE_IDS.map(id=>({id,open:false,next:0,visits:0,earned:0,spent:0,last:-1,blocked:false}));
 const S={t:0,mode:'lake',stock:{wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0},inflight:{wood:0,stone:0,iron:0},grow:0,barters:0,helps:0,visits:0,settled:0,season:0,year:1,frozen:false,day:0,f:0.06,ph:'work',wh:{wood:0,stone:0,iron:0},xf:{wood:0,stone:0,iron:0},edicts:EDICT0(),births:0,deaths:0,buried:0,unburied:0,
-  deathsBy:{age:0,cold:0,hunger:0,ill:0},plague:{on:false,since:0,dead:0},inherits:0,cured:0,sickTot:0,moves:0,left:0,att:{joy:0,unemp:0,a:0,bonus:0},made:{},delivered:0};
+  deathsBy:{age:0,cold:0,hunger:0,ill:0},plague:{on:false,since:0,dead:0},inherits:0,cured:0,sickTot:0,moves:0,left:0,att:{joy:0,unemp:0,a:0,bonus:0},made:{},delivered:0,
+  coins:COINS0,routes:mkRoutes(),tradeOpt:{sell:true,buy:true},tlog:[],trade:{sold:0,bought:0,visits:0}};
 const guests=[];const buildings=new Map();let villagers=[];const vmap=new Map();const resv=new Map();const plantResv=new Set();let nextId=1;
 const acc={a1:0,a05:0,farm:0,attr:99};
 const told={};
@@ -240,7 +255,7 @@ function init(sd,mode){
   occ.fill(0);field.fill(0);wear.fill(0);plev.fill(0);phit.fill(0);pexp.fill(0);attr.fill(0);sapT.fill(0);
   buildings.clear();stCache=null;villagers=[];vmap.clear();reg.clear();resv.clear();plantResv.clear();nextId=1;guests.length=0;
   S.t=0;S.festA=[];S.fests=0;festSeq=0;S.edicts=EDICT0();S.births=0;S.deaths=0;S.buried=0;S.unburied=0;S.wh={wood:0,stone:0,iron:0};S.xf={wood:0,stone:0,iron:0};S.stock={wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0};S.inflight={wood:0,stone:0,iron:0};S.grow=0;S.left=0;S.att={joy:0,unemp:0,a:0,bonus:0};S.barters=0;S.helps=0;S.visits=0;S.settled=0;S.season=0;S.year=1;S.frozen=false;acc.a1=0;acc.a05=0;acc.farm=0;acc.attr=99;for(const k in told)delete told[k];
-  S.deathsBy={age:0,cold:0,hunger:0,ill:0};S.plague={on:false,since:0,dead:0};S.inherits=0;S.cured=0;S.sickTot=0;S.moves=0;S.made={};S.delivered=0;
+  S.deathsBy={age:0,cold:0,hunger:0,ill:0};S.plague={on:false,since:0,dead:0};S.inherits=0;S.cured=0;S.sickTot=0;S.moves=0;S.made={};S.delivered=0;S.coins=COINS0;S.routes=mkRoutes();S.tradeOpt={sell:true,buy:true};S.tlog=[];S.trade={sold:0,bought:0,visits:0};
   let okT=false,att=0;const base=(sd||7)|0;
   for(;att<48&&!okT;att++){genTerrain(S.mode,base,att);okT=terrainOK(S.mode);}
   S.seed=base;S.mapTries=att;S.mapOK=okT;
@@ -1996,11 +2011,13 @@ function updG(g,dt){
       else{if(S.ph==='night')g.slept=true;if(g.slept&&S.ph==='work')startLeave(g,true);}
       break;
     case 'gLeave':if(moveV(g,dt))endGuest(g);break;
+    case 'cToPost':if(moveV(g,dt)){g.inside=true;g.state='cTrade';g.timer=TRADE_STAY;}break;
+    case 'cTrade':g.timer-=dt;if(g.timer<=0){g.inside=false;if(tradeStatus().ok)doTrade(g);startLeave(g,false);}break;
   }
 }
 function spawnGuest(){
   if(S.edicts.quarantine)return;
-  if(guests.length>=5||(S.ph!=='work'&&S.ph!=='evening'))return;
+  if(guests.filter(x=>!x.caravan).length>=5||(S.ph!=='work'&&S.ph!=='evening'))return;
   const inns=[...buildings.values()].filter(b=>b.type==='inn'&&b.state==='done'&&b.pantry>=2&&b.guestsIn<4);
   if(!inns.length)return;
   const inn=inns[(Math.random()*inns.length)|0];
@@ -2012,6 +2029,119 @@ function spawnGuest(){
   const g={id:nextId++,guest:true,kind,horse,inn:inn.id,x:cx2w(0),z:cy2w((cell/N)|0),cell,exit:cell,path,state:'gToInn',stay:S.ph==='evening'?'night':'meal',timer:0,moving:false,inside:false,fa:0,carry:null,res:true,hungry:false,slept:false,sick:villagers.length>=14&&Math.random()<0.05};
   inn.guestsIn++;if(horse)inn.horses++;
   guests.push(g);hooks.villager(g);
+}
+// ---- v44: commercio, carovane e rotte (tramite la Merceria) ----
+// Il merciaio tratta con le carovane: vende ciò che il paese ha in più e compra ciò che manca, a denari. Attrezzi, pane, tessuto e abiti passano dagli scaffali della merceria
+// (e dalle scorte dei magazzini); legno, pietra, ferro e assi dal magazzino; pesce e carne dalle scorte del granaio.
+const TRADE_STOCK={wood:1,stone:1,iron:1,planks:1},TRADE_FOOD={fish:1,meat:1};
+const heldOf=g=>g==='planks'?S.stock.planks:heldCenter(g);
+const openMerceries=()=>{const r=[];for(const o of buildings.values())if(merceryOpen(o))r.push(o);return r;};
+function needAll(g){let n=0;for(const h of buildings.values())if(h.type==='house'&&h.state==='done'&&h.members.length)n+=Math.ceil(needOfGood(h,g));return n;}
+const shelfTotal=g=>{let n=0;for(const o of openMerceries())n+=o.shelf[g]||0;return n;};
+const shelfRoom=g=>{let n=0;for(const o of openMerceries())n+=Math.max(0,SHELFCAP-(o.shelf[g]||0));return n;};
+const tradeKeep=g=>T_KEEP[g]+(TRADE_STOCK[g]?0:needAll(g));
+function poolOf(g){
+  if(TRADE_STOCK[g])return Math.min(heldOf(g),uncommitted(g));
+  if(TRADE_FOOD[g])return Math.floor(S.stock[g]||0);
+  return shelfTotal(g)+Math.floor(S.stock[g]||0);
+}
+// quanto il paese può vendere senza restare a corto / quanto comprerebbe volentieri
+function surplusOf(g){return Math.max(0,Math.floor(poolOf(g)-tradeKeep(g)));}
+function demandOf(g){
+  if(TRADE_STOCK[g]){if(g==='planks'&&!countDone('carpenter'))return 0;return Math.max(0,Math.min(T_TARGET[g]-S.stock[g],stockRoom(g)));}
+  const need=needAll(g);if(need<=0)return 0;
+  if(TRADE_FOOD[g])return Math.max(0,Math.min(T_TARGET[g]-poolOf(g),need));
+  return Math.max(0,Math.min(T_TARGET[g]-poolOf(g),shelfRoom(g),need));
+}
+function takeGood(g,q){
+  q=Math.min(q,surplusOf(g));if(q<=0)return 0;
+  if(TRADE_STOCK[g]||TRADE_FOOD[g]){S.stock[g]-=q;return q;}
+  let left=q;const st=Math.min(Math.floor(S.stock[g]||0),left);S.stock[g]-=st;left-=st;
+  for(const o of openMerceries()){if(left<=0)break;const n=Math.min(left,o.shelf[g]||0);o.shelf[g]-=n;left-=n;}
+  return q-left;
+}
+function receiveGood(g,q){
+  q=Math.min(q,demandOf(g));if(q<=0)return 0;
+  if(TRADE_STOCK[g]){S.stock[g]+=q;return q;}
+  let left=q;
+  if(TRADE_FOOD[g]){
+    const hs=[...buildings.values()].filter(h=>h.type==='house'&&h.state==='done'&&h.members.length&&needOfGood(h,g)>0).sort((a,b)=>needOfGood(b,g)-needOfGood(a,g));
+    for(const h of hs){const n=Math.min(left,Math.ceil(needOfGood(h,g)));h.goods[g]+=n;left-=n;if(left<=0)break;}
+  }else{
+    for(const o of openMerceries().sort((a,b)=>(a.shelf[g]||0)-(b.shelf[g]||0))){const n=Math.min(left,SHELFCAP-(o.shelf[g]||0));if(n>0){o.shelf[g]+=n;left-=n;}if(left<=0)break;}
+  }
+  return q-left;
+}
+function logTrade(e){S.tlog.unshift(e);if(S.tlog.length>12)S.tlog.length=12;}
+// la carovana arriva alla merceria: vende le eccedenze del paese (prezzi della città, ±10%) e compra il necessario con i denari in cassa
+function doTrade(g){
+  const T=TOWNS[g.route],r=S.routes.find(x=>x.id===g.route);if(!T||!r)return null;
+  const jit=()=>0.9+Math.random()*0.2;
+  const sold=[],bought=[];let earned=0,spent=0;
+  if(S.tradeOpt.sell){
+    for(const k of Object.keys(T.buys).sort((a,b)=>T.buys[b]-T.buys[a])){
+      const p=Math.max(1,Math.round(T.buys[k]*jit())),q=takeGood(k,VISIT_CAP);if(q<=0)continue;
+      S.coins+=q*p;earned+=q*p;sold.push({k,q,p});
+    }
+  }
+  if(S.tradeOpt.buy){
+    let budget=Math.floor(S.coins*BUY_SHARE);
+    for(const k of Object.keys(T.sells).sort((a,b)=>demandOf(b)*T.sells[b]-demandOf(a)*T.sells[a])){
+      const p=Math.max(1,Math.round(T.sells[k]*jit())),aff=Math.floor(budget/p),q=receiveGood(k,Math.min(VISIT_CAP,aff));if(q<=0)continue;
+      S.coins-=q*p;budget-=q*p;spent+=q*p;bought.push({k,q,p});
+    }
+  }
+  r.visits++;r.earned+=earned;r.spent+=spent;r.last=S.t;S.trade.visits++;S.trade.sold+=earned;S.trade.bought+=spent;
+  const e={t:S.t,route:g.route,sold,bought,earned,spent};logTrade(e);
+  if(sold.length||bought.length)tell('trade1','La prima carovana di '+T.name+' ha commerciato alla Merceria: guarda il registro delle rotte (clic sui Denari) per i dettagli.');
+  return e;
+}
+// una cella percorribile sul bordo della mappa, nella fascia centrale del lato della città
+function edgeCell(id){
+  for(let k=0;k<14;k++){
+    const t=((14+Math.random()*36)*SC)|0;let x,y;
+    if(id==='w'){x=0;y=t;}else if(id==='e'){x=N-1;y=t;}else if(id==='n'){x=t;y=0;}else{x=t;y=N-1;}
+    const c=y*N+x;if(!water[c]&&!occ[c]&&!tree[c]&&!rock[c])return c;
+  }
+  return -1;
+}
+// stato del commercio, per pannelli e test: perché le carovane non arrivano
+function tradeStatus(){
+  const ms=[...buildings.values()].filter(b=>b.type==='mercery');
+  if(!ms.length)return {ok:false,why:"Costruisci una Merceria (categoria Botteghe): senza di essa nessuna carovana arriva e nessuna rotta si può aprire."};
+  if(!ms.some(b=>b.state==='done'))return {ok:false,why:'La Merceria è ancora in costruzione.'};
+  if(!ms.some(merceryOpen))return {ok:false,why:"La Merceria non ha un merciaio: servono abitanti liberi che ci lavorino."};
+  if(S.edicts.quarantine)return {ok:false,why:'Quarantena in vigore: il commercio è fermo.'};
+  return {ok:true,why:''};
+}
+function unlockRoute(id){
+  const r=S.routes.find(x=>x.id===id),T=TOWNS[id];
+  if(!r||!T)return {ok:false,msg:'Rotta sconosciuta.'};
+  if(r.open)return {ok:false,msg:'Questa rotta è già aperta.'};
+  if(!countDone('mercery'))return {ok:false,msg:'Prima costruisci una Merceria.'};
+  if(S.coins<T.cost)return {ok:false,msg:'Servono '+T.cost+' denari per aprire la rotta di '+T.name+' (ne hai '+S.coins+').'};
+  S.coins-=T.cost;r.open=true;r.next=15;r.blocked=false;
+  return {ok:true,msg:'Rotta aperta: le carovane di '+T.name+' (da '+T.side+') arriveranno presto alla Merceria.'};
+}
+function setTradeOpt(k,v){if(k in S.tradeOpt)S.tradeOpt[k]=!!v;}
+function tradeTick(){
+  for(const r of S.routes)if(r.open&&r.next>0)r.next--;
+  if(!S.routes.some(r=>r.open))return;
+  if(!tradeStatus().ok)return;
+  if(S.ph!=='work'&&S.ph!=='evening')return;
+  const hubs=openMerceries();if(!hubs.length)return;
+  let live=0;for(const g of guests)if(g.caravan)live++;
+  if(live>=MAXCARAV)return;
+  for(const r of S.routes){
+    if(!r.open||r.next>0)continue;
+    if(guests.some(g=>g.caravan&&g.route===r.id))continue;
+    const c=edgeCell(r.id);if(c<0){r.blocked=true;r.next=20;continue;}
+    const hub=hubs[(Math.random()*hubs.length)|0];
+    const path=astar(c,hub.cell,hub.id);if(!path){r.blocked=true;r.next=20;continue;}
+    r.blocked=false;r.next=Math.round(CARAVAN_GAP*(0.8+Math.random()*0.5));
+    const g={id:nextId++,guest:true,caravan:true,kind:'merchant',horse:true,route:r.id,inn:hub.id,x:cx2w(c%N),z:cy2w((c/N)|0),cell:c,exit:c,path,state:'cToPost',stay:'meal',timer:0,moving:false,inside:false,fa:0,carry:null,res:false,hungry:false,slept:false,sick:false};
+    guests.push(g);hooks.villager(g);return;
+  }
 }
 function finish(b){
   b.state='done';b.prog=1;acc.attr=99;stCache=null;
@@ -2080,6 +2210,7 @@ function tick1(){
   if(capD+capP<villagers.length+3&&pend<2)trySpawnHouse();
   marketTick();
   if(countDone('inn')&&Math.random()<0.06)spawnGuest();
+  tradeTick();
   acc.farm+=1;if(acc.farm>=5){acc.farm=0;farmTick();sheepTick();}
   S.grow+=TK;
   let openSlots=0;for(const b of buildings.values())if(b.state==='done')openSlots+=b.want-b.workers.length;
@@ -2183,7 +2314,7 @@ function stats(){
   let jobs=0;for(const v of villagers)if(v.job)jobs++;
   return {pop:villagers.length,jobs,slots,masters,avgSkill:skN?skSum/skN:0,far,avgCommute:cdN?cdSum/cdN:0,commuters:cdN,houses,cap:cap+S.att.bonus,capHouses:cap,capBonus:S.att.bonus,att:S.att,sites,roads,dc,built,levels,food,farms,stalls,hungry,barters:S.barters,helps:S.helps,stock:S.stock,capRes:capTotal(),capStone:capRes('stone'),capGrain:capGrain(),capFlour:capFlour(),
     avgAttr:houses?asum/houses:0,maxAttr:houses?amax:0,day:S.day,ph:S.ph,f:S.f,herds,crafters,bakers,fishers,hunters,tools,saps,weavers,tailors,clothes,season:S.season,year:S.year,visits:S.visits,settled:S.settled,guests:guests.length,children:kids,schooled,births:S.births,deaths:S.deaths,buried:S.buried,
-    sick,plagueN,plague:S.plague.on,avgWell:houses?wsum/houses:0,avgJoy:villagers.length?villagers.reduce((a,v)=>a+v.joy,0)/villagers.length:0,unhappy:villagers.filter(v=>v.joy<35).length,left:S.left,fire,fireNeed,inherits:S.inherits,cured:S.cured,moves:S.moves,deathsBy:S.deathsBy,pupils};
+    sick,plagueN,plague:S.plague.on,avgWell:houses?wsum/houses:0,avgJoy:villagers.length?villagers.reduce((a,v)=>a+v.joy,0)/villagers.length:0,unhappy:villagers.filter(v=>v.joy<35).length,left:S.left,fire,fireNeed,inherits:S.inherits,cured:S.cured,moves:S.moves,deathsBy:S.deathsBy,pupils,coins:S.coins,routesOpen:S.routes.filter(r=>r.open).length};
 }
 // ---- v40: salvataggio e caricamento della partita ----
 // exportState() restituisce un oggetto pronto per JSON.stringify (da serializzare subito: contiene riferimenti allo stato vivo).
@@ -2227,6 +2358,7 @@ function importState(d){
   Object.assign(S,Sx);
   S.edicts=Object.assign(EDICT0(),S.edicts);S.stock=Object.assign({wood:0,stone:0,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0},S.stock);
   for(const k of ['wh','xf','inflight'])S[k]=Object.assign({wood:0,stone:0,iron:0},S[k]);
+  S.coins=Number.isFinite(S.coins)?S.coins:COINS0;{const rt=Array.isArray(S.routes)?S.routes:[];S.routes=mkRoutes().map(r=>Object.assign(r,rt.find(x=>x&&x.id===r.id)||{}));}S.tradeOpt=Object.assign({sell:true,buy:true},S.tradeOpt);S.tlog=Array.isArray(S.tlog)?S.tlog:[];S.trade=Object.assign({sold:0,bought:0,visits:0},S.trade);
   S.mode=S.mode==='river'?'river':'lake';
   for(const k of Object.keys(acc))delete acc[k];Object.assign(acc,{a1:0,a05:0,farm:0,attr:99},ac);
   for(const k of Object.keys(told))delete told[k];Object.assign(told,tl);
@@ -2248,8 +2380,9 @@ function importState(d){
 return {SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
+  TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
   STORE_KEYS,GRAN_KEYS,GRAN_TOTAL,CENTER_CAP,setPolicy,storeInfo,stockRoom,capRes,
-  _t:{chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
+  _t:{tradeTick,doTrade,chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
   grids:{tree,rock,ore,water,sap,sapT,road,dist,occ,wear,plev,field,door,attr,cen},guests:()=>guests,buildings:()=>buildings,villagers:()=>villagers};
 })();
 if(typeof module!=='undefined')module.exports=Sim;
