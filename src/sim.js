@@ -1316,11 +1316,13 @@ const freeMember=h=>{for(const id of h.members){const v=vmap.get(id);if(v&&!v.ch
 const dutyIdle=h=>{for(const id of h.members){const v=vmap.get(id);if(v&&!v.child&&!v.job&&v.duty&&!v.ill&&(v.state==='idle'||v.state==='tend'||v.state==='wait')&&!v.carry)return v;}return null;};
 const marketMember=h=>freeMember(h)||dutyIdle(h);
 function dutyPass(){
+  // se un mestiere produttivo (taglialegna, cava...) è senza addetti, ogni casa lascia almeno un adulto libero per il lavoro
+  let unmet=0;for(const b of buildings.values())if(b.state==='done'&&BT[b.type].slots>0&&b.type!=='store'&&b.want>=1&&b.workers.length<1)unmet++;
   for(const h of buildings.values()){
     if(h.type!=='house'||h.state!=='done')continue;
     const m=h.members.map(id=>vmap.get(id)).filter(v=>v&&!v.child&&!v.ill);
     const extras=(h.craft?1:0)+(h.bake?1:0)+(h.weave?1:0)+(h.tailor?1:0);
-    const want=Math.min(m.length,2+extras);let have=0;
+    let want=Math.min(m.length,2+extras);if(unmet>0)want=Math.min(want,Math.max(1,m.length-1));let have=0;
     for(const v of m)if(v.duty)have++;
     for(const v of m){if(have>=want)break;if(!v.duty&&!v.job&&v.state!=='toStall'&&v.state!=='keep'){v.duty=true;have++;}}
     for(let i=m.length-1;i>=0&&have>want;i--)if(m[i].duty){m[i].duty=false;have--;}
