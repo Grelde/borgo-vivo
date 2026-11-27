@@ -1,5 +1,14 @@
 # Changelog
 
+## v29 – 2026-11-27
+Funzione nuova: case e giardini di dimensioni diverse; l'ingresso guarda la strada.
+- **Case** da 3×3 fino a 6×4 celle (anche ruotate, quindi 4×6): le più piccole sono le più frequenti. Il modello 3D si allunga su un lato; se la lunghezza è 5 o 6 si affiancano due moduli (casa a schiera).
+- **Giardini** che nascono da 3×3 a 4×4 e, salendo di livello, si allargano verso la strada fino a un massimo di **4×6 (24 celle)**. Il giardino con le piante, la bottega o la legna sta nell'angolo; le altre celle hanno lo stesso aspetto degli ampliamenti, e la staccionata le racchiude tutte.
+- Casa e giardino sono due rettangoli affiancati e occupano solo le loro celle (prima un unico blocco 3×3 + 3×3).
+- **Ingresso verso la strada:** se accanto alla casa (a due celle dal lato) c'è una strada o un sentiero, la porta si apre su quel lato, e il punto di costruzione viene preferito se la porta può guardare una strada. Con più lati vince quello con più strada.
+- Pannello casa: mostra la dimensione della casa e il numero di celle del giardino (massimo 24).
+- Test: `tests/lotti.js` (dimensioni nei limiti, nessuna cella occupata due volte, porta accanto alla casa, ingresso verso la strada nell'80% dei casi con una strada accanto: nella prova 16 su 17; l'unico caso contrario aveva la cella di porta sul lato della strada già occupata). Grafica verificata solo con DOM finto, non in un browser WebGL.
+
 ## v28 – 2026-11-27
 Funzione nuova (solo interfaccia): **pannello dettagli Abitanti e Felicità**.
 - Cliccando il chip **Abitanti** o il chip **Felicità** del cruscotto (anche da tastiera, Invio o Spazio) si apre una pergamena con due schede, che si aggiorna mentre il gioco gira. Si chiude con Chiudi, Esc o un clic fuori; se è aperta anche la scheda di un abitante, Esc chiude prima quella.

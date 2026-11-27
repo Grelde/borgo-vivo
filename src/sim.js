@@ -154,6 +154,8 @@ function entranceOf(x,y,w,h,rot){
 }
 const BLOCKED=i=>occ[i]||water[i]||tree[i]||rock[i]||ore[i]||door[i]||field[i]||sap[i]||cen[i]===2;
 function entOK(ex,ey){if(ex<0||ey<0||ex>=N||ey>=N)return false;return !BLOCKED(ey*N+ex);}
+// v29: casa (hw×hh, da 3×3 a 6×4) e giardino (gw×gh, da 3×3 in su) sono due rettangoli affiancati: occupano solo le loro celle
+function lotCells(b){const c=[];for(let yy=b.hy;yy<b.hy+b.hh;yy++)for(let xx=b.hx;xx<b.hx+b.hw;xx++)c.push(yy*N+xx);for(let yy=b.gy;yy<b.gy+b.gh;yy++)for(let xx=b.gx;xx<b.gx+b.gw;xx++)c.push(yy*N+xx);return c;}
 function addBuilding(type,x,y,done,o){
   const t=BT[type];o=o||{};
   const rot=o.rot|0;let w,h;
@@ -162,12 +164,13 @@ function addBuilding(type,x,y,done,o){
     cell:(y+(h>>1))*N+(x+(w>>1)),entrance:-1,zone:null};
   if(type==='house'){
     const goods={};for(const g of GOODS)goods[g]=0;const ate={};for(const g of TYPES)ate[g]=-999;
-    Object.assign(b,{hx:o.hx,hy:o.hy,gx:o.gx,gy:o.gy,door:o.door,cell:(o.hy+1)*N+o.hx+1,gc:(o.gy+1)*N+o.gx+1,variant:o.variant|0,level:1,up:0,crop:o.crop,side:o.side||'none',pure:!!o.pure,craft:false,bake:false,weave:false,tailor:false,ovile:null,warm:true,heatDay:-1,ext:[],members:[],pa:{g:0,c:0,b:0,w:0,t:0},hungry:0,tradeCool:0,stall:null,farm:null,attr:0,
+    Object.assign(b,{hx:o.hx,hy:o.hy,hw:o.hw||3,hh:o.hh||3,gx:o.gx,gy:o.gy,gw:o.gw||3,gh:o.gh||3,door:o.door,cell:(o.hy+((o.hh||3)>>1))*N+o.hx+((o.hw||3)>>1),gc:(o.gy+((o.gh||3)>>1))*N+o.gx+((o.gw||3)>>1),variant:o.variant|0,level:1,up:0,crop:o.crop,side:o.side||'none',pure:!!o.pure,craft:false,bake:false,weave:false,tailor:false,ovile:null,warm:true,heatDay:-1,ext:[],members:[],pa:{g:0,c:0,b:0,w:0,t:0},hungry:0,tradeCool:0,stall:null,farm:null,attr:0,
       birthT:S.t+DAY*2,goods,ate,head:null,legacy:null,well:50,flags:{food:false,water:false,church:false,attr:true,tools:true,heat:true,mat:true,fuel:true}});
     b.goods[gardenGood(b.crop)]=3;
     // la famiglia del giardino della legna non ha orto né galline: arriva con una piccola scorta di ortaggi, poi mangia solo ciò che baratta al mercato (o che pesca/caccia)
     if(b.crop==='wood')b.goods.veg=3;
     door[o.door]=1;gate[o.door]=b.id;gatedSet.add(b.id);b.entrance=o.door;
+    b.cells=lotCells(b);
   }
   if(type==='stall')Object.assign(b,{owner:o.owner,open:false,keeper:null});
   if(type==='farm')Object.assign(b,{owner:o.owner||null,fields:[]});
@@ -184,7 +187,8 @@ function addBuilding(type,x,y,done,o){
       if(y+h<N)for(let xx=g0;xx<g0+4;xx++)cen[(y+h)*N+xx]=2;
     }}
   if(!NOGATE[type]&&!b.center){const [ex,ey]=entranceOf(x,y,w,h,rot);if(entOK(ex,ey)){const e=ey*N+ex;b.entrance=e;door[e]=1;gate[e]=b.id;gatedSet.add(b.id);}}
-  for(let yy=y;yy<y+h;yy++)for(let xx=x;xx<x+w;xx++){const i=yy*N+xx;occ[i]=b.id;wear[i]=0;road[i]=0;plev[i]=0;phit[i]=0;pexp[i]=0;}
+  if(b.cells){for(const i of b.cells){occ[i]=b.id;wear[i]=0;road[i]=0;plev[i]=0;phit[i]=0;pexp[i]=0;}}
+  else for(let yy=y;yy<y+h;yy++)for(let xx=x;xx<x+w;xx++){const i=yy*N+xx;occ[i]=b.id;wear[i]=0;road[i]=0;plev[i]=0;phit[i]=0;pexp[i]=0;}
   buildings.set(b.id,b);occStamp++;hooks.building(b);hooks.ground();acc.attr=99;
   return b;
 }
@@ -332,7 +336,8 @@ function removeBuilding(id){
   if(b.type==='church'&&b.cem)removeBuilding(b.cem);
   if(b.type==='cemetery'){const ch=buildings.get(b.owner);if(ch)ch.cem=null;}
   if(b.center){for(let yy=b.y;yy<=b.y+b.h&&yy<N;yy++)for(let xx=b.x;xx<b.x+b.w;xx++)cen[yy*N+xx]=0;}
-  for(let yy=b.y;yy<b.y+b.h;yy++)for(let xx=b.x;xx<b.x+b.w;xx++)occ[yy*N+xx]=0;
+  if(b.cells){for(const i of b.cells)occ[i]=0;}
+  else for(let yy=b.y;yy<b.y+b.h;yy++)for(let xx=b.x;xx<b.x+b.w;xx++)occ[yy*N+xx]=0;
   if(b.ext)for(const i of b.ext)occ[i]=0;
   if(b.entrance>=0){door[b.entrance]=0;gate[b.entrance]=0;gatedSet.delete(b.id);}
   if(b.type==='house'){door[b.door]=0;if(b.stall)removeBuilding(b.stall);if(b.farm)removeBuilding(b.farm);if(b.ovile)removeBuilding(b.ovile);}
@@ -619,7 +624,7 @@ function supplyHouse(v){
   if(!best||!route(v,best.cell,best.id))return null;
   return {h:best.id,tp:btp,q:Math.min(3,bs)};
 }
-function inHouse(h,cell){const x=cell%N,y=(cell/N)|0;return x>=h.hx&&x<h.hx+3&&y>=h.hy&&y<h.hy+3;}
+function inHouse(h,cell){const x=cell%N,y=(cell/N)|0;return x>=h.hx&&x<h.hx+h.hw&&y>=h.hy&&y<h.hy+h.hh;}
 function startGarden(v){
   const h=buildings.get(v.home);if(!h||h.state!=='done')return;
   const tgt=inHouse(h,v.cell)?h.gc:h.cell;
@@ -925,19 +930,21 @@ function assignJobs(){
 const cellFree=(i,dt)=>cen[i]!==2&&!occ[i]&&!tree[i]&&!rock[i]&&!ore[i]&&!road[i]&&!field[i]&&!door[i]&&!water[i]&&!sap[i]&&plev[i]<2&&dist[i]===dt;
 const GX=[1,-1,0,0],GY=[0,0,1,-1];
 const doorFree=i=>!(occ[i]||tree[i]||rock[i]||ore[i]||field[i]||door[i]||water[i]||sap[i]||cen[i]===2);
+const GMAX=24; // un giardino arriva al massimo a 4×6 celle
 function expandGarden(b){
   // il giardino si allarga riga per riga fino alla strada/sentiero (meno di 3 tile = 9 celle) o al giardino di un vicino (meno di 3 celle):
-  // con una strada diagonale il bordo segue la diagonale
-  const hw=b.hx<b.gx?1:b.hx>b.gx?0:-1,hh=b.hy<b.gy?3:b.hy>b.gy?2:-1;
-  const house=hw>=0?hw:hh; // lato del giardino che guarda la casa: 0=est 1=ovest 2=sud 3=nord
+  // con una strada diagonale il bordo segue la diagonale. Dalla v29 parte dal rettangolo gw×gh e non supera 24 celle in tutto.
+  const room=GMAX-b.gw*b.gh-b.ext.length;if(room<=0)return false;
+  // lato del giardino che guarda la casa: 0=est 1=ovest 2=sud 3=nord
+  const house=b.gx>=b.hx+b.hw?1:b.gx+b.gw<=b.hx?0:b.gy>=b.hy+b.hh?3:2;
   const cands=[];
   for(let d=0;d<4;d++){
     if(d===house)continue;
-    const ux=d===0?1:d===1?-1:0,uy=d===2?1:d===3?-1:0;
-    const rows=[0,0,0];let hit=0,minD=99;
-    for(let k=0;k<3;k++){
+    const ux=d===0?1:d===1?-1:0,uy=d===2?1:d===3?-1:0,L=d<2?b.gh:b.gw;
+    const rows=new Array(L).fill(0);let hit=0,minD=99;
+    for(let k=0;k<L;k++){
       for(let s2=1;s2<=3;s2++){
-        const x=(d<2?(d===0?b.gx+2:b.gx):b.gx+k)+ux*s2,y=(d<2?b.gy+k:(d===2?b.gy+2:b.gy))+uy*s2;
+        const x=(d<2?(d===0?b.gx+b.gw-1:b.gx):b.gx+k)+ux*s2,y=(d<2?b.gy+k:(d===2?b.gy+b.gh-1:b.gy))+uy*s2;
         if(x<0||y<0||x>=N||y>=N)break;
         const i=y*N+x;
         if(road[i]||plev[i]>=PATH){if(s2>1){rows[k]=s2-1;hit++;minD=Math.min(minD,s2-1);}break;}
@@ -948,15 +955,16 @@ function expandGarden(b){
       }
     }
     if(!hit)continue;
-    cands.push({d,ux,uy,rows,sc:minD});
+    cands.push({d,ux,uy,rows,L,sc:minD});
   }
   cands.sort((a,c)=>a.sc-c.sc);
   for(const c of cands){
-    const cells=[];
-    for(let k=0;k<3;k++)for(let s2=1;s2<=c.rows[k];s2++){
-      const x=(c.d<2?(c.d===0?b.gx+2:b.gx):b.gx+k)+c.ux*s2,y=(c.d<2?b.gy+k:(c.d===2?b.gy+2:b.gy))+c.uy*s2;
+    let cells=[];
+    for(let k=0;k<c.L;k++)for(let s2=1;s2<=c.rows[k];s2++){
+      const x=(c.d<2?(c.d===0?b.gx+b.gw-1:b.gx):b.gx+k)+c.ux*s2,y=(c.d<2?b.gy+k:(c.d===2?b.gy+b.gh-1:b.gy))+c.uy*s2;
       cells.push(y*N+x);
     }
+    if(cells.length>room)cells=cells.slice(0,room);
     if(!cells.length||!reachable(b.door,cells))continue;
     const xs=cells.map(i=>i%N),ys=cells.map(i=>(i/N)|0);
     if(!doorsOK(Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys),cells))continue;
@@ -975,34 +983,46 @@ function trySpawnHouse(){
   const blk=buildSAT(i=>cellFree(i,1)?0:1),oc=buildSAT(i=>occ[i]>0?1:0),pp=buildSAT(i=>(road[i]||plev[i]>=PATH)?1:0);
   const picky=-1-hash(S.t|0,7)*5;
   const rnd=hash(S.t|0,11)*3;
+  // v29: dimensioni casuali. Casa da 3×3 a 6×4 (e ruotata), giardino da 3×3 a 4×4 (poi cresce fino a 4×6)
+  const HS=[[3,3],[4,3],[4,4],[5,3],[5,4],[6,3],[6,4]],GS=[[3,3],[3,3],[4,3],[3,4],[4,4]];
+  let [hw,hh]=HS[Math.min(HS.length-1,Math.floor(Math.pow(hash(S.t|0,23),1.4)*HS.length))];
+  if(hw!==hh&&hash(S.t|0,29)<0.5)[hw,hh]=[hh,hw];
+  let [gw,gh]=GS[Math.floor(hash(S.t|0,31)*GS.length)];
+  const roadAt=(x,y,w,h)=>rect(pp,x,y,w,h);
   for(const tol of [picky,-6]){
     const top=[];
-    for(let y=0;y<=N-3;y++)for(let x=0;x<=N-3;x++){
+    for(let y=0;y<=N-hh;y++)for(let x=0;x<=N-hw;x++){
       if(((x*7+y*13+(S.t|0))%3)!==0)continue;
-      if(attr[(y+1)*N+x+1]<tol)continue;
-      if(rect(blk,x,y,3,3))continue;
+      if(attr[(y+(hh>>1))*N+x+(hw>>1)]<tol)continue;
+      if(rect(blk,x,y,hw,hh))continue;
       for(let d=0;d<4;d++){
-        const gx=x+GX[d]*3,gy=y+GY[d]*3;if(gx<0||gy<0||gx+3>N||gy+3>N)continue;
-        if(rect(blk,gx,gy,3,3))continue;
-        const lx=Math.min(x,gx),ly=Math.min(y,gy),lw=d<2?6:3,lh=d<2?3:6;
+        // il giardino si affianca al lato d della casa, centrato quanto possibile
+        const gx=d===0?x+hw:d===1?x-gw:x+((hw-gw)>>1),gy=d===2?y+hh:d===3?y-gh:y+((hh-gh)>>1);
+        if(gx<0||gy<0||gx+gw>N||gy+gh>N)continue;
+        if(rect(blk,gx,gy,gw,gh))continue;
+        const lx=Math.min(x,gx),ly=Math.min(y,gy),lw=Math.max(x+hw,gx+gw)-lx,lh=Math.max(y+hh,gy+gh)-ly;
         if(rect(oc,lx-1,ly-1,lw+2,lh+2))continue;
-        // ingresso: a meta' di un lato della casa non occupato dal giardino
-        let dr=-1,ds=-1e9;
+        // ingresso: a meta' di un lato della casa non occupato dal giardino; se c'è una strada accanto a un lato, l'ingresso guarda quella strada
+        let dr=-1,ds=-1e9,dstrip=0;
         for(let s2=0;s2<4;s2++){
           if(s2===d)continue;
-          const dx=x+1+GX[s2]*2,dy=y+1+GY[s2]*2;if(dx<0||dy<0||dx>=N||dy>=N)continue;
+          const dx=s2===0?x+hw:s2===1?x-1:x+(hw>>1),dy=s2===2?y+hh:s2===3?y-1:y+(hh>>1);
+          if(dx<0||dy<0||dx>=N||dy>=N)continue;
+          if(dx>=gx&&dx<gx+gw&&dy>=gy&&dy<gy+gh)continue;
           const i=dy*N+dx;if(!doorFree(i))continue;
-          const sc=-Math.hypot(dx-sx,dy-sy)*0.02+(rect(pp,dx-2,dy-2,5,5)>0?3:0)+hash(dx,dy)*0.5;
-          if(sc>ds){ds=sc;dr=i;}
+          const strip=s2===0?roadAt(x+hw,y,2,hh):s2===1?roadAt(x-2,y,2,hh):s2===2?roadAt(x,y+hh,hw,2):roadAt(x,y-2,hw,2);
+          const adj=s2===0?roadAt(x+hw,y,1,hh):s2===1?roadAt(x-1,y,1,hh):s2===2?roadAt(x,y+hh,hw,1):roadAt(x,y-1,hw,1);
+          const sc=-Math.hypot(dx-sx,dy-sy)*0.02+strip*3+adj*3+(roadAt(dx-2,dy-2,5,5)>0?1:0)+hash(dx,dy)*0.5;
+          if(sc>ds){ds=sc;dr=i;dstrip=strip;}
         }
         if(dr<0)continue;
         const p=rect(pp,x-6,y-6,15,15)/3,q=rect(oc,x-6,y-6,15,15)/9;
-        const sc=p*2+q-Math.hypot(x+1-sx,y+1-sy)/3*0.15+attr[(y+1)*N+x+1]*1.5+hash(x*3+d,y+(S.t|0))*3+rnd*0;
+        const sc=p*2+q-Math.hypot(x+hw/2-sx,y+hh/2-sy)/3*0.15+attr[(y+(hh>>1))*N+x+(hw>>1)]*1.5+hash(x*3+d,y+(S.t|0))*3+(dstrip>0?3:0);
         if(top.length<10||sc>top[top.length-1].sc){top.push({sc,x,y,gx,gy,dr,lx,ly,lw,lh});top.sort((a,c)=>c.sc-a.sc);if(top.length>10)top.pop();}
       }
     }
     for(const cd of top){
-      const marks=[];for(let yy=cd.ly;yy<cd.ly+cd.lh;yy++)for(let xx=cd.lx;xx<cd.lx+cd.lw;xx++)marks.push(yy*N+xx);
+      const marks=[];for(let yy=cd.y;yy<cd.y+hh;yy++)for(let xx=cd.x;xx<cd.x+hw;xx++)marks.push(yy*N+xx);for(let yy=cd.gy;yy<cd.gy+gh;yy++)for(let xx=cd.gx;xx<cd.gx+gw;xx++)marks.push(yy*N+xx);
       if(!flood(marks))continue;
       if(rs[cd.dr]!==rstamp||!doorsAfterFlood(cd.lx,cd.ly,cd.lx+cd.lw-1,cd.ly+cd.lh-1,marks))continue;
       // v23: circa il 12% delle case (una ogni 8) ha il giardino della legna: la sua coltura è la legna da ardere, al posto di ortaggi, uova o allevamento. La domanda di legna è piccola (1 al giorno per casa, solo d'inverno): con più giardini della legna non troverebbero chi baratta il cibo.
@@ -1016,7 +1036,7 @@ function trySpawnHouse(){
       // circa il 35% dei giardini di cibo è "puro": non diventa mai allevamento né bottega (il giardino della legna è già fisso)
       const pt=(nh-nw+1)*0.35;
       const pure=!wood&&(np<pt-0.5||(np<pt+0.5&&hash(cd.x*3,cd.y*7)<0.5));
-      addBuilding('house',cd.lx,cd.ly,false,{w:cd.lw,h:cd.lh,hx:cd.x,hy:cd.y,gx:cd.gx,gy:cd.gy,door:cd.dr,crop,side,pure,variant:(hash(cd.x*11,cd.y*7)*4)|0});
+      addBuilding('house',cd.lx,cd.ly,false,{w:cd.lw,h:cd.lh,hx:cd.x,hy:cd.y,hw,hh,gx:cd.gx,gy:cd.gy,gw,gh,door:cd.dr,crop,side,pure,variant:(hash(cd.x*11,cd.y*7)*4)|0});
       return;
     }
   }
