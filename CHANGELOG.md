@@ -1,5 +1,12 @@
 # Changelog
 
+## v27 – 2026-11-27
+Funzione nuova: botteghe del giardino ben visibili e aperte anche in un secondo momento.
+- **Grafica:** il giardino che diventa bottega ha ora un piccolo laboratorio riconoscibile, con insegna colorata: **fabbro** (tettoia, fucina con fuoco, incudine su ceppo, martello, insegna ruggine), **panettiere** (forno a cupola con fuoco e camino, tavolo con pagnotte, insegna dorata), **tessitore** (telaio con tessuti colorati, balle di lana, insegna blu), **sarto** (tenda a strisce rosse e crema, manichino, rotoli di stoffa, insegna rossa). L'orto perde una fila per fare posto; pecore e galline si spostano.
+- **Regole:** un giardino normale (non fisso, non della legna) può diventare bottega **anche dopo**, ogni giorno con probabilità 25%, appena la casa ha il livello e compare la filiera: fabbro dal livello 3 con una miniera, tessitore dal livello 3 con un ovile, sarto dal livello 4 se c'è un tessitore, panettiere dal livello 4 con un mulino. Prima la scelta avveniva solo nel momento del miglioramento.
+- Pannello casa: indica il mestiere (fabbro, panettiere, tessitore, sarto) e, per chi non è ancora bottega, da quale livello e con quale filiera potrà diventarlo.
+- Test: `tests/shops.js` (nessuna bottega prima del livello giusto né nei giardini fissi o della legna; dopo miniera, ovile e mulino compaiono fabbri, tessitori, sarti e panettieri). Grafica verificata solo con DOM finto, non in un browser WebGL.
+
 ## v26 – 2026-11-27
 Funzione nuova: istruzione utile, chiesa nella giornata, giorno più lungo.
 - **Istruzione:** chi sa leggere e scrivere lavora il 25% meglio (raccolta, giardino) e consuma meno cibo (25% dei pasti non toglie nulla dalla scorta). La scheda lo dice.

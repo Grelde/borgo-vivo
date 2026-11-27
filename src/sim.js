@@ -1026,7 +1026,7 @@ function nearDone(type,cell,r){
   for(const b of buildings.values()){if(b.type!==type||b.state!=='done')continue;if(Math.hypot(b.cell%N-cx,(b.cell/N|0)-cy)<=r)return true;}
   return false;
 }
-function chooseTier(b){
+function chooseTier(b,shopOnly){
   // v21: i giardini "puri" restano sempre orto o galline: niente allevamento e niente bottega
   if(b.pure||b.crop==='wood')return;
   const hs=[...buildings.values()].filter(h=>h.type==='house'&&h.state==='done'&&h!==b);
@@ -1037,7 +1037,8 @@ function chooseTier(b){
   const SHOP=['weave','craft','tailor','bake'];
   const MSG={weave:'Una famiglia ha messo su un telaio: il tessitore trasforma la lana in tessuto.',craft:'Una famiglia ha aperto una bottega di artigianato: lavora il ferro e consuma legna da ardere.',tailor:'Una famiglia ha aperto una sartoria: cuce abiti con il tessuto dei tessitori.',bake:'Una famiglia ha aperto un panificio: usa farina e legna da ardere.'};
   // il giardino (e le sue espansioni) segue sempre la coltura della casa
-  if(b.crop==='herd'&&cnt('herd')+1>cap.herd){b.crop='veg';b.goods.veg=Math.max(b.goods.veg,2);tell('backveg','Troppi allevamenti: una famiglia è tornata a coltivare verdure.');}
+  if(shopOnly){}
+  else if(b.crop==='herd'&&cnt('herd')+1>cap.herd){b.crop='veg';b.goods.veg=Math.max(b.goods.veg,2);tell('backveg','Troppi allevamenti: una famiglia è tornata a coltivare verdure.');}
   else if(b.crop!=='herd'&&b.level>=2){
     const c=cnt('herd');
     if((c===0&&Math.random()<0.8)||(c+1<=cap.herd&&Math.random()<0.4)){b.crop='herd';b.goods.meat=Math.max(b.goods.meat,2);tell('herd','Una famiglia ha trasformato il giardino in un piccolo allevamento di maiali e pecore.');}
@@ -1319,6 +1320,8 @@ function houseTick(b){
     tryMoveOut(b,m);
   }
   if(b.heatDay!==S.day){b.heatDay=S.day;
+    // v27: un giardino normale può diventare bottega anche dopo, appena ha il livello e la filiera (miniera, ovile, mulino)
+    if(b.level>=3&&!b.pure&&b.crop!=='wood'&&Math.random()<0.25){const had=b.craft||b.bake||b.weave||b.tailor;if(!had){chooseTier(b,true);if(b.craft||b.bake||b.weave||b.tailor){hooks.upgraded(b);}}}
     if(S.season===3){if(b.goods.firewood>=1){b.goods.firewood--;b.warm=true;}else{b.warm=false;if(b.crop!=='wood')tell('cold','Una casa è rimasta senza legna da ardere: solo le famiglie con il giardino della legna la producono, le altre la comprano al banco del mercato. Disegna una zona mercato.');}}else{b.warm=true;if(S.day%2===0&&b.goods.firewood>=1)b.goods.firewood--;}}  // v23: cucina tutto l'anno: fuori dall'inverno 1 legna ogni 2 giorni
   b.attr=attr[b.cell];
   birthTick(b);
