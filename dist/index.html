@@ -232,7 +232,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v37</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v37.1</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -824,15 +824,34 @@ function stepOn(i){
   }else pexp[i]=S.t+DUR[MAXP];
   hooks.ground();
 }
+// movimento lungo il percorso (v38): agli angoli l'abitante taglia dolcemente la curva (SMOOTH_R) invece di girare di scatto sul centro della cella,
+// e il corpo ruota gradualmente verso la direzione di marcia. L'ultima cella del percorso si raggiunge sempre esattamente.
+const SMOOTH_R=0.6,SMOOTH_REACH=0.25;
 function moveV(v,dt){
   if(!v.path.length){v.moving=false;return true;}
   v.inside=false;
-  const ti=v.path[0],tx=cx2w(ti%N),tz=cy2w((ti/N)|0);
+  const ti=v.path[0],tx=cx2w(ti%N),tz=cy2w((ti/N)|0),ni=v.path[1];
   let sp=3.0;if(road[ti])sp*=1.45;else if(tree[ti]||water[ti]===2)sp*=0.6;else if(water[ti]===1)sp*=0.85;else sp*=PSPD[plev[ti]];
   if(v.ill)sp*=0.7;
   const dx=tx-v.x,dz=tz-v.z,d=Math.hypot(dx,dz),step=sp*dt;v.moving=true;
-  if(d<=step){v.x=tx;v.z=tz;v.cell=ti;v.path.shift();stepOn(ti);if(!v.path.length){v.moving=false;return true;}}
-  else{v.x+=dx/d*step;v.z+=dz/d*step;v.fa=Math.atan2(dx,dz);}
+  const last=ni===undefined,reach=last?step:Math.max(step,SMOOTH_REACH);
+  if(d<=reach){
+    if(last){v.x=tx;v.z=tz;}
+    v.cell=ti;v.path.shift();stepOn(ti);
+    if(last){v.moving=false;return true;}
+    if(d>step)return false; // curva: continua verso la cella successiva senza scattare sul centro
+    v.x=tx;v.z=tz;
+  }
+  // punto di mira: vicino a un angolo si sposta verso la cella successiva (curva morbida)
+  let ax=tx,az=tz;
+  if(!last&&d<SMOOTH_R){const t=0.5*(1-d/SMOOTH_R);ax=tx+(cx2w(ni%N)-tx)*t;az=tz+(cy2w((ni/N)|0)-tz)*t;}
+  const mx=ax-v.x,mz=az-v.z,md=Math.hypot(mx,mz);
+  if(md>1e-6){
+    const mv=Math.min(step,md);v.x+=mx/md*mv;v.z+=mz/md*mv;
+    const want=Math.atan2(mx,mz);
+    if(v.fa===undefined)v.fa=want;
+    else{const df=Math.atan2(Math.sin(want-v.fa),Math.cos(want-v.fa));v.fa+=df*Math.min(1,dt*12);}
+  }
   return false;
 }
 function nearestOf(type,cell,maxd){

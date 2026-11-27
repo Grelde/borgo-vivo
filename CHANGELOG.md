@@ -1,5 +1,11 @@
 # Changelog
 
+## v37.1 – 2026-11-27
+Ritocco: movimento più sinuoso agli angoli.
+- Agli angoli del percorso l'abitante taglia dolcemente la curva (raggio 0,6 celle, al massimo 0,3 celle fuori dal centro) invece di girare di scatto sul centro della cella; il corpo ruota gradualmente verso la direzione di marcia. L'ultima cella del percorso si raggiunge sempre esattamente.
+- Misura (`tests/movimento.js`, 3 giorni): scatti di direzione oltre 1 rad da 217 a 84, rotazione massima per passo da 2,4 a 1,4 rad.
+- `tests/smoke-render.js`: il DOM finto ora ha `querySelector`/`querySelectorAll` (rotto dalla v37). Grafica non provata in un browser WebGL: l'effetto visivo va guardato a occhio.
+
 ## v37 – 2026-11-27
 Funzione nuova: Magazzino e Granaio con regole di accettazione e massimali configurabili.
 - **Un totale di 1000 unità per edificio**, condiviso fra le merci accettate (prima: 80 per merce nel Magazzino, 60 di grano nel Granaio). Per ogni merce si decide se accettarla (casella) e con quale massimale (0-1000); i massimali sommati possono superare 1000, ma l'edificio non tiene mai più di 1000 in tutto.
