@@ -471,6 +471,8 @@ function computeAttr(){
     else if(b.type==='store')a=b.center?[0.5,6]:[-1.5,6];
     else a=ATTR[b.type]||null;
     if(a)add(cx,cy,a[0],a[1]);
+    // v36.1: il giardino fisso (generico) abbellisce lo spazio intorno, tanto più quanto è grande
+    if(b.type==='house'&&b.state==='done'&&b.pure){const gn=b.gcells.length+b.ext.length;add(b.gx+(b.gw-1)/2,b.gy+(b.gh-1)/2,0.3+0.05*(gn-9),6+(gn>>2));}
   }
   const unb=Math.min(1.5,S.unburied*0.15);if(unb>0)for(let i=0;i<N*N;i++)attr[i]-=unb;
   const ts=buildSAT(i=>tree[i]?1:0),ws=buildSAT(i=>water[i]===1?1:0),R=10;
@@ -1220,7 +1222,7 @@ function expandGarden(b){
       if(lot.has((cy+uy)*N+cx+ux)&&cx+ux>=0&&cx+ux<N)continue;
       if(b.diag&&diagVal(b,cx+ux+.5,cy+uy+.5)>0)continue;
       const walk=[];let hit=0;
-      for(let s2=1;s2<=3;s2++){
+      for(let s2=1;s2<=4;s2++){
         const x=cx+ux*s2,y=cy+uy*s2;
         if(x<0||y<0||x>=N||y>=N)break;
         const i=y*N+x;
@@ -1296,7 +1298,7 @@ function trySpawnHouse(){
       // v23: circa il 12% delle case (una ogni 8) ha il giardino della legna: la sua coltura è la legna da ardere, al posto di ortaggi, uova o allevamento. La domanda di legna è piccola (1 al giorno per casa, solo d'inverno): con più giardini della legna non troverebbero chi baratta il cibo.
       // Serve una zona mercato (la famiglia baratta la legna con il cibo) e le prime due case coltivano cibo.
       const wood=mk>0&&nh>=2&&nw<Math.ceil((nh+1)*0.12);
-      const crop=wood?'wood':veg<eggs?'veg':eggs<veg?'eggs':(hash(cd.x,cd.y)<.5?'veg':'eggs');
+      let crop=wood?'wood':veg<eggs?'veg':eggs<veg?'eggs':(hash(cd.x,cd.y)<.5?'veg':'eggs');
       // attività secondaria (indipendente dal giardino): pesca vicino all'acqua, caccia vicino a un bosco tranquillo; altrimenti nessuna
       const r=hash(cd.x*5,cd.y*3);let side='none';
       if(fishOK(cd.x,cd.y)&&r<0.5)side='fish';
@@ -1304,6 +1306,7 @@ function trySpawnHouse(){
       // circa il 35% dei giardini di cibo è "puro": non diventa mai allevamento né bottega (il giardino della legna è già fisso)
       const pt=(nh-nw+1)*0.35;
       const pure=!wood&&(np<pt-0.5||(np<pt+0.5&&hash(cd.x*3,cd.y*7)<0.5));
+      if(pure&&crop==='eggs')crop='veg'; // un giardino fisso non ha galline né uova: solo orto e fiori
       addBuilding('house',cd.x,cd.y,false,{w:bw,h:bh,hx:cd.x+sh.hx,hy:cd.y+sh.hy,hw,hh,gcells:gcs,shape:sh.kind,diag:sh.diag?[sh.diag[0]+cd.x,sh.diag[1]+cd.y,sh.diag[2]+cd.x,sh.diag[3]+cd.y]:null,door:cd.dr,crop,side,pure,variant:(hash(cd.x*11,cd.y*7)*4)|0});
       return;
     }
@@ -1654,6 +1657,8 @@ function houseTick(b){
     if(b.level>=3&&!b.pure&&b.crop!=='wood'&&Math.random()<0.25){const had=b.craft||b.bake||b.weave||b.tailor;if(!had){chooseTier(b,true);if(b.craft||b.bake||b.weave||b.tailor){hooks.upgraded(b);}}}
     if(S.season===3){if(b.goods.firewood>=1){b.goods.firewood--;b.warm=true;}else{b.warm=false;if(b.crop!=='wood')tell('cold','Una casa è rimasta senza legna da ardere: solo le famiglie con il giardino della legna la producono, le altre la comprano al banco del mercato. Disegna una zona mercato.');}}else{b.warm=true;if(S.day%2===0&&b.goods.firewood>=1)b.goods.firewood--;}}  // v23: cucina tutto l'anno: fuori dall'inverno 1 legna ogni 2 giorni
   b.attr=attr[b.cell];b.fun=funOf(b);
+  // v36.1: il giardino cresce piano piano verso la strada più vicina (non solo al salto di livello)
+  if(b.gcells.length+b.ext.length<GMAX&&hash(S.t|0,b.id*13)<0.25)expandGarden(b);
   birthTick(b);
   const f=b.flags;f.heat=b.warm;
   f.food=TYPES.filter(tp=>S.t-b.ate[tp]<DAY*2).length>=(b.level>=3?3:2)&&b.hungry<30;

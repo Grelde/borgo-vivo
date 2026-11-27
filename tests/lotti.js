@@ -33,6 +33,9 @@ for(const h of hs)if(h.diag){tris++;let on=0;for(const i of h.gcells){const v=Si
   if(on<4){bad++;console.log('taglio diagonale troppo corto',h.id,on);}
   const p=h.diag.p;if(Math.abs(Math.abs(p[2]-p[0])-Math.abs(p[3]-p[1]))>1e-9){bad++;console.log('taglio non a 45 gradi',h.id);}}
 console.log('triangoli con taglio diagonale',tris);
+// v36.1: il giardino generico (fisso) non ha uova
+const pures=hs.filter(h=>h.pure);for(const h of pures)if(h.crop==='eggs'){bad++;console.log('giardino fisso con uova',h.id);}
+console.log('giardini fissi',pures.length,'case con giardino ampliato',hs.filter(h=>h.ext.length).length);
 const seen=new Map();for(const h of hs)for(const i of h.cells){if(seen.has(i)){bad++;console.log('sovrapposizione');break;}seen.set(i,h.id);}
 // ingresso verso la strada: se una strada tracciata tocca il lotto, la porta sta sulla strada o accanto
 let withRoad=0,facing=0;

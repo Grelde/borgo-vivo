@@ -1,5 +1,12 @@
 # Changelog
 
+## v39.1 – 2026-11-27
+Ritocco: giardini generici (fissi) più belli, senza uova; ampliamento più lungo.
+- **Niente uova nel giardino generico:** un giardino fisso è orto e fiori, mai galline (né animali); le celle aggiunte sono prato fiorito con cespugli e alberelli, non righe di orto.
+- **Più bellezza:** ogni giardino fisso aggiunge attrattiva alla zona (0,3 + 0,05 per cella oltre le 9, raggio 6 + celle/4): più è grande, più abbellisce.
+- **Ampliamento fino alla strada:** il giardino raggiunge la strada anche con un varco fino a 3 celle (prima 2), crescendo da tutto il bordo; inoltre cresce piano piano ogni giorno (circa una volta su quattro), non solo al salto di livello.
+- `tests/lotti.js`: i giardini fissi non hanno uova. Grafica non verificata in un browser WebGL.
+
 ## v39 – 2026-11-27
 Ritocco (solo grafica): i carretti sono solo dei magazzinieri.
 - Il carretto (pietre, tronchi, minerale) lo usano soltanto gli abitanti che lavorano in un Magazzino o nel centro cittadino (`isWhWorker` in `src/render.js`). Chi non lavora al magazzino (costruttori, aiutanti, cavatori, taglialegna) porta la pietra come sasso in braccio e il legno come tronco sulla spalla; il ferro resta un blocchetto. Le assi restano sulla spalla per tutti.
