@@ -3,7 +3,7 @@
 const {N,CS,W,BT,PATH,S,SC}=Sim;
 const NOGATE={house:1,stall:1,flowers:1,statue:1,plaza:1,well:1,cemetery:1};
 const {tree,rock,ore,water,sap,road,dist,occ,wear,plev,field,door,attr}=Sim.grids;
-let attrOn=false,capNow=80;
+let attrOn=false,capNow=80,capStoneNow=80;
 const COARSE=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 if(COARSE)document.body.classList.add('touch');
 const $=id=>document.getElementById(id);
@@ -1024,8 +1024,9 @@ function refreshSel(){
   else if(b.type==='store'){
     name=b.center?'Centro cittadino':'Magazzino';
     const w=Sim.villagers().filter(v=>v.job===b.id);
-    info=`Addetti: ${w.length}/${b.want} · scorte: legno ${S.stock.wood}/${capNow}, pietra ${S.stock.stone}/${capNow}, ferro ${S.stock.iron}/${capNow}`;
-    list=w.map((v,i)=>`<div>Addetto ${i+1}: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>Portano i materiali ai cantieri e ritirano quanto prodotto da taglialegna e cave.</div>'+(b.center?'':`<div>Se il centro contiene materiali, gli addetti li portano qui: legno ${S.wh.wood}, pietra ${S.wh.stone}, ferro ${S.wh.iron}.</div>`)+(b.center?`<div>Il centro cresce con il numero di case. Si può demolire solo quando è vuoto.</div>`:'');
+    const si=b.state==='done'?Sim.storeInfo(b):null;
+    info=b.center?`Addetti: ${w.length}/${b.want} · scorte: legno ${S.stock.wood}/${Sim.CENTER_CAP}, pietra ${S.stock.stone}/${Sim.CENTER_CAP}, ferro ${S.stock.iron}/${Sim.CENTER_CAP}`:`Addetti: ${w.length}/${b.want}`+(si?` · contiene ${si.tot}/${si.total}`:'');
+    list=w.map((v,i)=>`<div>Addetto ${i+1}: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>Portano i materiali ai cantieri e ritirano quanto prodotto da taglialegna e cave.</div>'+(b.center?'':`<div>Accetta materiali da costruzione e i prodotti di fabbro, tessitore e sarto (le botteghe dei giardini non vi consegnano). Le merci che qui sono spente non vengono accolte.</div><div>Se il centro contiene materiali, gli addetti li portano qui: legno ${S.wh.wood}, pietra ${S.wh.stone}, ferro ${S.wh.iron}.</div>`)+(b.center?`<div>Il centro cresce con il numero di case. Si può demolire solo quando è vuoto.</div>`:'');
   }
   else if(b.type==='mason'){
     const w=Sim.villagers().filter(v=>v.job===b.id);
@@ -1051,7 +1052,7 @@ function refreshSel(){
   else if(t.slots&&b.type!=='inn'&&b.type!=='school'&&b.type!=='infirmary'&&b.type!=='sheepfold'){
     const res=b.type==='wood'?'wood':b.type==='mine'?'iron':'stone';
     const prod=b.buf!==undefined;
-    const full=prod&&(b.buf>=Sim.BUFCAP||(S.stock[res]>=capNow*0.9&&b.buf>=2));
+    const full=prod&&(b.buf>=Sim.BUFCAP||(S.stock[res]>=Sim.capRes(res)*0.9&&b.buf>=2));
     info=prod?`Al lavoro: ${b.workers.length} su ${b.want} · scorta nell'edificio ${b.buf}/${Sim.BUFCAP}`:b.type==='forester'?`Al lavoro: ${b.workers.length} su ${b.want} · alberelli in crescita: ${Sim.stats().saps}`:`Al lavoro: ${b.workers.length} su ${b.want} · grano ${S.stock.grain}, farina ${S.stock.flour}`;
     list=Sim.villagers().filter(v=>v.job===b.id).map((v,i)=>`<div>Addetto ${i+1}: ${esc(Sim.roleText(v))}</div>`).join('')+(full?'<div>Il villaggio ne ha già abbastanza: gli addetti aiutano gli altri.</div>':'')+(b.workers.length===0&&b.want>0?`<div>Nessun addetto: servono abitanti liberi (${Sim.villagers().length} in paese). Disegna un quartiere residenziale abbastanza grande, almeno 8×5 celle libere, perché nascano case e famiglie.</div>`:'')+(b.why&&!full?`<div>${esc(b.why)}</div>`:'');
   }
@@ -1059,7 +1060,9 @@ function refreshSel(){
     list=w.map(v=>`<div>Oste: ${esc(Sim.roleText(v))}</div>`).join('')+`<div>Pasti serviti: ${S.visits} · viandanti diventati abitanti: ${S.settled}</div><div>L'oste compra il cibo in eccedenza dalle famiglie.</div>`;}
   else if(b.type==='sheepfold'){const w=Sim.villagers().filter(v=>v.job===b.id);info=`Lana pronta: ${b.buf}/${Sim.BUFCAP} · pascolo: ${b.fields.length} celle`+(b.owner?'':` · pastori ${w.length}/${b.want}`);list=w.map(v=>`<div>Pastore: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>Il telaio del tessitore e le case con il telaio ritirano la lana qui.</div>'+(!b.fields.length?'<div>Nessun pascolo libero dentro il recinto: allarga la zona Pascolo intorno all\'ovile.</div>':'')+(b.why&&w.length?`<div>${esc(b.why)}</div>`:'');}
   else if(b.type==='plaza'||b.type==='flowers'||b.type==='statue')info='Abbellimento: rende più piacevole la zona e attira nuovi abitanti.';
-  else if(b.type==='granary')info=`Grano immagazzinato: ${S.stock.grain}/${Sim.stats().capGrain}. Lo ritira il mugnaio.`;
+  else if(b.type==='granary'){const si=b.state==='done'?Sim.storeInfo(b):null;
+    info=si?`Contiene ${si.tot}/${si.total} · grano ${S.stock.grain} · farina ${S.stock.flour} · pane ${S.stock.bread} · pesce ${S.stock.fish} · carne ${S.stock.meat}`:'Granaio in costruzione.';
+    list='<div>Accoglie il cibo che non viene dai giardini: grano delle fattorie, farina del mulino, pane del forno, pesce e carne dei pescatori e dei cacciatori. Il raccolto dei giardini resta alle case. Il mugnaio ritira il grano.</div>';}
   else if(b.type==='well')info=`Acqua per le case entro ${Sim.WELL_R} celle. Luogo piacevole.`;
   else if(b.type==='church'){info=`Le case entro ${Sim.CHURCH_R} celle possono raggiungere il livello massimo. Luogo molto attraente.`+(b.cem?' Il cimitero sorge accanto alla chiesa.':'');}
   else if(b.type==='school'){const w=Sim.villagers().filter(v=>v.job===b.id);info=`Maestri: ${w.length}/${b.want} · alunni ora: ${b.pupils|0}/${Sim.SCHOOL_CAP} · persone istruite: ${stt.schooled}`;
@@ -1069,6 +1072,7 @@ function refreshSel(){
     list=w.map(v=>`<div>Erborista: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>Cura i malati delle case entro 45 celle: guariscono più in fretta e rischiano meno di morire. Frena anche il contagio.</div>'+(w.length===0?'<div>Senza erborista l\'ospizio non cura.</div>':'');}
   else if(b.type==='cemetery'){info=`Sepolti: ${S.buried} · defunti senza sepoltura: ${S.unburied||0}`;list='<div>I defunti ricevono sepoltura qui: senza un cimitero i morti rendono la zona meno piacevole.</div>';}
   $('selName').textContent=name;$('selInfo').textContent=info;if(selCacheList!==list){selCacheList=list;$('selList').innerHTML=list;}
+  updStoreCfg((b.type==='granary'||(b.type==='store'&&!b.center))&&b.state==='done'?b:null);
   $('selJobs').hidden=!(b.state==='done'&&t.slots>0&&!(b.type==='sheepfold'&&b.owner));
   $('selZone').hidden=!(Sim.ZONED[b.type]&&b.state==='done');if(!$('selZone').hidden){$('zR').textContent=b.zone?b.zone.r:(b.type==='forester'?72:39);$('zSet').textContent=zoneEdit===b.id?'Clicca sulla mappa…':(b.zone?'Sposta zona':'Scegli sulla mappa');}$('wCount').textContent=b.want;
   $('selCem').hidden=!(b.type==='church'&&b.state==='done'&&!b.cem);
@@ -1076,6 +1080,35 @@ function refreshSel(){
   $('selDemo').textContent=b.state==='site'?'Annulla cantiere':'Demolisci';
 }
 function selB(){return sel&&Sim.buildings().get(sel);}
+// v36: pannello di accettazione e massimali di Magazzino e Granaio (le righe si creano una volta per edificio, poi si aggiornano solo i numeri)
+const STKNAME={wood:'Legno',stone:'Pietra',iron:'Ferro',planks:'Assi',tools:'Attrezzi',cloth:'Tessuto',clothes:'Abiti',grain:'Grano',flour:'Farina',bread:'Pane',fish:'Pesce',meat:'Carne'};
+let stkCfgFor=null;
+function updStoreCfg(b){
+  const box=$('selStore');
+  if(!b){box.hidden=true;stkCfgFor=null;return;}
+  box.hidden=false;
+  const si=Sim.storeInfo(b);
+  if(stkCfgFor!==b.id){
+    stkCfgFor=b.id;
+    box.innerHTML=`<div class="sh">Cosa accettare</div>`+si.pol.map(p=>`<div class="sr" data-r="${p.k}"><label><input type="checkbox" data-k="${p.k}" ${p.on?'checked':''}>${STKNAME[p.k]}</label><span class="held"></span><input type="number" min="0" max="${si.total}" step="50" data-m="${p.k}" value="${p.max}" aria-label="Massimale ${STKNAME[p.k]}"></div>`).join('')+`<div class="sn" id="stkNote"></div>`;
+  }
+  for(const p of si.pol){
+    const row=box.querySelector(`[data-r="${p.k}"]`);if(!row)continue;
+    const cb=row.querySelector('input[type=checkbox]'),nm=row.querySelector('input[type=number]');
+    if(document.activeElement!==cb)cb.checked=p.on;
+    if(document.activeElement!==nm)nm.value=p.max;
+    row.classList.toggle('off',!p.on);
+    row.querySelector('.held').textContent=p.held;
+  }
+  $('stkNote').textContent=`In tutto ${si.tot}/${si.total}: il posto è condiviso fra le merci accettate, ogni massimale limita la singola merce.`;
+}
+$('selStore').addEventListener('change',ev=>{
+  const t=ev.target;if(!sel||!t||!t.getAttribute)return;
+  const k=t.getAttribute('data-k'),m=t.getAttribute('data-m');
+  if(k)Sim.setPolicy(sel,k,{on:t.checked});
+  else if(m)Sim.setPolicy(sel,m,{max:t.value});
+  refreshSel();
+});
 $('selCem').addEventListener('click',()=>{const b=selB();if(!b||b.type!=='church')return;const res=Sim.addCemetery(b.id);toast(res.ok?'Cantiere del cimitero avviato accanto alla chiesa.':(res.msg||'Non c\'è spazio per il cimitero'));refreshSel();});
 const EDICTS=[
   {k:'noUpgrade',ic:'🏚️',t:'Vieta l\'avanzamento delle Case',d:'Le famiglie non potranno più migliorare la propria casa: i livelli restano come sono.',fx:'Utile per tenere basso il livello del borgo.'},
@@ -1441,8 +1474,8 @@ for(const [id,tab] of [['chipPop','pop'],['chipJoy','joy']]){
 let hudT=0;const PHN={work:'lavoro',meal:'pasto',evening:'sera',night:'notte'};
 function updateHUD(){
   const st=Sim.stats();
-  capNow=st.capRes||80;if(attrOn)groundDirty=true;
-  $('rWood').textContent=`${S.stock.wood}/${capNow}`;$('rStone').textContent=`${S.stock.stone}/${capNow}`;$('rFood').textContent=st.food;$('rIron').textContent=`${S.stock.iron}`;$('rPlanks').textContent=`${S.stock.planks}`;$('rGrain').textContent=`${S.stock.grain}·${S.stock.flour}`;
+  capNow=st.capRes||80;capStoneNow=st.capStone||80;if(attrOn)groundDirty=true;
+  $('rWood').textContent=`${S.stock.wood}/${capNow}`;$('rStone').textContent=`${S.stock.stone}/${capStoneNow}`;$('rFood').textContent=st.food;$('rIron').textContent=`${S.stock.iron}`;$('rPlanks').textContent=`${S.stock.planks}`;$('rGrain').textContent=`${S.stock.grain}·${S.stock.flour}`;
   $('rDay').textContent=`${Sim.SEASONS[st.season]} ${st.day%Sim.SEASON_DAYS+1}/${Sim.SEASON_DAYS} · annata ${st.year} · ${PHN[st.ph]}`;
   $('rPop').textContent=`${st.pop}/${st.cap}`+(st.children?` (👶${st.children})`:'');$('rJobs').textContent=`${st.jobs}/${st.slots}`;$('rBarter').textContent=st.barters;
   $('rFire').textContent=`${st.fire}/${st.fireNeed}`;$('rSick').textContent=st.sick+(st.plague?' ☣':'');$('chipSick').classList.toggle('alert',st.sick>0);$('rWell').textContent=Math.round(st.avgJoy)+(st.unhappy?' · '+st.unhappy+' tristi':'');$('chipJoy').classList.toggle('alert',st.unhappy>0&&st.avgJoy<45);
@@ -1532,7 +1565,7 @@ function frame2(now){
     if(e.sheep)animSheep(e,dt);
     if(ud&&ud.sails)ud.sails.rotation.z-=dt*0.7;
     if(ud&&ud.gv){const n=Math.min(ud.gv.length,S.buried|0);if(ud.shown!==n){ud.shown=n;ud.gv.forEach((m,i)=>{m.visible=i<n;});}}
-    if(ud&&ud.logs){ud.logs.scale.y=0.15+0.85*Math.min(1,S.stock.wood/capNow);ud.stones.scale.y=0.2+0.8*Math.min(1,S.stock.stone/capNow);}
+    if(ud&&ud.logs){ud.logs.scale.y=0.15+0.85*Math.min(1,S.stock.wood/Math.min(capNow,160));ud.stones.scale.y=0.2+0.8*Math.min(1,S.stock.stone/Math.min(capStoneNow,160));}
     if(b.state==='site'){const sc2=b.cost||Sim.costOf(b.type),tot=sc2.wood+sc2.stone+(sc2.planks||0),fr=(b.got.wood+b.got.stone+(b.got.planks||0))/Math.max(1,tot);e.body.scale.y=0.1+0.9*(fr*0.25+b.prog*0.75);}
     else if(e.pop>0){e.pop-=dt;e.body.scale.y=1+Math.sin(Math.max(0,e.pop)/0.4*Math.PI)*0.08;if(e.pop<=0)e.body.scale.y=1;}
   }

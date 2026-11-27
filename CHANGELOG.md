@@ -1,5 +1,16 @@
 # Changelog
 
+## v37 – 2026-11-27
+Funzione nuova: Magazzino e Granaio con regole di accettazione e massimali configurabili.
+- **Un totale di 1000 unità per edificio**, condiviso fra le merci accettate (prima: 80 per merce nel Magazzino, 60 di grano nel Granaio). Per ogni merce si decide se accettarla (casella) e con quale massimale (0-1000); i massimali sommati possono superare 1000, ma l'edificio non tiene mai più di 1000 in tutto.
+- **Magazzino:** materiali da costruzione (legno, pietra, ferro, assi) e prodotti degli artigiani (attrezzi del fabbro, tessuto del tessitore, abiti del sarto). **Granaio:** cibo che non viene dai giardini (grano delle fattorie, farina, pane del forno, pesce e carne di pescatori e cacciatori). I prodotti dei giardini e delle botteghe dei giardini non vi entrano mai: depositano solo gli edifici veri.
+- **Pannello:** selezionando un Magazzino o un Granaio completato compare "Cosa accettare" con una riga per merce (casella, quantità contenuta, massimale) e il totale occupato su 1000.
+- **Flusso dei prodotti:** gli addetti di fucina, forno, telaio, sartoria, pescatore e cacciatore portano l'eccedenza (6 pezzi o più) al Magazzino/Granaio più vicino che accetta quella merce e ha posto; se nessuno la accetta resta nell'edificio e, a scorta piena, la produzione si ferma come prima. Gli stessi addetti consegnano alle case anche la merce in scorta (prima quella pronta in bottega).
+- Il **centro cittadino** resta com'era (80 per materiale, non configurabile). Con un Magazzino spento per una merce, i produttori rispettano la capacità reale: scorte piene = gli addetti aiutano gli altri. La falegnameria produce assi solo se qualche edificio le accetta.
+- HUD: legno e pietra mostrano la capacità effettiva (con 1000 per Magazzino il limite non è più 80). Il mucchio di tronchi e pietre del centro si scala su un massimo di 160 per restare leggibile.
+- Test: `tests/storage.js` (regole base, accettazione per merce, massimali, totale condiviso, flusso degli artigiani acceso/spento); gli altri test restano verdi. Interfaccia non provata in un browser WebGL: il pannello usa il DOM e va guardato aprendo il gioco.
+- Limiti: la suddivisione fra edifici è calcolata (le scorte restano un contatore per merce: il centro tiene ciò che non è stato trasferito, il resto si riempie per merce e per edificio in ordine di costruzione) e il prelievo dalle scorte per le consegne è astratto, non un trasporto dal magazzino; con i nuovi limiti da 1000 va ritarato il bilanciamento (taglialegna e cave si bloccano molto più tardi). La farina nel Granaio si aggiunge alla capacità dei mulini.
+
 ## v36.1 – 2026-11-27
 Ritocco: nelle zone di Caccia e Pesca le bandiere sono sostituite da icone esplicative.
 - Le bandiere arancioni e azzurre non ci sono più: al loro posto un'icona tonda sempre rivolta alla camera, **arco e freccia su fondo arancione = caccia**, **pesce su fondo azzurro = pesca**. Le celle colorate restano come prima (arancione boschi per la caccia, azzurro rive per la pesca).

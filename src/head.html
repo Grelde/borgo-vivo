@@ -76,6 +76,16 @@ body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--seri
 #selList::-webkit-scrollbar{width:5px}#selList::-webkit-scrollbar-thumb{background:rgba(214,173,78,.45);border-radius:3px}#selList::-webkit-scrollbar-track{background:transparent}
 #selList>div{padding-bottom:4px;border-bottom:1px solid rgba(214,173,78,.12)}#selList>div:last-child{border-bottom:0}
 #selList:empty{display:none}
+#selStore{display:flex;flex-direction:column;gap:5px;margin:0 0 10px;font-size:14px;color:var(--parch2)}
+#selStore[hidden]{display:none}
+#selStore .sh{font:700 12px/1.2 var(--disp);letter-spacing:.06em;text-transform:uppercase;color:var(--gold)}
+#selStore .sr{display:flex;align-items:center;gap:6px}
+#selStore .sr label{flex:1;display:flex;align-items:center;gap:6px;cursor:pointer}
+#selStore .sr input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--gold)}
+#selStore .sr .held{min-width:42px;text-align:right;font-variant-numeric:tabular-nums}
+#selStore .sr input[type=number]{width:70px;box-sizing:border-box;background:rgba(0,0,0,.28);color:var(--parch);border:1px solid var(--line);border-radius:4px;padding:3px 4px;font:inherit;-webkit-user-select:text;user-select:text}
+#selStore .sr.off{opacity:.55}
+#selStore .sn{font-size:12.5px;color:var(--muted)}
 #selList .lk{color:var(--gold);cursor:pointer;text-decoration:underline;text-decoration-color:rgba(214,173,78,.4)}
 .flags{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0}
 .flags span{padding:1px 9px;border-radius:10px;font-size:13px;border:1px solid var(--line);color:var(--muted)}
@@ -266,6 +276,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
     <h3 id="selName"></h3>
     <p id="selInfo"></p>
     <div id="selList"></div>
+    <div id="selStore" hidden></div>
     <div class="jobs" id="selJobs"><span>Lavoratori</span><button class="btn sm" id="wMinus" aria-label="Meno lavoratori">−</button><b id="wCount">0</b><button class="btn sm" id="wPlus" aria-label="Più lavoratori">+</button></div>
     <div class="jobs" id="selZone" hidden><span>Zona di lavoro</span><button class="btn sm" id="zSet">Scegli sulla mappa</button><button class="btn sm" id="zMinus" aria-label="Zona più piccola">−</button><b id="zR">0</b><button class="btn sm" id="zPlus" aria-label="Zona più grande">+</button><button class="btn sm" id="zReset" title="Torna alla zona attorno all'edificio">↺</button></div>
     <button class="btn" id="selCem" hidden>Costruisci il Cimitero (legno 6, pietra 10)</button>
