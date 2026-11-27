@@ -50,15 +50,37 @@ const DLINE=[null,'rgba(240,200,100,0.95)','rgba(170,220,90,0.95)','rgba(238,130
 // livelli dei sentieri: 1-3 il terreno si scolorisce verso il giallino, 4 è il sentiero vero (terra battuta)
 const PLC=[null,'rgb(176,192,100)','rgb(196,188,92)','rgb(208,178,96)','rgb(122,92,56)'],PLA=[0,0.40,0.58,0.76,0.9],PLW=[0,0.55,0.65,0.75,0.82];
 let zonesOn=true;
-const flagGeo=(()=>{const a=new THREE.CylinderGeometry(.04,.04,1.8,5);a.translate(0,.9,0);const b=new THREE.ConeGeometry(.28,.8,3);b.rotateZ(-Math.PI/2);b.translate(.4,1.45,0);return [a,b];})();
-const poleM=new THREE.InstancedMesh(flagGeo[0],new THREE.MeshLambertMaterial({color:0x4a3520}),600);
-const pennM=new THREE.InstancedMesh(flagGeo[1],new THREE.MeshBasicMaterial({color:0xff8a1c,side:THREE.DoubleSide}),600);
-const pennF=new THREE.InstancedMesh(flagGeo[1],new THREE.MeshBasicMaterial({color:0x2f9bff,side:THREE.DoubleSide}),600);
-poleM.count=pennM.count=pennF.count=0;scene.add(poleM);scene.add(pennM);scene.add(pennF);
-for(const m of[poleM,pennM,pennF])m.frustumCulled=false;
+// v36.1: al posto delle bandiere, icone esplicative sempre rivolte alla camera (arco e freccia = caccia, pesce = pesca)
+function zoneIconTex(kind){
+  const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
+  x.fillStyle=kind===1?'#e0701c':'#2f86d6';x.strokeStyle='#fff';x.lineWidth=5;
+  x.beginPath();x.arc(64,64,58,0,7);x.fill();x.stroke();
+  x.fillStyle='#fff';x.lineCap='round';x.lineJoin='round';
+  if(kind===1){
+    x.lineWidth=7;x.beginPath();x.arc(46,64,38,-1.15,1.15);x.stroke();
+    x.lineWidth=3;x.beginPath();x.moveTo(46+38*Math.cos(-1.15),64+38*Math.sin(-1.15));x.lineTo(46+38*Math.cos(1.15),64+38*Math.sin(1.15));x.stroke();
+    x.lineWidth=6;x.beginPath();x.moveTo(30,64);x.lineTo(104,64);x.stroke();
+    x.beginPath();x.moveTo(108,64);x.lineTo(92,53);x.lineTo(92,75);x.closePath();x.fill();
+    x.beginPath();x.moveTo(30,64);x.lineTo(21,55);x.moveTo(30,64);x.lineTo(21,73);x.lineWidth=4;x.stroke();
+  }else{
+    x.beginPath();x.ellipse(60,64,34,20,0,0,7);x.fill();
+    x.beginPath();x.moveTo(90,64);x.lineTo(112,46);x.lineTo(112,82);x.closePath();x.fill();
+    x.fillStyle='#2f86d6';x.beginPath();x.arc(44,58,4.5,0,7);x.fill();
+  }
+  const t=new THREE.CanvasTexture(c);return t;
+}
+const zoneTex=[null,zoneIconTex(1),zoneIconTex(2)];
+const zoneIcons=new THREE.Group();scene.add(zoneIcons);
+const zonePool=[];
+function zoneIcon(i,kind,wx,wz){
+  let sp=zonePool[i];
+  if(!sp){sp=new THREE.Sprite(new THREE.SpriteMaterial({map:zoneTex[1],transparent:true,depthWrite:false}));sp.scale.set(2.6,2.6,1);sp.frustumCulled=false;zonePool[i]=sp;zoneIcons.add(sp);}
+  sp.material.map=zoneTex[kind];sp.position.set(wx,2.2,wz);sp.visible=true;
+}
+function hideZoneIcons(from){for(let i=from;i<zonePool.length;i++)zonePool[i].visible=false;}
 function drawZones(){
   const noisy=[];for(const b of Sim.buildings().values())if(b.type==='wood'||b.type==='quarry'||b.type==='mine')noisy.push(b);
-  let n=0,nh=0,nf=0;
+  let n=0;
   for(let i=0;i<N*N;i++){
     const x=i%N,y=(i/N)|0,x0=x*PX,y0=y*PX;
     let kind=0;
@@ -70,12 +92,11 @@ function drawZones(){
     }
     if(!kind)continue;
     g.fillStyle=kind===1?'rgba(224,112,28,0.34)':'rgba(60,150,230,0.42)';g.fillRect(x0,y0,PX,PX);
-    if(n<600&&((kind===1&&x%12===1&&y%12===1)||(kind===2&&(x*3+y*5)%15===0))){
-      dummy.position.set(Sim.cx2w(x)+(kind===1?.5:0),0,Sim.cy2w(y)+(kind===1?.5:0));dummy.rotation.set(0,0,0);dummy.scale.set(1,1,1);dummy.updateMatrix();
-      poleM.setMatrixAt(n,dummy.matrix);if(kind===1)pennM.setMatrixAt(nh++,dummy.matrix);else pennF.setMatrixAt(nf++,dummy.matrix);n++;
+    if(n<400&&((kind===1&&x%12===1&&y%12===1)||(kind===2&&(x*3+y*5)%15===0))){
+      zoneIcon(n,kind,Sim.cx2w(x)+(kind===1?.5:0),Sim.cy2w(y)+(kind===1?.5:0));n++;
     }
   }
-  poleM.count=n;pennM.count=nh;pennF.count=nf;poleM.instanceMatrix.needsUpdate=pennM.instanceMatrix.needsUpdate=pennF.instanceMatrix.needsUpdate=true;
+  hideZoneIcons(n);
 }
 // strisce che seguono le celle collegate: cerchio per cella e segmento verso i vicini
 const NB=[[1,0],[0,1],[1,1],[-1,1]];
@@ -125,7 +146,7 @@ function curveOn(c,test,w,style){
   }
 }
 function drawGround(){
-  if(!zonesOn){poleM.count=pennM.count=pennF.count=0;}
+  if(!zonesOn)hideZoneIcons(0);
   g.drawImage(base,0,0);
   const SN=S.season;
   if(SN===3){g.fillStyle='rgba(238,245,251,0.66)';g.fillRect(0,0,TEX,TEX);}
@@ -1183,7 +1204,7 @@ addEventListener('keydown',e=>{
 });
 function rotate(){rot=(rot+1)%4;}
 $('rotBtn').addEventListener('click',rotate);
-function toggleZones(){zonesOn=!zonesOn;$('zoneBtn').classList.toggle('on',zonesOn);groundDirty=true;if(zonesOn)toast('Zone segnalate: bandiere arancioni = caccia (boschi fitti e tranquilli), bandiere azzurre = pesca (rive di lago e fiume; in inverno sono ghiacciate).');}
+function toggleZones(){zonesOn=!zonesOn;$('zoneBtn').classList.toggle('on',zonesOn);groundDirty=true;if(zonesOn)toast('Zone segnalate: icona arco e freccia (arancione) = caccia nei boschi fitti e tranquilli, icona pesce (azzurra) = pesca su rive di lago e fiume (in inverno ghiacciate).');}
 $('zoneBtn').addEventListener('click',toggleZones);
 function toggleAttr(){attrOn=!attrOn;$('attrBtn').classList.toggle('on',attrOn);groundDirty=true;}
 $('attrBtn').addEventListener('click',toggleAttr);

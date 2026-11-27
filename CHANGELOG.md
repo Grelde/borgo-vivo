@@ -1,5 +1,11 @@
 # Changelog
 
+## v36.1 – 2026-11-27
+Ritocco: nelle zone di Caccia e Pesca le bandiere sono sostituite da icone esplicative.
+- Le bandiere arancioni e azzurre non ci sono più: al loro posto un'icona tonda sempre rivolta alla camera, **arco e freccia su fondo arancione = caccia**, **pesce su fondo azzurro = pesca**. Le celle colorate restano come prima (arancione boschi per la caccia, azzurro rive per la pesca).
+- Testi aggiornati (messaggio del tasto zone 🏹 e suggerimento del pulsante). Nessun cambio di regole di gioco.
+- Grafica verificata solo con test a DOM finto, non in un browser WebGL (dimensione e posizione delle icone da tarare a occhio).
+
 ## v36 – 2026-11-27
 Funzione nuova: l'ovile nasce dentro la zona Pascolo, la zona crea un recinto e le pecore restano dentro.
 - **Posa solo nel pascolo:** l'ovile (del giocatore o fondato da una famiglia) si può costruire solo con tutta l'impronta dentro una zona Pascolo; altrove la posa è rifiutata con il motivo ("L'ovile va costruito dentro una zona Pascolo: disegnala prima (tasto P)").
