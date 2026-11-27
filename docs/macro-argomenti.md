@@ -9,7 +9,7 @@ Stato: zone Residenziale/Agricolo/Mercato/Forestale/Pascolo; sentieri a 4 livell
 Da fare: mappe/terreni nuovi, ponti, colline, selciato, pendolarismo.
 
 ## 2. Case, giardini e specializzazioni
-Stato: lotto casa+giardino, 4 livelli, 16 varianti, giardino che si espande, allevamento o bottega a ogni salita di livello. Dalla v24 per salire di livello servono, in modo cumulativo: livello 1 cibo (1 tipo), acqua e legna da ardere (4 in autunno-inverno, 2 altrimenti); livello 2 anche chiesa e 2 tipi di cibo; livello 3 anche scuola vicina (45 celle) e 3 tipi di cibo. Dalla v23 ogni giardino ha una sola coltura: orto, galline, allevamento oppure legna da ardere (~12% delle case; giardino che non cambia e non apre botteghe).
+Stato: lotto casa+giardino, 5 livelli (dalla v25 il livello 5, Palazzo, richiede una zona di qualità ottima: attrattiva ≥3), 16 varianti, giardino che si espande, allevamento o bottega a ogni salita di livello. Dalla v24 per salire di livello servono, in modo cumulativo: livello 1 cibo (1 tipo), acqua e legna da ardere (4 in autunno-inverno, 2 altrimenti); livello 2 anche chiesa e 2 tipi di cibo; livello 3 anche scuola vicina (45 celle) e 3 tipi di cibo. Dalla v23 ogni giardino ha una sola coltura: orto, galline, allevamento oppure legna da ardere (~12% delle case; giardino che non cambia e non apre botteghe).
 Da fare: bilanciamento dei limiti per ruolo, specializzazioni nuove.
 
 ## 3. Economia, risorse e lavoro

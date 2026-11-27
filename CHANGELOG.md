@@ -1,5 +1,13 @@
 # Changelog
 
+## v25 – 2026-11-27
+Funzione nuova: **livello 5 (Palazzo)**. La qualità della zona decide il salto dal livello 4 al 5.
+- Una Casa signorile (livello 4) diventa **Palazzo** (livello 5) solo se la zona ha qualità **ottima**: attrattiva 3 o più (la scritta "Ottima" del pannello). Restano richiesti, come sempre, i requisiti dei livelli precedenti (cibo, acqua, legna, chiesa, scuola vicina). Chiese, pozzi, piazze, statue e aiuole alzano la qualità; cave, miniere e taglialegna la abbassano.
+- Palazzo: 7 abitanti, costo di miglioramento legno 8 e pietra 14, due modelli 3D (torri d'angolo con cono di ardesia e mastio; oppure ali con salone centrale e torrette).
+- Cibo: per i livelli 3 e 4 servono 3 tipi di cibo (non 4): il numero cresce fino a 3.
+- Pannello casa: nuovo indicatore "Zona" dal livello 4 e requisito nell'elenco "Per migliorare". Obiettivi dei livelli: le case di livello 5 contano anche per quelle di livello 2 e per le "due case signorili".
+- Test: `tests/tier.js` verifica anche che nessuna casa passi al livello 5 senza qualità di zona (mappa lago, seme 7, 30 giorni con pozzo, chiesa, scuola, piazza: le case a livello 4 restano sotto 3 di attrattiva, quelle a livello 5 sono tutte sopra 3,6). Grafica verificata solo con DOM finto, non in un browser WebGL.
+
 ## v24 – 2026-11-27
 Cambio di regole: requisiti per far salire di livello le case (cumulativi: ogni livello richiede anche quelli precedenti).
 - **Capanna → Casa (livello 1):** almeno 1 tipo di cibo, acqua (pozzo entro 30 celle) e scorta di legna da ardere.

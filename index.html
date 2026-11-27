@@ -203,7 +203,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v24</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v25</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -272,7 +272,7 @@ const TYPES=['veg','eggs','grain','fish','meat','bread'];
 const GN={veg:'ortaggi',eggs:'uova',grain:'grano',fish:'pesce',meat:'carne',bread:'pane',firewood:'legna da ardere',tools:'attrezzi',iron:'ferro',flour:'farina',wool:'lana',cloth:'tessuto',clothes:'abiti'};
 const GOODS=TYPES.concat(['firewood','tools','iron','flour','wool','cloth','clothes']);
 const TRADE=TYPES.concat(['firewood','tools','cloth','clothes']);
-const CAPS=[3,4,5,6],MAXLV=4,WELL_R=30,CHURCH_R=54,SCHOOL_R=45,KEEP=2,LVNAME=['Capanna','Casa','Casa a due piani','Casa signorile'];
+const CAPS=[3,4,5,6,7],MAXLV=5,QUAL5=3,WELL_R=30,CHURCH_R=54,SCHOOL_R=45,KEEP=2,LVNAME=['Capanna','Casa','Casa a due piani','Casa signorile','Palazzo'];
 const BT={
   wood:{name:'Taglialegna',w:6,h:6,cost:{wood:6,stone:0},time:8,slots:3,want:2,need:'tree'},
   quarry:{name:'Cava di pietra',w:6,h:6,cost:{wood:8,stone:0},time:10,slots:3,want:2,need:'rock'},
@@ -301,7 +301,7 @@ const DECO={flowers:1,statue:1};
 const NOGATE={house:1,stall:1,flowers:1,statue:1,plaza:1,well:1,cemetery:1};
 // Tempo (v20): 1 anno di vita = AGEY secondi; un'annata del calendario (4 stagioni) = YEARL secondi = 10 anni di vita.
 const AGEY=240;
-const UPC={2:{wood:4,stone:0},3:{wood:4,stone:4},4:{wood:6,stone:8}};
+const UPC={2:{wood:4,stone:0},3:{wood:4,stone:4},4:{wood:6,stone:8},5:{wood:8,stone:14}};
 const SEASON_DAYS=6,SEASONS=['Primavera','Estate','Autunno','Inverno'],DUSK=0.68;
 const YEARL=SEASON_DAYS*4*DAY;
 const SCHOOL_CAP=12,HEAL_R=45;
@@ -1589,10 +1589,11 @@ function houseTick(b){
   f.fuel=b.goods.firewood>=fuelNeed();
   // v24: requisiti per salire di livello (cumulativi). Livello 1: cibo, acqua, legna. Livello 2: + chiesa e 2 tipi di cibo. Livello 3: + scuola vicina e 3 tipi di cibo.
   f.school=nearDone('school',b.cell,SCHOOL_R);
-  f.foodUp=TYPES.filter(tp=>S.t-b.ate[tp]<DAY*2).length>=b.level&&b.hungry<30;
+  f.foodUp=TYPES.filter(tp=>S.t-b.ate[tp]<DAY*2).length>=Math.min(3,b.level)&&b.hungry<30;
+  f.quality=b.attr>=QUAL5;
   b.well=wellOf(b);
   if(b.level<MAXLV){
-    const ok=f.foodUp&&f.water&&f.fuel&&(b.level<2||f.church)&&(b.level<3||f.school);
+    const ok=f.foodUp&&f.water&&f.fuel&&(b.level<2||f.church)&&(b.level<3||f.school)&&(b.level<4||f.quality);
     const uc=UPC[b.level+1];f.mat=!uc||(uncommitted('wood')>=uc.wood&&uncommitted('stone')>=uc.stone);
     if(ok&&S.edicts.noUpgrade){b.up=Math.min(b.up,24);}
     else if(ok){b.up=Math.min(25,b.up+(schooledIn(b)?2:1)+(b.well>=90?1:0));
@@ -1886,7 +1887,7 @@ function roleText(v){
   return 'In cerca di una casa';
 }
 function stats(){
-  let houses=0,sites=0,slots=0,cap=0,food=0,farms=0,stalls=0,hungry=0,asum=0,amax=-99,herds=0,crafters=0,bakers=0,fishers=0,hunters=0,tools=0,weavers=0,tailors=0,clothes=0,wsum=0,fire=0,fireNeed=0;const built={},levels=[0,0,0,0,0];
+  let houses=0,sites=0,slots=0,cap=0,food=0,farms=0,stalls=0,hungry=0,asum=0,amax=-99,herds=0,crafters=0,bakers=0,fishers=0,hunters=0,tools=0,weavers=0,tailors=0,clothes=0,wsum=0,fire=0,fireNeed=0;const built={},levels=[0,0,0,0,0,0];
   for(const b of buildings.values()){
     if(b.state==='done'){
       built[b.type]=(built[b.type]||0)+1;
@@ -1906,7 +1907,7 @@ function stats(){
     avgAttr:houses?asum/houses:0,maxAttr:houses?amax:0,day:S.day,ph:S.ph,f:S.f,herds,crafters,bakers,fishers,hunters,tools,saps,weavers,tailors,clothes,season:S.season,year:S.year,visits:S.visits,settled:S.settled,guests:guests.length,children:kids,schooled,births:S.births,deaths:S.deaths,buried:S.buried,
     sick,plagueN,plague:S.plague.on,avgWell:houses?wsum/houses:0,avgJoy:villagers.length?villagers.reduce((a,v)=>a+v.joy,0)/villagers.length:0,unhappy:villagers.filter(v=>v.joy<35).length,left:S.left,fire,fireNeed,inherits:S.inherits,cured:S.cured,moves:S.moves,deathsBy:S.deathsBy,pupils};
 }
-return {setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
+return {setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,fuelNeed,dateStr,
   _t:{chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
   grids:{tree,rock,ore,water,sap,sapT,road,dist,occ,wear,plev,field,door,attr,cen},guests:()=>guests,buildings:()=>buildings,villagers:()=>villagers};
@@ -2180,7 +2181,7 @@ function houseLevel(g,b){
     else{bx(g,1.5,1.0,1.4,MAT.stone,0,.5,0);bx(g,1.4,.9,1.3,MAT.plaster,0,1.45,0);bx(g,1.56,.08,1.46,MAT.timber,0,1.0,0);
       gab(g,1.5,1.4,.8,MAT.slate,1.9,0,0,Math.PI/2);cyl(g,.34,.36,2.1,8,MAT.stone,.7,1.05,.55);cone(g,.46,.8,8,MAT.slate,.7,2.5,.55,0);
       bx(g,.32,.6,.06,MAT.door,-.2,.3,.71);bx(g,.2,.3,.05,MAT.glass,-.6,1.45,.66);bx(g,.2,.3,.05,MAT.glass,.1,1.45,.66);bx(g,.1,.3,.05,MAT.glass,.7,1.6,.9);}
-  }else{
+  }else if(lv===4){
     if(v===0){bx(g,1.7,1.1,1.6,MAT.stone,0,.55,0);bx(g,1.6,.9,1.5,MAT.plaster,0,1.55,0);
       for(const sx of[-1,1])for(const sz of[-1,1])bx(g,.1,.9,.1,MAT.timber,sx*.77,1.55,sz*.72);
       bx(g,1.66,.1,1.56,MAT.timber,0,1.1,0);bx(g,1.66,.1,1.56,MAT.timber,0,2.0,0);cone(g,1.5,1.25,4,MAT.slate,0,2.6,0,Math.PI/4);
@@ -2204,6 +2205,27 @@ function houseLevel(g,b){
       bx(g,.5,1.0,.1,MAT.stone,0,.5,.8);bx(g,.3,.6,.12,MAT.door,0,.3,.82);bx(g,.5,.12,.14,MAT.stoneD,0,1.0,.8);
       for(const sx of[-.65,.65]){bx(g,.2,.3,.05,MAT.glass,sx,.9,.86);bx(g,.2,.3,.05,MAT.glass,sx,1.2,-.86);}
       cyl(g,.18,.22,.2,8,MAT.stoneD,0,.2,0);cyl(g,.12,.12,.04,8,MAT.fount,0,.31,0);chim(g,-.7,1.95,-.4,.6);cyl(g,.02,.02,.9,4,MAT.timber,0,2.2,-.6);bx(g,.34,.2,.03,MAT.gold,.17,2.5,-.6);}
+  }else{
+    // livello 5: palazzo
+    if(v%2===0){
+      bx(g,1.95,1.2,1.85,MAT.stone,0,.6,0);bx(g,1.85,.95,1.75,MAT.plaster,0,1.68,0);
+      bx(g,2.0,.1,1.9,MAT.timber,0,1.2,0);bx(g,2.0,.12,1.9,MAT.stoneD,0,2.2,0);
+      for(let k=-3;k<=3;k++){bx(g,.2,.2,.1,MAT.stone,k*.28,2.36,.9);bx(g,.2,.2,.1,MAT.stone,k*.28,2.36,-.9);}
+      for(const sx of[-1,1])for(const sz of[-1,1]){cyl(g,.24,.27,2.8,9,MAT.stone,sx*.98,1.4,sz*.92);cone(g,.36,.8,9,MAT.slate,sx*.98,3.2,sz*.92,0);sph(g,.06,MAT.gold,sx*.98,3.65,sz*.92);}
+      bx(g,.9,.85,.9,MAT.stone,0,2.6,-.1);cone(g,.8,.9,4,MAT.slate,0,3.5,-.1,Math.PI/4);cyl(g,.02,.02,1.0,4,MAT.timber,0,4.4,-.1);bx(g,.42,.26,.03,MAT.gold,.21,4.75,-.1);
+      bx(g,.5,.8,.08,MAT.door,0,.4,.93);bx(g,.62,.12,.12,MAT.gold,0,.88,.93);bx(g,.12,.12,.1,MAT.gold,.14,.4,.97);
+      for(const sx of[-.55,.55]){bx(g,.24,.36,.06,MAT.glass,sx,.8,.93);bx(g,.24,.4,.06,MAT.glass,sx,1.72,.88);}
+      bx(g,.3,.45,.06,MAT.glass,0,1.72,.88);bx(g,.8,.06,.3,MAT.stoneD,0,1.3,1.0);
+      for(const sx of[-.98,.98])bx(g,.4,.7,.03,MAT.red,sx,2.2,.0).rotation.y=Math.PI/2;
+    }else{
+      bx(g,.75,1.3,1.8,MAT.stone,-.62,.65,0);bx(g,.75,1.3,1.8,MAT.stone,.62,.65,0);bx(g,.62,1.0,1.7,MAT.plaster,-.62,1.8,0);bx(g,.62,1.0,1.7,MAT.plaster,.62,1.8,0);
+      gab(g,.8,1.8,.7,MAT.slate,2.3,-.62,0,0);gab(g,.8,1.8,.7,MAT.slate,2.3,.62,0,0);
+      bx(g,.9,1.9,1.0,MAT.stone,0,.95,.1);bx(g,.8,.9,.9,MAT.plaster,0,2.35,.1);gab(g,1.0,1.0,.9,MAT.slate,2.8,0,.1,0);
+      bx(g,.42,.9,.1,MAT.door,0,.45,.62);bx(g,.58,.1,.12,MAT.gold,0,.95,.62);cyl(g,.16,.16,.05,10,MAT.gold,0,2.5,.6).rotation.x=Math.PI/2;
+      for(const sx of[-.62,.62]){bx(g,.22,.36,.06,MAT.glass,sx,.8,.9);bx(g,.22,.36,.06,MAT.glass,sx,1.85,.86);}
+      for(const sx of[-1.05,1.05]){cyl(g,.2,.22,2.0,8,MAT.stone,sx,1.0,.0);cone(g,.3,.6,8,MAT.slate,sx,2.3,0,0);}
+      chim(g,-.62,3.2,-.4,.8);chim(g,.62,3.2,-.4,.8);cyl(g,.02,.02,1.0,4,MAT.timber,0,3.8,.1);bx(g,.4,.24,.03,MAT.gold,.2,4.1,.1);
+    }
   }
 }
 // v23: giardino fisso (b.pure) = staccionata chiara, bordo fiorito e alberello da frutta; giardino della legna (b.crop==='wood') = coltura al posto di orto, galline o allevamento: catasta con tettoia, ceppo con ascia, tronchi sparsi e alberelli da ceduo
@@ -2576,9 +2598,9 @@ function refreshSel(){
     const hd=b.head&&VM(b.head);
     info=`Famiglia ${hd?esc(hd.fam):''}: ${b.members.length}/${cap} · giardino: ${b.crop==='veg'?'orto':b.crop==='eggs'?'galline':b.crop==='wood'?'legna da ardere (catasta, ceppo e alberelli)':'allevamento'}${b.pure?' (giardino fisso: staccionata chiara e fiori, resta sempre così)':''}${b.crop==='wood'?' (specializzazione fissa)':''}${b.craft?' · bottega':''}${b.bake?' · panificio':''}${b.weave?' · tessitore':''}${b.tailor?' · sarto':''}`;
     const rows=b.members.map(id=>{const v=VM(id);return v?`<div><span class="lk" data-v="${v.id}">${esc(v.name)}</span>${v.id===b.head?' ★':''} (${v.age|0} anni${v.schooled?', istruito':''}${v.ill?', malato':''}): ${esc(Sim.roleText(v))}</div>`:'';}).join('');
-    const need=b.level>=Sim.MAXLV?'':('Per migliorare: '+b.level+(b.level>1?' tipi':' tipo')+' di cibo, acqua, legna'+(b.level>=2?', chiesa':'')+(b.level>=3?', scuola vicina':'')+(()=>{const u=Sim.UPC[b.level+1];return u?`, materiali (legno ${u.wood}${u.stone?`, pietra ${u.stone}`:''})`:'';})()+` (${Math.min(25,b.up)}/25)`);
+    const need=b.level>=Sim.MAXLV?'':('Per migliorare: '+Math.min(3,b.level)+(b.level>1?' tipi':' tipo')+' di cibo, acqua, legna'+(b.level>=2?', chiesa':'')+(b.level>=3?', scuola vicina':'')+(b.level>=4?', zona di qualità ottima (attrattiva 3 o più)':'')+(()=>{const u=Sim.UPC[b.level+1];return u?`, materiali (legno ${u.wood}${u.stone?`, pietra ${u.stone}`:''})`:'';})()+` (${Math.min(25,b.up)}/25)`);
     list=rows+`<div>Felicità <b>${b.well}</b>/100</div><div class="wbar"><i style="width:${b.well}%"></i></div>${needsHtml(b)}<div>Legna da ardere: ${gd.firewood}/${fn} ${gd.firewood>=fn?'(scorta sufficiente)':'(scorta scarsa)'}</div>`+(S.edicts&&S.edicts.noUpgrade?'<div>Editto in vigore: le case non migliorano.</div>':'')+`${b.ext&&b.ext.length?`<div>Giardino ampliato di ${b.ext.length} celle, verso la strada.</div>`:''}<div>Attività secondaria: ${b.side==='fish'?'pesca (casa vicino all\'acqua)':b.side==='hunt'?'caccia (casa vicino a un bosco tranquillo)':'nessuna'}. ${b.crop==='wood'?'Il giardino produce solo legna: la scorta in più la baratta al mercato con il cibo.':'Non produce legna: la compra al mercato.'}</div><div>Attrattiva della zona: ${Sim.attrLabel(b.attr)} (${b.attr.toFixed(1)})</div>`+
-      `<div class="flags"><span class="${fl.foodUp?'ok':'no'}">Cibo ${b.level}+</span><span class="${fl.water?'ok':'no'}">Acqua</span><span class="${fl.church?'ok':'no'}">Chiesa</span>${b.level>=3?`<span class="${fl.school?'ok':'no'}">Scuola</span>`:''}<span class="${fl.attr?'ok':'no'}">Quiete</span><span class="${fl.heat?'ok':'no'}">Caldo</span><span class="${fl.fuel?'ok':'warn'}">Legna</span><span class="${fl.mat?'ok':'no'}">Materiali</span></div>`+
+      `<div class="flags"><span class="${fl.foodUp?'ok':'no'}">Cibo ${b.level}+</span><span class="${fl.water?'ok':'no'}">Acqua</span><span class="${fl.church?'ok':'no'}">Chiesa</span>${b.level>=3?`<span class="${fl.school?'ok':'no'}">Scuola</span>`:''}${b.level>=4?`<span class="${fl.quality?'ok':'no'}">Zona</span>`:''}<span class="${fl.attr?'ok':'no'}">Quiete</span><span class="${fl.heat?'ok':'no'}">Caldo</span><span class="${fl.fuel?'ok':'warn'}">Legna</span><span class="${fl.mat?'ok':'no'}">Materiali</span></div>`+
       `<div>Scorte: ortaggi ${gd.veg} · uova ${gd.eggs} · grano ${gd.grain} · pesce ${gd.fish} · carne ${gd.meat} · pane ${gd.bread}</div><div>Legna ${gd.firewood} · ferro ${gd.iron} · farina ${gd.flour} · attrezzi ${gd.tools}</div><div>Lana ${gd.wool} · tessuto ${gd.cloth} · abiti ${gd.clothes}</div>`+(need?`<div>${need}</div>`:'<div>Livello massimo raggiunto.</div>');
   }
   else if(b.type==='stall'){const o=Sim.buildings().get(b.owner);info=b.open?'Banco aperto: si accettano baratti.':'Banco chiuso.';
@@ -2762,7 +2784,7 @@ function setSpeed(s){speed=s;document.querySelectorAll('#speed .btn[data-s]').fo
 document.querySelectorAll('#speed .btn[data-s]').forEach(b=>b.addEventListener('click',()=>setSpeed(+b.dataset.s)));
 
 // ---------- livelli ----------
-const lv2=s=>s.levels[2]+s.levels[3]+s.levels[4];
+const lv2=s=>s.levels[2]+s.levels[3]+s.levels[4]+s.levels[5];
 const LEVELS=[
   {title:'Il Villaggio',intro:'Il centro cittadino è una staccionata con le scorte: tre magazzinieri portano i materiali ai cantieri. Disegna un quartiere e costruisci i primi mestieri.',
    outro:'Il primo raccolto è in dispensa. Nessuno è morto di fame: dai carri sono nate case, e dalle case un villaggio. Frate Anselmo benedice i tetti di paglia.',goals:[
@@ -2802,7 +2824,7 @@ const LEVELS=[
     {txt:'Una piazza con fontana',cur:s=>s.built.plaza||0,n:1}]},
   {title:'La Capitale',intro:'Ultimo traguardo del prototipo.',
    outro:'Dalle mura di legno al campanile di pietra: la carovana di sette carri è diventata una capitale. Ma questa è soltanto la prima pagina della storia di Borgo Vivo.',goals:[
-    {txt:'Due case signorili (livello 4)',cur:s=>s.levels[4],n:2},
+    {txt:'Due case signorili (livello 4)',cur:s=>s.levels[4]+s.levels[5],n:2},
     {txt:'Un panificio',cur:s=>s.bakers,n:1},
     {txt:'Raggiungi 60 abitanti',cur:s=>s.pop,n:60},
     {txt:'Un viandante diventa abitante',cur:s=>s.settled,n:1},

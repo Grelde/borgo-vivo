@@ -8,7 +8,7 @@ const TYPES=['veg','eggs','grain','fish','meat','bread'];
 const GN={veg:'ortaggi',eggs:'uova',grain:'grano',fish:'pesce',meat:'carne',bread:'pane',firewood:'legna da ardere',tools:'attrezzi',iron:'ferro',flour:'farina',wool:'lana',cloth:'tessuto',clothes:'abiti'};
 const GOODS=TYPES.concat(['firewood','tools','iron','flour','wool','cloth','clothes']);
 const TRADE=TYPES.concat(['firewood','tools','cloth','clothes']);
-const CAPS=[3,4,5,6],MAXLV=4,WELL_R=30,CHURCH_R=54,SCHOOL_R=45,KEEP=2,LVNAME=['Capanna','Casa','Casa a due piani','Casa signorile'];
+const CAPS=[3,4,5,6,7],MAXLV=5,QUAL5=3,WELL_R=30,CHURCH_R=54,SCHOOL_R=45,KEEP=2,LVNAME=['Capanna','Casa','Casa a due piani','Casa signorile','Palazzo'];
 const BT={
   wood:{name:'Taglialegna',w:6,h:6,cost:{wood:6,stone:0},time:8,slots:3,want:2,need:'tree'},
   quarry:{name:'Cava di pietra',w:6,h:6,cost:{wood:8,stone:0},time:10,slots:3,want:2,need:'rock'},
@@ -37,7 +37,7 @@ const DECO={flowers:1,statue:1};
 const NOGATE={house:1,stall:1,flowers:1,statue:1,plaza:1,well:1,cemetery:1};
 // Tempo (v20): 1 anno di vita = AGEY secondi; un'annata del calendario (4 stagioni) = YEARL secondi = 10 anni di vita.
 const AGEY=240;
-const UPC={2:{wood:4,stone:0},3:{wood:4,stone:4},4:{wood:6,stone:8}};
+const UPC={2:{wood:4,stone:0},3:{wood:4,stone:4},4:{wood:6,stone:8},5:{wood:8,stone:14}};
 const SEASON_DAYS=6,SEASONS=['Primavera','Estate','Autunno','Inverno'],DUSK=0.68;
 const YEARL=SEASON_DAYS*4*DAY;
 const SCHOOL_CAP=12,HEAL_R=45;
@@ -1325,10 +1325,11 @@ function houseTick(b){
   f.fuel=b.goods.firewood>=fuelNeed();
   // v24: requisiti per salire di livello (cumulativi). Livello 1: cibo, acqua, legna. Livello 2: + chiesa e 2 tipi di cibo. Livello 3: + scuola vicina e 3 tipi di cibo.
   f.school=nearDone('school',b.cell,SCHOOL_R);
-  f.foodUp=TYPES.filter(tp=>S.t-b.ate[tp]<DAY*2).length>=b.level&&b.hungry<30;
+  f.foodUp=TYPES.filter(tp=>S.t-b.ate[tp]<DAY*2).length>=Math.min(3,b.level)&&b.hungry<30;
+  f.quality=b.attr>=QUAL5;
   b.well=wellOf(b);
   if(b.level<MAXLV){
-    const ok=f.foodUp&&f.water&&f.fuel&&(b.level<2||f.church)&&(b.level<3||f.school);
+    const ok=f.foodUp&&f.water&&f.fuel&&(b.level<2||f.church)&&(b.level<3||f.school)&&(b.level<4||f.quality);
     const uc=UPC[b.level+1];f.mat=!uc||(uncommitted('wood')>=uc.wood&&uncommitted('stone')>=uc.stone);
     if(ok&&S.edicts.noUpgrade){b.up=Math.min(b.up,24);}
     else if(ok){b.up=Math.min(25,b.up+(schooledIn(b)?2:1)+(b.well>=90?1:0));
@@ -1622,7 +1623,7 @@ function roleText(v){
   return 'In cerca di una casa';
 }
 function stats(){
-  let houses=0,sites=0,slots=0,cap=0,food=0,farms=0,stalls=0,hungry=0,asum=0,amax=-99,herds=0,crafters=0,bakers=0,fishers=0,hunters=0,tools=0,weavers=0,tailors=0,clothes=0,wsum=0,fire=0,fireNeed=0;const built={},levels=[0,0,0,0,0];
+  let houses=0,sites=0,slots=0,cap=0,food=0,farms=0,stalls=0,hungry=0,asum=0,amax=-99,herds=0,crafters=0,bakers=0,fishers=0,hunters=0,tools=0,weavers=0,tailors=0,clothes=0,wsum=0,fire=0,fireNeed=0;const built={},levels=[0,0,0,0,0,0];
   for(const b of buildings.values()){
     if(b.state==='done'){
       built[b.type]=(built[b.type]||0)+1;
@@ -1642,7 +1643,7 @@ function stats(){
     avgAttr:houses?asum/houses:0,maxAttr:houses?amax:0,day:S.day,ph:S.ph,f:S.f,herds,crafters,bakers,fishers,hunters,tools,saps,weavers,tailors,clothes,season:S.season,year:S.year,visits:S.visits,settled:S.settled,guests:guests.length,children:kids,schooled,births:S.births,deaths:S.deaths,buried:S.buried,
     sick,plagueN,plague:S.plague.on,avgWell:houses?wsum/houses:0,avgJoy:villagers.length?villagers.reduce((a,v)=>a+v.joy,0)/villagers.length:0,unhappy:villagers.filter(v=>v.joy<35).length,left:S.left,fire,fireNeed,inherits:S.inherits,cured:S.cured,moves:S.moves,deathsBy:S.deathsBy,pupils};
 }
-return {setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
+return {setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,fuelNeed,dateStr,
   _t:{chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
   grids:{tree,rock,ore,water,sap,sapT,road,dist,occ,wear,plev,field,door,attr,cen},guests:()=>guests,buildings:()=>buildings,villagers:()=>villagers};
