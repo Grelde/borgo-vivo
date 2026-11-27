@@ -195,6 +195,25 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 .cardBox ul.log em{display:block;font-size:12px;color:#7a5a30;font-style:normal}
 .cardBox .acts{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
 .cardBox .btn{background:#5a3c1c;color:#fff0cc;border-color:#3a2410}
+/* ===== v27: pannello dettagli Abitanti e Felicità ===== */
+.chip.clk{cursor:pointer;border-radius:4px;padding:1px 5px;margin:-1px -5px;border:1px solid transparent}
+.chip.clk:hover,.chip.clk:focus-visible{border-color:var(--gold);outline:none;background:rgba(214,173,78,.1)}
+#pop{position:absolute;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(12,8,3,.62);padding:12px}
+#pop[hidden]{display:none}
+.popTabs{display:flex;gap:6px;justify-content:center;margin:8px 0 4px}
+.popTabs .btn{min-height:36px;min-width:110px}
+.popTabs .btn.on{background:#8c2f23;border-color:#3a2410}
+.cardBox .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;margin:6px 0}
+.cardBox .kv div{background:rgba(255,246,214,.55);border:1px solid rgba(90,60,25,.35);border-radius:5px;padding:4px 8px;font-size:13px;line-height:1.25}
+.cardBox .kv b{display:block;font-size:18px;color:#3a1f0c;font-variant-numeric:tabular-nums}
+.cardBox .row{display:flex;justify-content:space-between;gap:8px;font-size:14px;padding:1px 0}
+.cardBox .row b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.cardBox .bar.bad i{background:#8c2f23}
+.cardBox .bar.mid i{background:#b0802e}
+.popList{max-height:240px;overflow:auto;border:1px solid rgba(90,60,25,.3);border-radius:4px;padding:2px 8px;background:rgba(255,246,214,.35)}
+.popList .row{border-bottom:1px dotted rgba(90,60,25,.3);padding:3px 0}
+.popList .row:last-child{border-bottom:0}
+.popTip{margin:8px 0 0;padding:6px 8px;border-left:3px solid #8c2f23;background:rgba(255,230,170,.5);font-size:14px;line-height:1.35}
 </style>
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
@@ -207,9 +226,9 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
       <span class="chip" title="Grano nei granai · farina nei mulini"><i class="sw" style="background:#d6b24e"></i>Grano·Farina <b id="rGrain">0</b></span>
       <span class="chip" title="Cibo nelle scorte delle famiglie"><i class="sw f"></i>Cibo <b id="rFood">0</b></span>
       <span class="chip" title="Legna da ardere nelle case · fabbisogno di tutte le case"><i class="sw w"></i>Legna case <b id="rFire">0</b></span>
-      <span class="chip" title="Abitanti / posti nelle case"><span>Abitanti</span> <b id="rPop">0</b></span>
+      <span class="chip clk" id="chipPop" role="button" tabindex="0" title="Abitanti / posti nelle case · clicca per i dettagli"><span>Abitanti</span> <b id="rPop">0</b></span>
       <span class="chip" id="chipSick" title="Abitanti malati (☣ = epidemia in corso)">Malati <b id="rSick">0</b></span>
-      <span class="chip" id="chipJoy" title="Felicità media degli abitanti: cibo, casa, acqua e chiesa (dal livello 2). Chi resta molto infelice se ne va.">Felicità <b id="rWell">0</b></span>
+      <span class="chip clk" id="chipJoy" role="button" tabindex="0" title="Felicità media degli abitanti: cibo, casa, acqua e chiesa (dal livello 2). Chi resta molto infelice se ne va. Clicca per i dettagli.">Felicità <b id="rWell">0</b></span>
       <span class="chip" title="Abitanti con un mestiere fuori casa / posti disponibili">Al lavoro <b id="rJobs">0</b></span>
       <span class="chip" title="Scambi conclusi al mercato">Baratti <b id="rBarter">0</b></span>
       <span class="chip" title="Un'annata dura quattro stagioni (24 giorni). Gli abitanti invecchiano di un anno ogni 2,4 giorni: in un'annata passano 10 anni di vita.">Giorno <b id="rDay">1</b></span>
@@ -228,6 +247,9 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
   </div>
   <div id="card" hidden role="dialog" aria-label="Scheda abitante">
     <div class="cardBox"><div id="cardBody"></div><div class="acts"><button class="btn" id="cardHome" type="button">Vai alla casa</button><button class="btn" id="cardClose" type="button">Chiudi</button></div></div>
+  </div>
+  <div id="pop" hidden role="dialog" aria-label="Dettagli popolazione">
+    <div class="cardBox" id="popBox"><h2>Il Borgo e la sua gente</h2><div class="popTabs"><button class="btn" type="button" data-tab="pop">Abitanti</button><button class="btn" type="button" data-tab="joy">Felicità</button></div><div id="popBody"></div><div class="acts"><button class="btn" id="popClose" type="button">Chiudi</button></div></div>
   </div>
   <div id="camctl">
     <button class="btn" id="camL" title="Ruota a sinistra (Q)">↺</button>

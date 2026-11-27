@@ -1016,6 +1016,102 @@ $('cardHome').addEventListener('click',()=>{const v=Sim.villagers().find(x=>x.id
 $('selList').addEventListener('click',ev=>{const l=ev.target.closest&&ev.target.closest('[data-v]');if(l)openCard(+l.getAttribute('data-v'));});
 addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!$('card').hidden)closeCard();});
 
+// ---------- v27: pannello dettagli Abitanti e Felicità ----------
+// Si apre cliccando i chip Abitanti o Felicità del cruscotto; si aggiorna da solo (updateHUD → renderPop).
+let popOpen=false,popTab='pop',popHtml='';
+const AGEB=[['0–5 anni',0,6],['6–13 anni (età scolare)',6,14],['14–39 anni',14,40],['40–54 anni',40,55],['55 anni e oltre',55,999]];
+// etichetta stabile (non cambia a ogni passo dell'abitante: la lista non si ridisegna di continuo)
+function stableRole(v){
+  if(v.child)return v.age<6?'piccolo':'in età scolare';
+  const b=v.job&&Sim.buildings().get(v.job);
+  return b?(Sim.TRADENAME[b.type]||BT[b.type].name).toLowerCase():'a casa';
+}
+function whyV(v){
+  const b=v.home&&Sim.buildings().get(v.home),r=[];
+  if(!b||b.state!=='done')r.push('senza casa');
+  else{const f=b.flags;
+    if(!f.food)r.push('cibo scarso');if(!f.water)r.push('niente acqua');
+    if(!f.heat)r.push('al freddo');else if(!f.fuel)r.push('poca legna');
+    if(!f.attr)r.push('zona rumorosa');if(b.level>=2&&!f.church)r.push('chiesa lontana');
+    if(b.members.length>Sim.CAPS[b.level-1])r.push('casa affollata');}
+  if(v.ill)r.push('malato');
+  if(v.trait==='brontolone'||v.trait==='litigioso')r.push(Sim.TRAITS[v.trait].n.toLowerCase());
+  return r;
+}
+const popRow=(a,b)=>`<div class="row"><span>${a}</span><b>${b}</b></div>`;
+function popPeople(st){
+  const vs=Sim.villagers(),S2=Sim.S,adults=vs.filter(v=>!v.child);
+  let h=`<div class="kv"><div>Abitanti<b>${st.pop}/${st.cap}</b></div><div>Bambini<b>${st.children}</b></div><div>Adulti<b>${adults.length}</b></div><div>Istruiti<b>${st.schooled}</b></div><div>Malati<b>${st.sick}${st.plague?' ☣':''}</b></div><div>Al lavoro<b>${st.jobs}/${st.slots}</b></div></div>`;
+  h+='<h4>Per età</h4>'+AGEB.map(([t,a,b])=>popRow(t,vs.filter(v=>v.age>=a&&v.age<b).length)).join('');
+  const jc={};let home=0;
+  for(const v of adults){const b=v.job&&Sim.buildings().get(v.job);if(b)jc[b.type]=(jc[b.type]||0)+1;else home++;}
+  h+='<h4>Mestieri degli adulti</h4>'+Object.keys(jc).sort((a,b)=>jc[b]-jc[a]).map(k=>popRow(Sim.TRADENAME[k]||BT[k].name,jc[k])).join('')+popRow('A casa (giardino, bottega, commissioni)',home);
+  h+='<h4>Case</h4>'+[1,2,3,4,5].filter(l=>st.levels[l]).map(l=>popRow(Sim.LVNAME[l-1],st.levels[l])).join('');
+  const d=S2.deathsBy;
+  h+='<h4>Nascite, arrivi e partenze</h4>'+popRow('Nati in paese',S2.births)+popRow('Viandanti diventati abitanti',S2.settled)+popRow('Partiti perché infelici',S2.left)+popRow('Morti in tutto',S2.deaths)+popRow('di vecchiaia · freddo · fame · malattia',`${d.age} · ${d.cold} · ${d.hunger} · ${d.ill}`)+popRow('Trasferimenti tra case',S2.moves);
+  const list=vs.slice().sort((a,b)=>a.fam.localeCompare(b.fam)||b.age-a.age);
+  h+=`<h4>Tutti gli abitanti (${vs.length}) · a destra la felicità</h4><div class="popList">`+(list.map(v=>popRow(`<span class="lk" data-v="${v.id}">${esc(v.name)} ${esc(v.fam)}</span> · ${v.age|0} anni · ${esc(stableRole(v))}`,v.joy)).join('')||'<div class="row"><span>Nessun abitante.</span></div>')+'</div>';
+  return h;
+}
+function popJoy(st){
+  const vs=Sim.villagers(),hs=[...Sim.buildings().values()].filter(b=>b.type==='house'&&b.state==='done');
+  const n=vs.length,cnt=k=>vs.filter(v=>v.trait===k).length;
+  let h=`<div class="kv"><div>Felicità media<b>${Math.round(st.avgJoy)}/100</b></div><div>Scontenti (sotto 35)<b>${st.unhappy}</b></div><div>Malati<b>${st.sick}</b></div><div>Brontoloni<b>${cnt('brontolone')}</b></div><div>Litigiosi<b>${cnt('litigioso')}</b></div></div>`;
+  const BK=[['Pensano di andarsene (sotto 25)',0,25,'bad'],['Scontenti, lavorano meno (25–34)',25,35,'bad'],['Così così (35–59)',35,60,'mid'],['Contenti (60–79)',60,80,''],['Felici (80–100)',80,101,'']];
+  h+='<h4>Come stanno gli abitanti</h4>'+BK.map(([t,a,b,c])=>{const k=vs.filter(v=>v.joy>=a&&v.joy<b).length;return popRow(t,k)+`<div class="bar ${c}"><i style="width:${n?Math.round(k/n*100):0}%"></i></div>`;}).join('');
+  if(!hs.length)return h+'<p>Nessuna casa ancora: la felicità dipende da cibo, casa, acqua e (dal livello 2) chiesa.</p>';
+  const mean=(arr,f)=>arr.length?arr.reduce((a,x)=>a+f(x),0)/arr.length:0;
+  const hc=hs.filter(b=>b.level>=2),nd=hs.map(b=>Sim.needsOf(b)),ndc=hc.map(b=>Sim.needsOf(b));
+  const over=b=>b.members.length>Sim.CAPS[b.level-1];
+  const NEED=[
+    {t:'Cibo',max:30,v:mean(nd,x=>x.food),tip:'Servono più tipi di cibo: orti, galline, pesca, caccia e baratti al mercato.'},
+    {t:'Casa (caldo, legna, quiete, spazio)',max:25,v:mean(nd,x=>x.home),tip:'Controlla la legna da ardere (giardini della legna e mercato), il rumore di cave e taglialegna vicino alle case, il sovraffollamento.'},
+    {t:'Acqua',max:25,v:mean(nd,x=>x.water),tip:'Costruisci pozzi: ognuno serve le case entro '+Sim.WELL_R+' celle.'},
+    {t:'Chiesa (case dal livello 2)',max:20,v:mean(ndc,x=>x.church),tip:'Costruisci una chiesa: serve le case entro '+Sim.CHURCH_R+' celle.',skip:!hc.length}
+  ];
+  h+='<h4>I bisogni delle case (media)</h4>';
+  let worst=null,wp=2;
+  for(const x of NEED){
+    if(x.skip){h+=popRow(x.t,'–');continue;}
+    const p=x.v/x.max;if(p<wp){wp=p;worst=x;}
+    h+=popRow(x.t,`${Math.round(x.v)}/${x.max}`)+`<div class="bar ${p<.5?'bad':p<.8?'mid':''}"><i style="width:${Math.round(p*100)}%"></i></div>`;
+  }
+  const P=(t,k)=>popRow(t,k?`${k} / ${hs.length} case`:'✓ nessuna');
+  const farc=hc.filter(b=>!b.flags.church).length;
+  h+='<h4>Problemi nelle case</h4>'+P('Cibo scarso o fame',hs.filter(b=>!b.flags.food).length)+P('Senza acqua vicina',hs.filter(b=>!b.flags.water).length)+P('Al freddo (senza legna)',hs.filter(b=>!b.flags.heat).length)+P('Legna sotto scorta',hs.filter(b=>b.flags.heat&&!b.flags.fuel).length)+P('Zona rumorosa',hs.filter(b=>!b.flags.attr).length)+P('Case affollate',hs.filter(over).length)+(hc.length?popRow('Chiesa lontana (livello 2+)',farc?`${farc} / ${hc.length} case`:'✓ nessuna'):'');
+  if(worst&&wp<.85)h+=`<div class="popTip"><b>Il punto debole è: ${esc(worst.t)}.</b> ${worst.tip}</div>`;
+  const low=vs.slice().sort((a,b)=>a.joy-b.joy).slice(0,10);
+  h+='<h4>I più scontenti</h4><div class="popList">'+low.map(v=>{const w=whyV(v);return popRow(`<span class="lk" data-v="${v.id}">${esc(v.name)} ${esc(v.fam)}</span> · ${v.age|0} anni${w.length?' · '+esc(w.join(', ')):''}`,v.joy);}).join('')+'</div>';
+  return h;
+}
+function renderPop(st){
+  if(!popOpen)return;
+  st=st||Sim.stats();
+  document.querySelectorAll('#pop .popTabs .btn').forEach(b=>b.classList.toggle('on',b.dataset.tab===popTab));
+  const h=popTab==='joy'?popJoy(st):popPeople(st);
+  if(h===popHtml)return;
+  // conserva la posizione di scorrimento quando il contenuto si aggiorna
+  const box=$('popBox'),body=$('popBody'),ql=e=>e.querySelector?e.querySelector('.popList'):null,bs=box.scrollTop,ol=ql(body),ls=ol?ol.scrollTop:0;
+  popHtml=h;body.innerHTML=h;
+  box.scrollTop=bs;const nl=ql(body);if(nl)nl.scrollTop=ls;
+}
+function openPop(tab){popTab=tab;popHtml='';popOpen=true;$('pop').hidden=false;renderPop();$('popBox').scrollTop=0;}
+function closePop(){popOpen=false;popHtml='';$('pop').hidden=true;}
+$('pop').addEventListener('click',ev=>{
+  if(ev.target===$('pop')){closePop();return;}
+  const t=ev.target.closest&&ev.target.closest('[data-tab]');
+  if(t){popTab=t.getAttribute('data-tab');popHtml='';renderPop();$('popBox').scrollTop=0;return;}
+  const l=ev.target.closest&&ev.target.closest('[data-v]');if(l)openCard(+l.getAttribute('data-v'));
+});
+$('popClose').addEventListener('click',closePop);
+// Esc chiude prima la scheda dell'abitante, se aperta (capture: gira prima dell'altro gestore)
+addEventListener('keydown',ev=>{if(ev.key==='Escape'&&popOpen&&$('card').hidden)closePop();},true);
+for(const [id,tab] of [['chipPop','pop'],['chipJoy','joy']]){
+  const el=$(id);
+  el.addEventListener('click',()=>openPop(tab));
+  el.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();ev.stopPropagation();openPop(tab);}});
+}
+
 // ---------- HUD ----------
 let hudT=0;const PHN={work:'lavoro',meal:'pasto',evening:'sera',night:'notte'};
 function updateHUD(){
@@ -1025,7 +1121,7 @@ function updateHUD(){
   $('rDay').textContent=`${Sim.SEASONS[st.season]} ${st.day%Sim.SEASON_DAYS+1}/${Sim.SEASON_DAYS} · annata ${st.year} · ${PHN[st.ph]}`;
   $('rPop').textContent=`${st.pop}/${st.cap}`+(st.children?` (👶${st.children})`:'');$('rJobs').textContent=`${st.jobs}/${st.slots}`;$('rBarter').textContent=st.barters;
   $('rFire').textContent=`${st.fire}/${st.fireNeed}`;$('rSick').textContent=st.sick+(st.plague?' ☣':'');$('chipSick').classList.toggle('alert',st.sick>0);$('rWell').textContent=Math.round(st.avgJoy)+(st.unhappy?' · '+st.unhappy+' tristi':'');$('chipJoy').classList.toggle('alert',st.unhappy>0&&st.avgJoy<45);
-  checkGoals(st);refreshSel();if(cardId)renderCard();
+  checkGoals(st);refreshSel();if(cardId)renderCard();renderPop(st);
   for(const t of TOOLS)if(BT[t.id])toolBtns[t.id].classList.toggle('poor',!Sim.afford(t.id));
 }
 

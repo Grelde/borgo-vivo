@@ -1,5 +1,12 @@
 # Changelog
 
+## v28 – 2026-11-27
+Funzione nuova (solo interfaccia): **pannello dettagli Abitanti e Felicità**.
+- Cliccando il chip **Abitanti** o il chip **Felicità** del cruscotto (anche da tastiera, Invio o Spazio) si apre una pergamena con due schede, che si aggiorna mentre il gioco gira. Si chiude con Chiudi, Esc o un clic fuori; se è aperta anche la scheda di un abitante, Esc chiude prima quella.
+- **Abitanti:** totali su posti, bambini, adulti, istruiti, malati (☣ in epidemia), occupati; ripartizione per età, per mestiere e per livello di casa; nascite, viandanti diventati abitanti, partenze per infelicità, morti in tutto e per causa, trasferimenti tra case; elenco di tutti gli abitanti per famiglia con età, mestiere e felicità (clic sul nome = scheda abitante).
+- **Felicità:** media, scontenti, malati, brontoloni e litigiosi; distribuzione in cinque fasce; media dei quattro bisogni delle case (cibo, casa, acqua, chiesa) con barre; quante case hanno ciascun problema (cibo, acqua, freddo, legna, rumore, sovraffollamento, chiesa lontana); un suggerimento sul bisogno più debole; i dieci più scontenti con il motivo.
+- Nessuna regola di gioco cambia (`sim.js` invariato). Nuovo test `tests/pop-panel.js` (due schede su una partita vera: contenuto, lista completa, nomi resi innocui, aggiornamento e chiusura). Grafica verificata solo con DOM finto, non in un browser WebGL.
+
 ## v27 – 2026-11-27
 Funzione nuova: botteghe del giardino ben visibili e aperte anche in un secondo momento.
 - **Grafica:** il giardino che diventa bottega ha ora un piccolo laboratorio riconoscibile, con insegna colorata: **fabbro** (tettoia, fucina con fuoco, incudine su ceppo, martello, insegna ruggine), **panettiere** (forno a cupola con fuoco e camino, tavolo con pagnotte, insegna dorata), **tessitore** (telaio con tessuti colorati, balle di lana, insegna blu), **sarto** (tenda a strisce rosse e crema, manichino, rotoli di stoffa, insegna rossa). L'orto perde una fila per fare posto; pecore e galline si spostano.

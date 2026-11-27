@@ -28,11 +28,12 @@ Legna da ardere: fabbisogno per casa mostrato in HUD (Legna case) e nel pannello
 Istruzione (v26): chi ha la scuola (sa leggere e scrivere) lavora il 25% meglio e a tavola consuma meno cibo (25% dei pasti non toglie nulla dalla scorta).
 Giornata (v26): il giorno dura 150 s (era 100); fasi invariate in frazione (notte, lavoro, pasto, lavoro, sera). Dal livello 2 ogni abitante va in chiesa una volta al giorno, la sera (dopo il pozzo dal livello 3); chi ci è andato negli ultimi 2 giorni ha +6 di felicità. Produzione, malattie, rischi di morte e immigrazione sono riportati ai ritmi per giorno di prima (costante `TK`); 1 anno di vita = 2,4 giorni = 360 s, un'annata = 3600 s.
 Scheda abitante: clic su un abitante o sul suo nome nel pannello casa: età, istruzione, mestiere (ereditato o no), salute, casa, genitori/figli, storia datata; resta consultabile anche dopo la morte (registro `Sim.reg`).
+Pannello Abitanti e Felicità (v28): clic sul chip Abitanti o Felicità del cruscotto apre una pergamena con due schede che si aggiorna da sola. Abitanti: totali, bambini, adulti, istruiti, malati, occupati; età, mestieri, livelli delle case; nascite, arrivi, partenze, morti per causa; elenco di tutti gli abitanti (clic = scheda). Felicità: media, scontenti, tratti; distribuzione; bisogni medi delle case; problemi per casa; suggerimento sul punto più debole; i dieci più scontenti con il motivo.
 Editti: nessun avanzamento case, blocco immigrazione, incentivo alle nascite, istruzione obbligatoria, quarantena (blocca anche mercato e viandanti), obbligo di legna.
 Da fare: tratti positivi, effetti di criminalità/liti, feste e taverna per alzare la felicità, coppie/matrimoni espliciti, cognomi che passano per linea paterna, bilanciare le nascite (oggi i bambini sono molti), scheda con parenti più lontani, lutti e orfani nella storia.
 
 ## 5. Interfaccia e grafica
-Stato: pannello di selezione, tooltip, editti a pergamena, scheda abitante a pergamena, bandiere caccia/pesca, modelli degli edifici (nuovo: Ospizio con croce rossa), rotazione con freccia d'ingresso; mobile (v18) con gesti a due dita e barra di conferma.
+Stato: pannello di selezione, tooltip, editti a pergamena, scheda abitante a pergamena, pannello Abitanti/Felicità (v28), bandiere caccia/pesca, modelli degli edifici (nuovo: Ospizio con croce rossa), rotazione con freccia d'ingresso; mobile (v18) con gesti a due dita e barra di conferma.
 Corretto in v20: i pannelli dedicati di locanda e scuola non comparivano (il ramo generico "slots" li precedeva).
 Da fare: verifica su telefono vero, minimappa, grafica degli edifici.
 
