@@ -837,20 +837,22 @@ const LG={
   stone:new THREE.DodecahedronGeometry(.13,0),
   clog:(()=>{const g=new THREE.CylinderGeometry(.07,.07,.55,6);g.rotateZ(Math.PI/2);return g;})()
 };
+const isWhWorker=v=>{const jb=v.job&&Sim.buildings().get(v.job);return !!jb&&jb.type==='store';};
 const CART_AT=['toSite','toStoreC','toWhT','toCenterT'],CARTR=['toStoreC','toWhT','toCenterT'];
-function loadKind(v){
+// v39: i carretti sono solo dei magazzinieri (wh = l'abitante lavora in un Magazzino o nel centro); gli altri portano assi e tronchi sulla spalla, sassi in braccio, il resto a blocchetto
+function loadKind(v,wh){
   const c=v.carry,s=v.state;
   if(!c)return null;
   if(c==='wood'){
     if(s==='toSite')return 'plank';
-    if(s==='toStoreC')return (v.cq|0)>=3?'cartWood':'log';
-    if(s==='toWhT'||s==='toCenterT')return 'cartWood';
+    if(s==='toStoreC')return wh&&(v.cq|0)>=3?'cartWood':'log';
+    if(s==='toWhT'||s==='toCenterT')return wh?'cartWood':'log';
     if(s==='toWork')return 'log';
     return 'box';
   }
   if(c==='planks')return s==='toSite'?'plank':'box';
-  if(c==='stone')return s==='toWork'?'rock':CART_AT.includes(s)?'cartStone':'box';
-  if(c==='iron')return CARTR.includes(s)?'cartOre':'box';
+  if(c==='stone')return s==='toWork'?'rock':CART_AT.includes(s)?(wh?'cartStone':'rock'):'box';
+  if(c==='iron')return wh&&CARTR.includes(s)?'cartOre':'box';
   return 'box';
 }
 // quanti pezzi si vedono nel carretto: quanto raccolto (1-4); per un cantiere o un trasferimento, un carico pieno
@@ -1596,7 +1598,7 @@ function frame2(now){
     m.gp.visible=!v.inside&&!hiddenIn(v);m.gp.position.set(v.x,v.moving?Math.abs(Math.sin(clock*11+v.id))*0.07:0,v.z);m.gp.rotation.y=v.fa;
     if(v.age!==undefined&&!v.guest){const k=0.8*(0.62+0.38*Math.min(1,v.age/14));if(m.k!==k){m.k=k;m.gp.scale.setScalar(k);}}
     if(!v.guest){const ill=!!v.ill;if(m.ill!==ill){m.ill=ill;m.body.material=ill?MAT.sick:m.mat;}}
-    const lk=loadKind(v),lq=lk&&lk.startsWith('cart')?loadQty(v):0,lkey=lk?lk+':'+(lk==='box'?v.carry:lq):'';
+    const lk=loadKind(v,isWhWorker(v)),lq=lk&&lk.startsWith('cart')?loadQty(v):0,lkey=lk?lk+':'+(lk==='box'?v.carry:lq):'';
     if(lkey!==m.lk){m.lk=lkey;m.carry=v.carry||null;applyLoad(m,v,lk,lq);}
     if(m.rig&&m.rig.cart.visible&&v.moving){const a=dt*7.5;for(const w of m.rig.wheels)w.rotation.x+=a;}
   }

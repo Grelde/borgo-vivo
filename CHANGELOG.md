@@ -1,5 +1,11 @@
 # Changelog
 
+## v39 – 2026-11-27
+Ritocco (solo grafica): i carretti sono solo dei magazzinieri.
+- Il carretto (pietre, tronchi, minerale) lo usano soltanto gli abitanti che lavorano in un Magazzino o nel centro cittadino (`isWhWorker` in `src/render.js`). Chi non lavora al magazzino (costruttori, aiutanti, cavatori, taglialegna) porta la pietra come sasso in braccio e il legno come tronco sulla spalla; il ferro resta un blocchetto. Le assi restano sulla spalla per tutti.
+- Nessuna regola di gioco cambia. `tests/carichi.js` aggiornato: carretti solo con `wh=true`, nessun carretto agli altri, controllo anche in partita.
+- Grafica non provata in un browser WebGL.
+
 ## v38 – 2026-11-27
 Funzione nuova: la **Merceria**, il negozio dei prodotti lavorati.
 - **Che cosa vende:** attrezzi (fucina), pane (forno), tessuto (telaio) e abiti (sartoria), cioè i prodotti degli edifici che non sono materie prime né prodotti dei giardini. Pesce e carne di pescatori e cacciatori restano consegne dirette alle case; il baratto dei banchi del mercato (prodotti dei giardini) non cambia.
