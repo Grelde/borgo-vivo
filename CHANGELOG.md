@@ -1,5 +1,14 @@
 # Changelog
 
+## v43 – 2026-11-27
+Cambio di regole: placement organico delle case, ispirato ai villaggi medievali (analisi in `docs/insediamenti-medievali.md`).
+- **Toft e croft:** la casa si appoggia a un sentiero/strada con la porta verso di esso; il giardino non ha più una forma preimpostata ma **cresce** dietro e ai lati della casa con fronte stretto (la casa sta sul fronte, il cortile davanti è piccolo), segue lo spazio libero tra sentieri, alberi, acqua e altri lotti, resta in un pezzo solo e tocca la casa.
+- **Dentro la zona residenziale:** nessuna cella di giardino, neppure negli ampliamenti verso la strada, esce dalla zona residenziale.
+- **Vicino ai sentieri:** il giardino preferisce le celle accanto ai sentieri e poi si allarga fino a raggiungerli (come in v40.1, ma ora sempre nella zona).
+- **Aspetto:** lieve rotazione casuale delle case (±6°).
+- Le forme predefinite (L, U, anello, triangolo) non vengono più usate; il codice resta per ora ma è inattivo.
+- `tests/lotti.js`: giardini connessi e non rettangolari, almeno il 70% delle celle dietro/ai lati della casa (nella prova 94%), nessuna cella fuori zona, ingresso verso la strada. Grafica non verificata in un browser WebGL.
+
 ## v42.1 – 2026-11-27
 Correzione: il giardino ampliato resta recintato.
 - **Bug:** gli ampliamenti giornalieri (v39.1/v40.1) allargavano il giardino ma il modello 3D non veniva ricostruito: le celle nuove restavano senza staccionata e senza piante. Ora ogni ampliamento ricostruisce la casa (nuovo hook `regarden`): la staccionata ricalca il nuovo contorno e le celle nuove hanno orto/prato come le altre.

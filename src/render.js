@@ -486,7 +486,7 @@ const BUILD={
     for(let m=0;m<nMod;m++){
       const off=(m-(nMod-1)/2)*(len/nMod)*CS;
       const h=new THREE.Group();h.position.set(hx+(alongX?off*Math.cos(rotY):off*Math.sin(rotY)),0,hz+(alongX?-off*Math.sin(rotY):off*Math.cos(rotY)));
-      h.rotation.y=rotY;h.scale.set(alongX?sLong:sShort,1,alongX?sShort:sLong);houseLevel(h,b);g.add(h);
+      h.rotation.y=rotY+((b.id*37)%100/100-.5)*.22;h.scale.set(alongX?sLong:sShort,1,alongX?sShort:sLong);houseLevel(h,b);g.add(h);
     }
     const gg=new THREE.Group();gg.position.set(gx,0,gz);gg.scale.setScalar(asz===3?1:asz===2?.667:.36);garden(gg,b);
     const used=new Set();if(asz>1)for(let yy=0;yy<asz;yy++)for(let xx=0;xx<asz;xx++)used.add((anc[1]+yy)*N+anc[0]+xx);else used.add(anc[1]*N+anc[0]);

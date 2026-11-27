@@ -45,6 +45,16 @@ for(const h of hs){const lot=new Set(h.cells.concat(h.ext));let gap=false;
 console.log('case con varco libero fino alla strada',gaps,'su',hs.length);
 // ogni ampliamento avvisa la grafica (ricostruisce modello e staccionata)
 const extTot=hs.reduce((a,h)=>a+(h.ext.length?1:0),0);console.log('ampliamenti notificati alla grafica',regs);if(extTot>0&&regs<extTot){bad++;console.log('ampliamenti senza notifica');}
+let irregular=0;for(const h of hs){const gs=h.gcells,xs=gs.map(i=>i%N),ys=gs.map(i=>(i/N)|0);const area=(Math.max(...xs)-Math.min(...xs)+1)*(Math.max(...ys)-Math.min(...ys)+1);if(area!==gs.length)irregular++;}
+console.log('giardini non rettangolari',irregular,'su',hs.length);
+// toft e croft: la maggior parte delle celle del giardino sta dietro o ai lati della casa, non tra la casa e la porta
+let behind=0,tot=0;for(const h of hs){const cx=h.hx+(h.hw-1)/2,cy=h.hy+(h.hh-1)/2,dx=h.door%N-cx,dy=((h.door/N)|0)-cy,hor=Math.abs(dx)>Math.abs(dy),ux=hor?Math.sign(dx):0,uy=hor?0:Math.sign(dy),hd=(hor?h.hw:h.hh)/2;
+  for(const c of h.gcells){tot++;const f=((c%N)-cx)*ux+(((c/N)|0)-cy)*uy;if(f<=hd)behind++;}}
+console.log('celle di giardino dietro/ai lati della casa',(behind/tot*100).toFixed(0)+'%');
+if(behind/tot<0.7){bad++;console.log('troppe celle davanti alla casa');}
+// i giardini restano nella zona residenziale
+let fuori=0;for(const h of hs)for(const i of h.gcells.concat(h.ext))if(G.dist[i]!==1)fuori++;
+console.log('celle di giardino fuori dalla zona residenziale',fuori);if(fuori){bad++;}
 const seen=new Map();for(const h of hs)for(const i of h.cells){if(seen.has(i)){bad++;console.log('sovrapposizione');break;}seen.set(i,h.id);}
 // ingresso verso la strada: se una strada tracciata tocca il lotto, la porta sta sulla strada o accanto
 let withRoad=0,facing=0;
@@ -55,5 +65,5 @@ for(const h of hs){
 }
 console.log('case',hs.length,'casa',JSON.stringify(sizes),'forme',JSON.stringify(shapes));
 console.log('lotti a contatto con una strada',withRoad,'con ingresso sulla strada',facing);
-const ok=bad===0&&hs.length>=10&&Object.keys(shapes).length>=3&&(withRoad===0||facing/withRoad>=0.7)&&gaps<=hs.length*0.3;
+const ok=bad===0&&hs.length>=10&&irregular/hs.length>=0.5&&(withRoad===0||facing/withRoad>=0.7)&&gaps<=hs.length*0.3;
 console.log(ok?'LOTTI_OK':'LOTTI_FAIL');process.exit(ok?0:1);
