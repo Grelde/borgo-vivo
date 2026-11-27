@@ -1,6 +1,6 @@
 // v33: lotti organici: casa rettangolare 3×3..6×4 + giardino di 9-24 celle di forma libera (a lato, L, ferro di cavallo, intorno alla casa, triangolare).
 const Sim=require('../src/sim.js');const S=Sim.S;const N=Sim.N,G=Sim.grids;
-Sim.init(7,'lake');S.stock.wood=600;S.stock.stone=300;
+Sim.init(7,'lake');let regs=0;Sim.hooks.regarden=()=>{regs++;};S.stock.wood=600;S.stock.stone=300;
 Sim.paintDistrict(60,100,125,128,1);
 for(let y=96;y<=132;y++)Sim.paintRoad(92,y);
 for(let x=56;x<=130;x++)Sim.paintRoad(x,114);
@@ -43,6 +43,8 @@ for(const h of hs){const lot=new Set(h.cells.concat(h.ext));let gap=false;
     for(let k=1;k<=6;k++){const x=c%N+GXs[d]*k,y=((c/N)|0)+GYs[d]*k;if(x<0||y<0||x>=N||y>=N)break;const i=y*N+x;if(G.road[i]||G.plev[i]>=Sim.PATH){if(k>1)gap=true;break;}if(G.occ[i]||G.tree[i]||G.rock[i]||G.water[i]||G.door[i])break;}}if(gap)break;}
   if(gap)gaps++;}
 console.log('case con varco libero fino alla strada',gaps,'su',hs.length);
+// ogni ampliamento avvisa la grafica (ricostruisce modello e staccionata)
+const extTot=hs.reduce((a,h)=>a+(h.ext.length?1:0),0);console.log('ampliamenti notificati alla grafica',regs);if(extTot>0&&regs<extTot){bad++;console.log('ampliamenti senza notifica');}
 const seen=new Map();for(const h of hs)for(const i of h.cells){if(seen.has(i)){bad++;console.log('sovrapposizione');break;}seen.set(i,h.id);}
 // ingresso verso la strada: se una strada tracciata tocca il lotto, la porta sta sulla strada o accanto
 let withRoad=0,facing=0;

@@ -21,6 +21,11 @@ Funzione nuova: la festa di paese, che si indice dalla piazza.
 - **Salvataggio (v40):** la festa (preparativi, raccolta, partecipanti) si salva con la partita; al caricamento il numero progressivo delle feste viene ricalcolato (`festSeq`), così una festa nuova non viene saltata dagli abitanti. Provato in `tests/festa.js`.
 - Limiti: legno e cibo si prelevano in modo astratto (senza trasporto fisico); la festa non ha ancora effetti su nascite o criminalità; più piazze hanno ciascuna la propria festa.
 
+## v40.2 – 2026-11-27
+Correzione: il giardino ampliato resta recintato.
+- **Bug:** gli ampliamenti giornalieri (v39.1/v40.1) allargavano il giardino ma il modello 3D non veniva ricostruito: le celle nuove restavano senza staccionata e senza piante. Ora ogni ampliamento ricostruisce la casa (nuovo hook `regarden`): la staccionata ricalca il nuovo contorno e le celle nuove hanno orto/prato come le altre.
+- `tests/lotti.js`: ogni ampliamento notifica la grafica. Grafica non verificata in un browser WebGL.
+
 ## v40.1 – 2026-11-27
 Ritocco: il giardino nasce attaccato alla strada e la riempie fino in fondo.
 - **Alla nascita:** appena posata la casa il giardino si allarga subito verso le strade vicine, riempiendo tutto lo spazio libero fino alla strada (varchi fino a 5 celle, in qualsiasi direzione, anche a gradini che seguono una strada diagonale).

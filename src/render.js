@@ -806,6 +806,8 @@ Sim.hooks.building=function(b){
   const e={b,root,body:null,scaf,hit};ents.set(b.id,e);mountBody(e);scene.add(root);mountPen(e);
 };
 Sim.hooks.done=function(b){const e=ents.get(b.id);if(!e)return;e.scaf.visible=false;e.body.scale.y=1;e.pop=0.35;mountPen(e);};
+// v40.2: quando il giardino si allarga si ricostruisce il modello: la staccionata e le piante seguono la nuova forma
+Sim.hooks.regarden=function(b){const e=ents.get(b.id);if(e)mountBody(e);};
 Sim.hooks.upgraded=function(b){const e=ents.get(b.id);if(!e)return;mountBody(e);e.pop=0.5;};
 Sim.hooks.removed=function(b){
   const e=ents.get(b.id);if(!e)return;scene.remove(e.root);if(e.pen)scene.remove(e.pen);ents.delete(b.id);

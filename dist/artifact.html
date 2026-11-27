@@ -241,7 +241,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v42</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v40.2</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -390,7 +390,7 @@ const wb=i=>water[i]===1&&(ignoreFrozen||!S.frozen);
 const DX=[1,-1,0,0,1,1,-1,-1],DY=[0,0,1,-1,1,-1,1,-1];
 const rs=new Uint32Array(N*N),rq=new Int32Array(N*N);let rstamp=0;
 const ROTD=[[0,1],[-1,0],[0,-1],[1,0]];
-const hooks={building(){},done(){},removed(){},villager(){},trees(){},rocks(){},saps(){},gone(){},season(){},ground(){},toast(){},upgraded(){}};
+const hooks={building(){},done(){},removed(){},villager(){},trees(){},rocks(){},saps(){},gone(){},season(){},ground(){},toast(){},upgraded(){},regarden(){}};
 let seed=7;
 const tree=new Uint8Array(N*N),rock=new Uint8Array(N*N),ore=new Uint8Array(N*N),water=new Uint8Array(N*N),sap=new Uint8Array(N*N),road=new Uint8Array(N*N),dist=new Uint8Array(N*N),occ=new Int32Array(N*N),field=new Int32Array(N*N),door=new Uint8Array(N*N),cen=new Uint8Array(N*N),gate=new Int32Array(N*N);const gatedSet=new Set();
 // wear: solo per le strade tracciate dal giocatore (usura lenta). plev/phit/pexp: livello del sentiero, passaggi nella finestra corrente, istante di scadenza del livello.
@@ -1686,7 +1686,7 @@ function expandGarden(b){
     const xs=cells.map(i=>i%N),ys=cells.map(i=>(i/N)|0);
     if(!doorsOK(Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys),cells))continue;
     for(const i of cells){b.ext.push(i);occ[i]=b.id;}
-    occStamp++;hooks.ground();return true;
+    occStamp++;hooks.ground();hooks.regarden(b);return true;
   }
   return false;
 }
@@ -3345,6 +3345,8 @@ Sim.hooks.building=function(b){
   const e={b,root,body:null,scaf,hit};ents.set(b.id,e);mountBody(e);scene.add(root);mountPen(e);
 };
 Sim.hooks.done=function(b){const e=ents.get(b.id);if(!e)return;e.scaf.visible=false;e.body.scale.y=1;e.pop=0.35;mountPen(e);};
+// v40.2: quando il giardino si allarga si ricostruisce il modello: la staccionata e le piante seguono la nuova forma
+Sim.hooks.regarden=function(b){const e=ents.get(b.id);if(e)mountBody(e);};
 Sim.hooks.upgraded=function(b){const e=ents.get(b.id);if(!e)return;mountBody(e);e.pop=0.5;};
 Sim.hooks.removed=function(b){
   const e=ents.get(b.id);if(!e)return;scene.remove(e.root);if(e.pen)scene.remove(e.pen);ents.delete(b.id);

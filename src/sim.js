@@ -78,7 +78,7 @@ const wb=i=>water[i]===1&&(ignoreFrozen||!S.frozen);
 const DX=[1,-1,0,0,1,1,-1,-1],DY=[0,0,1,-1,1,-1,1,-1];
 const rs=new Uint32Array(N*N),rq=new Int32Array(N*N);let rstamp=0;
 const ROTD=[[0,1],[-1,0],[0,-1],[1,0]];
-const hooks={building(){},done(){},removed(){},villager(){},trees(){},rocks(){},saps(){},gone(){},season(){},ground(){},toast(){},upgraded(){}};
+const hooks={building(){},done(){},removed(){},villager(){},trees(){},rocks(){},saps(){},gone(){},season(){},ground(){},toast(){},upgraded(){},regarden(){}};
 let seed=7;
 const tree=new Uint8Array(N*N),rock=new Uint8Array(N*N),ore=new Uint8Array(N*N),water=new Uint8Array(N*N),sap=new Uint8Array(N*N),road=new Uint8Array(N*N),dist=new Uint8Array(N*N),occ=new Int32Array(N*N),field=new Int32Array(N*N),door=new Uint8Array(N*N),cen=new Uint8Array(N*N),gate=new Int32Array(N*N);const gatedSet=new Set();
 // wear: solo per le strade tracciate dal giocatore (usura lenta). plev/phit/pexp: livello del sentiero, passaggi nella finestra corrente, istante di scadenza del livello.
@@ -1374,7 +1374,7 @@ function expandGarden(b){
     const xs=cells.map(i=>i%N),ys=cells.map(i=>(i/N)|0);
     if(!doorsOK(Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys),cells))continue;
     for(const i of cells){b.ext.push(i);occ[i]=b.id;}
-    occStamp++;hooks.ground();return true;
+    occStamp++;hooks.ground();hooks.regarden(b);return true;
   }
   return false;
 }
