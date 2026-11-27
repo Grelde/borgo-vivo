@@ -1,5 +1,17 @@
 # Changelog
 
+## v35 – 2026-11-27
+Funzione nuova: edifici lavorativi, assi di legno e ovile con pastori.
+- **Assi di legno:** terzo materiale di cantiere (chip "Assi" in alto, costo con swatch giallo). La **Falegnameria** trasforma 1 legno in 2 assi ogni 6 s per falegname (scorta max 24; non consuma l'ultimo legno se il magazzino è sotto 10, salvo cantieri che aspettano assi). Servono a scuola, ospizio, chiesa, mulino, locanda, magazzino (e alle nuove botteghe, taverna e sala). **Senza falegnameria le assi si pagano in legno** (2 legni per asse), quindi nessun cantiere si blocca; il costo si fissa quando si piazza l'edificio.
+- **Bottega del muratore:** i muratori portano i materiali ai cantieri e costruiscono il 60% più in fretta.
+- **Botteghe vere, più produttive di quelle dei giardini** (ogni addetto lavora a cicli dentro l'edificio, la merce resta in magazzino e un addetto la porta alle case che ne hanno più bisogno entro 135 celle): **Fucina del fabbro** (1 ferro → 3 attrezzi ogni 10 s), **Forno del panettiere** (1 farina → 3 pane ogni 8 s), **Telaio del tessitore** (1 lana → 2 tessuto ogni 9 s), **Sartoria** (1 tessuto → 2 abiti ogni 10 s), **Capanna del pescatore** (2 pesci ogni 7 s; serve acqua vicina; non d'inverno col ghiaccio), **Capanna del cacciatore** (2 carne ogni 8 s; serve un bosco fitto; dimezzata d'inverno). La bottega di un giardino produce 1 pezzo ogni ~30 s: l'edificio rende da 3 a 7 volte tanto.
+- **Ovile costruibile dal giocatore**, con pastori (prima nasceva solo dalle famiglie, senza addetti propri): il pastore porta le pecore al pascolo e produce la lana per il telaio. Servono celle di zona Pascolo libere intorno. Gli ovili fondati dalle famiglie restano serviti dai loro membri.
+- **Taverna** (taverniere: +4 felicità entro 36 celle) e **Sala delle feste** (musicante: +6 entro 45 celle), solo se hanno addetti.
+- **Effetti in casa:** con attrezzi in casa il giardino rende il 10% in più; dal livello 3 gli abiti danno +3 di felicità.
+- Interfaccia: nuova categoria **Botteghe** nel menu; modelli 3D per ogni edificio; pannelli con addetti, merce pronta e motivo se non producono; il cantiere mostra le assi portate.
+- Test: `tests/workshops.js` (simulazione: assi, muratori, fucina, forno, ovile+telaio+sartoria, pesca, caccia, taverna e sala) e `tests/workshops-render.js` (modelli e pannelli con DOM finto); gli altri test restano verdi. Grafica non provata in un browser WebGL.
+- Limiti: le materie prime delle botteghe si prelevano in modo astratto (ferro e farina dalle scorte, lana dagli ovili entro 135 celle, tessuto dai telai) senza trasporto fisico; rese e scorte sono stime da tarare.
+
 ## v34.1 – 2026-11-27
 Ritocco (solo grafica): sentieri curvi.
 - I sentieri nati dal passaggio degli abitanti non si disegnano più come segmenti dritti a gradini tra celle: le celle in fila si ammorbidiscono (media coi vicini, due passate) e ogni tratto è una curva con tangente continua; capi e incroci restano fermi. Le diagonali ridondanti vengono ignorate.

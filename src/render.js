@@ -613,7 +613,103 @@ const BUILD={
   farm(b){const g=new THREE.Group();
     bx(g,3.0,1.5,2.3,MAT.logD,-.2,.75,-.5);gable(g,3.2,2.3,1.2,MAT.tile,1.5);for(const k of[1,2]){const sl=g.children[g.children.length-k];sl.position.x+=-.2;sl.position.z+=-.5;}
     bx(g,.9,1.1,.06,MAT.door,-.2,.55,.68);cyl(g,.5,.55,2.0,10,MAT.plaster,1.35,1.0,-1.0);cone(g,.65,.7,10,MAT.tile,1.35,2.35,-1.0,0);
-    cone(g,.45,.9,8,MAT.hay,-1.2,.45,1.2,0);cone(g,.4,.8,8,MAT.hay,-.6,.4,1.45,0);return g;}
+    cone(g,.45,.9,8,MAT.hay,-1.2,.45,1.2,0);cone(g,.4,.8,8,MAT.hay,-.6,.4,1.45,0);return g;},
+  // v32: edifici lavorativi
+  carpenter(b){const g=new THREE.Group();
+    bx(g,2.8,1.4,2.0,MAT.logD,-.2,.7,-.6);for(const y of[.35,.7,1.05])bx(g,2.88,.05,2.08,MAT.timber,-.2,y,-.6);
+    gab(g,3.0,2.2,.9,MAT.thatch,1.4,-.2,-.6);bx(g,.8,1.0,.06,MAT.door,-.2,.5,.42);bx(g,.22,.22,.06,MAT.glass,.85,.85,.42);
+    for(const sx of[-1.2,1.1])bx(g,.1,1.1,.1,MAT.timber,sx,.55,1.55);
+    bx(g,2.6,.08,1.1,MAT.thatch,-.05,1.15,1.3).rotation.x=-.14;
+    for(let k=0;k<6;k++)bx(g,1.2,.07,.36,MAT.hay,.7,.1+k*.09,1.4);
+    bx(g,.9,.08,.4,MAT.log,-.8,.55,1.45);for(const sx of[-1.15,-.45])bx(g,.07,.55,.07,MAT.timber,sx,.28,1.45);
+    bx(g,.5,.05,.2,MAT.iron,-.8,.62,1.45);
+    for(let i=0;i<3;i++)cyl(g,.17,.17,1.2,7,MAT.log,1.65,.17+(i===2?.28:0),-.2+(i%2)*.33-.15*(i===2?1:0),0,Math.PI/2);
+    return g;},
+  mason(b){const g=new THREE.Group();
+    bx(g,3.0,.2,3.4,MAT.stoneD,0,.1,0);
+    bx(g,2.4,1.3,1.6,MAT.stone,-.4,.85,-1.0);bx(g,2.5,.12,1.7,MAT.stoneD,-.4,1.5,-1.0);gab(g,2.6,1.7,.7,MAT.slate,1.56,-.4,-1.0);
+    bx(g,.7,.95,.06,MAT.door,-.4,.58,-.18);
+    for(const [x,z,s] of[[1.1,.4,.6],[1.35,.45,.5],[1.2,.3,.55],[-1.2,.9,.5],[-.6,1.0,.45]])bx(g,s,s*.8,s,MAT.stone,x,.2+s*.4,z,x);
+    for(const sx of[-.3,.9]){bx(g,.1,2.0,.1,MAT.timber,sx,1.1,.9).rotation.z=sx<0?.18:-.18;}
+    bx(g,1.3,.1,.1,MAT.timber,.3,2.0,.9);cyl(g,.015,.015,.8,4,MAT.timber,.5,1.55,.9);bx(g,.4,.3,.4,MAT.stone,.5,1.05,.9);
+    bx(g,.8,.5,.5,MAT.stone,-1.3,.45,1.2);bx(g,.06,.5,.06,MAT.iron,-1.1,.9,1.2);bx(g,.3,.06,.06,MAT.iron,-1.1,1.15,1.2);
+    return g;},
+  smithy(b){const g=new THREE.Group();
+    bx(g,2.7,1.45,2.0,MAT.stone,-.1,.72,-.6);bx(g,2.8,.1,2.1,MAT.timber,-.1,1.45,-.6);gab(g,2.9,2.2,.8,MAT.slate,1.5,-.1,-.6);
+    bx(g,.9,.9,.06,MAT.door,-.9,.45,.42);
+    bx(g,.8,2.5,.8,MAT.stoneD,.9,1.25,-.9);bx(g,.95,.14,.95,MAT.stone,.9,2.55,-.9);
+    bx(g,.8,.7,.7,MAT.stoneD,1.0,.35,.2);bx(g,.5,.16,.4,MAT.fire,1.0,.78,.2);
+    bx(g,.55,.3,.35,MAT.iron,.1,.58,1.0);bx(g,.24,.25,.24,MAT.logD,.1,.28,1.0);bx(g,.12,.12,.12,MAT.iron,.38,.7,1.0);
+    bx(g,.8,.4,.55,MAT.iron,-1.1,.2,1.25);bx(g,.3,.25,.3,MAT.rust,-.5,.15,1.3);
+    for(const sx of[-.4,-.1])bx(g,.04,.6,.04,MAT.timber,sx,.8,.9);
+    return g;},
+  bakery(b){const g=new THREE.Group();
+    bx(g,2.6,1.3,2.0,MAT.plaster,-.2,.65,-.6);for(const sx of[-1.4,.95])bx(g,.1,1.3,2.1,MAT.timber,sx,.65,-.6);
+    bx(g,2.7,.1,2.1,MAT.timber,-.2,1.3,-.6);gab(g,2.8,2.2,.85,MAT.tile,1.35,-.2,-.6);
+    bx(g,.6,.95,.06,MAT.door,-.7,.48,.42);bx(g,.4,.4,.06,MAT.glass,.2,.8,.42);
+    sph(g,.8,MAT.stoneD,1.45,.6,.4,1.1,.85,1.1);bx(g,.36,.3,.06,MAT.fire,1.45,.42,1.1);chim(g,1.45,1.5,.35,.8);
+    bx(g,1.3,.08,.6,MAT.log,-.4,.62,1.2);for(const sx of[-.95,.15])bx(g,.07,.62,.07,MAT.timber,sx,.31,1.2);
+    for(let k=0;k<4;k++)sph(g,.13,MAT.hay,-.8+k*.32,.78,1.2,1.3,.7,.9);
+    bx(g,.5,.35,.05,MAT.gold,-.7,1.15,.45);
+    for(const sx of[1.1,1.7])bx(g,.4,.4,.4,MAT.flour,sx,.2,-1.5);
+    return g;},
+  weaver(b){const g=new THREE.Group();
+    bx(g,2.7,1.2,2.0,MAT.wattle,-.2,.6,-.6);for(const x of[-1.1,-.4,.3,1.0])bx(g,.07,1.2,2.04,MAT.timber,x-.0,.6,-.6);
+    gab(g,2.9,2.2,.85,MAT.thatch,1.2,-.2,-.6);bx(g,.6,.95,.06,MAT.door,-.9,.48,.42);bx(g,.4,.4,.06,MAT.glass,.3,.75,.42);
+    // telaio all'aperto con tessuti a strisce
+    for(const sx of[.9,1.9])bx(g,.1,1.5,.1,MAT.timber,sx,.75,1.2);bx(g,1.2,.1,.1,MAT.timber,1.4,1.5,1.2);bx(g,1.2,.1,.1,MAT.timber,1.4,.3,1.2);
+    for(let k=0;k<6;k++)bx(g,.14,1.1,.04,k%2?MAT.red:MAT.blue,1.0+k*.18,.9,1.2);
+    for(const [x,z] of[[-1.5,1.0],[-1.0,1.3],[-1.35,1.5]])sph(g,.3,MAT.wool,x,.3,z,1,.8,1);
+    return g;},
+  tailor(b){const g=new THREE.Group();
+    bx(g,2.6,1.35,2.0,MAT.plaster,-.2,.68,-.6);bx(g,2.7,.1,2.1,MAT.timber,-.2,1.35,-.6);gab(g,2.8,2.2,.8,MAT.tile,1.4,-.2,-.6);
+    bx(g,.6,.95,.06,MAT.door,-.6,.48,.42);bx(g,.5,.5,.06,MAT.glass,.5,.85,.42);
+    for(let k=0;k<5;k++)bx(g,.28,.05,.9,k%2?MAT.red:MAT.cream,-1.0+k*.28,1.0,1.0).rotation.x=-.4;
+    for(const sx of[-1.1,.3])bx(g,.06,.75,.06,MAT.timber,sx,.5,1.45);
+    cyl(g,.1,.16,.8,7,MAT.timber,1.3,.4,1.1);sph(g,.16,MAT.plaster,1.3,.95,1.1);bx(g,.4,.5,.25,MAT.cloth,1.3,.62,1.1);
+    for(const [x,c] of[[-.7,MAT.blue],[-.4,MAT.red],[-.1,MAT.cloth]])cyl(g,.13,.13,.7,8,c,x,.14,1.25,0,Math.PI/2);
+    return g;},
+  fisher(b){const g=new THREE.Group();
+    bx(g,2.2,1.2,1.7,MAT.log,-.3,.6,-.8);for(const y of[.2,.5,.8,1.1])bx(g,2.26,.05,1.76,MAT.logD,-.3,y,-.8);
+    gab(g,2.4,1.8,.75,MAT.thatch,1.2,-.3,-.8);bx(g,.55,.85,.06,MAT.door,-.3,.42,.08);
+    for(const sx of[.9,1.9])bx(g,.07,1.2,.07,MAT.timber,sx,.6,.5);bx(g,1.2,.06,.06,MAT.timber,1.4,1.2,.5);
+    for(let k=0;k<4;k++){bx(g,.07,.3,.05,MAT.fishM,1.05+k*.25,1.0,.5);}
+    // barca e rete
+    bx(g,1.5,.25,.6,MAT.logD,-1.0,.14,1.4);bx(g,1.2,.06,.4,MAT.log,-1.0,.3,1.4);cyl(g,.03,.03,1.1,4,MAT.timber,-1.0,.85,1.4);
+    bx(g,.9,.04,.7,MAT.cream,.9,.05,1.3);bx(g,.06,.4,.06,MAT.timber,.5,.2,1.0);bx(g,.06,.4,.06,MAT.timber,1.3,.2,1.0);
+    return g;},
+  hunter(b){const g=new THREE.Group();
+    bx(g,2.2,1.2,1.8,MAT.logD,-.3,.6,-.7);for(const y of[.2,.5,.8,1.1])bx(g,2.26,.05,1.86,MAT.timber,-.3,y,-.7);
+    gab(g,2.4,1.9,.8,MAT.thatch,1.2,-.3,-.7);bx(g,.55,.85,.06,MAT.door,-.3,.42,.22);
+    for(const sx of[-.1,.1]){bx(g,.05,.35,.05,MAT.cream,sx,1.55,.25).rotation.z=sx*3;}bx(g,.35,.08,.08,MAT.timber,0,1.4,.25);
+    // pelli stese e carne appesa
+    for(const sx of[.9,1.9])bx(g,.07,1.3,.07,MAT.timber,sx,.65,.9);bx(g,1.2,.06,.06,MAT.timber,1.4,1.3,.9);
+    bx(g,.4,.7,.04,MAT.horse,1.1,.9,.9);bx(g,.4,.6,.04,MAT.wool,1.7,.95,.9);
+    for(const x of[1.25,1.55])bx(g,.12,.3,.1,MAT.meatM,x,1.1,.55);
+    // bersaglio e ceppo
+    cyl(g,.4,.4,.06,10,MAT.cream,-1.4,.7,1.1,Math.PI/2,0);cyl(g,.18,.18,.06,10,MAT.red,-1.4,.7,1.14,Math.PI/2,0);bx(g,.07,.7,.07,MAT.timber,-1.4,.35,1.05);
+    return g;},
+  tavern(b){const g=new THREE.Group();
+    bx(g,3.6,1.3,2.2,MAT.plaster,-.2,.65,-.2);bx(g,3.7,.1,2.3,MAT.timber,-.2,1.3,-.2);bx(g,3.2,1.0,2.0,MAT.plaster,-.2,1.85,-.2);
+    for(const x of[-1.7,-.5,.7,1.3])bx(g,.1,2.3,.1,MAT.timber,x,1.15,.95);
+    gab(g,3.8,2.3,1.0,MAT.tile,2.35,-.2,-.2);
+    bx(g,.6,.95,.06,MAT.door,-.2,.48,.92);for(const x of[-1.2,.8])bx(g,.4,.4,.06,MAT.glass,x,.8,.92);for(const x of[-1.0,-.2,.6])bx(g,.3,.35,.06,MAT.glass,x,1.85,.82);
+    chim(g,1.1,2.9,-.7,.7);
+    // insegna con boccale e botti
+    bx(g,.08,.08,.7,MAT.timber,1.75,1.7,1.25);bx(g,.5,.4,.05,MAT.gold,1.75,1.4,1.55);cyl(g,.1,.1,.18,8,MAT.logD,1.75,1.4,1.59,Math.PI/2,0);
+    for(const [x,z] of[[-1.9,1.2],[-1.5,1.35],[-1.7,.95]])cyl(g,.26,.26,.5,10,MAT.logD,x,.25,z);
+    bx(g,.8,.06,.4,MAT.log,.9,.5,1.35);for(const sx of[.6,1.2])bx(g,.06,.5,.06,MAT.timber,sx,.25,1.35);
+    return g;},
+  hall(b){const g=new THREE.Group();
+    bx(g,4.6,.18,5.0,MAT.stoneD,0,.09,0);
+    bx(g,4.0,1.9,2.4,MAT.plaster,0,1.1,-1.1);for(const x of[-1.9,-.95,0,.95,1.9])bx(g,.12,1.9,2.5,MAT.timber,x,1.1,-1.1);
+    bx(g,4.1,.12,2.5,MAT.timber,0,2.05,-1.1);gab(g,4.3,2.6,1.4,MAT.tile,2.1,0,-1.1);
+    bx(g,.9,1.3,.06,MAT.door,0,.8,.12);for(const x of[-1.4,1.4])bx(g,.5,.7,.06,MAT.glass,x,1.2,.12);
+    // stendardi, falò e tavolate
+    for(const [x,c] of[[-2.2,MAT.red],[2.2,MAT.blue]]){bx(g,.07,2.6,.07,MAT.timber,x,1.3,.5);bx(g,.5,.8,.04,c,x+.28,2.1,.5);bx(g,.2,.2,.05,MAT.gold,x+.28,2.1,.53);}
+    for(let k=0;k<4;k++)bx(g,.16,.12,.16,MAT.log,-.1+(k%2)*.2,.2+(k>>1)*.1,1.5);bx(g,.3,.35,.3,MAT.fire,.0,.46,1.5);
+    for(const sx of[-1.5,1.5]){bx(g,1.2,.07,.45,MAT.log,sx,.55,1.5);bx(g,.06,.5,.06,MAT.timber,sx-.5,.27,1.5);bx(g,.06,.5,.06,MAT.timber,sx+.5,.27,1.5);bx(g,1.2,.05,.2,MAT.logD,sx,.3,1.9);bx(g,1.2,.05,.2,MAT.logD,sx,.3,1.1);}
+    cyl(g,.05,.05,2.2,6,MAT.timber,-.1,1.1,-2.0);return g;}
 };
 const ents=new Map(),pickables=[];
 function mountBody(e){
@@ -647,7 +743,7 @@ Sim.hooks.toast=m=>toast(m);
 // ---------- abitanti ----------
 const TUN=[0x8c2f23,0x2f5d73,0x6a7a3b,0x7c5a2c,0x6b4a7a,0x5d5d5d,0xb0802e],tunMats={};
 const skin=L(0xe0b48c);
-const CARRY={wood:MAT.log,stone:MAT.stoneD,veg:MAT.veg,eggs:MAT.egg,grain:MAT.grain,water:MAT.water,iron:MAT.iron,flour:MAT.flour,fish:MAT.fishM,meat:MAT.meatM,firewood:MAT.fw,bread:MAT.hay,tools:MAT.iron,wool:MAT.wool,cloth:MAT.cloth,clothes:MAT.cloth};
+const CARRY={wood:MAT.log,stone:MAT.stoneD,veg:MAT.veg,eggs:MAT.egg,grain:MAT.grain,water:MAT.water,iron:MAT.iron,flour:MAT.flour,fish:MAT.fishM,meat:MAT.meatM,firewood:MAT.fw,bread:MAT.hay,tools:MAT.iron,wool:MAT.wool,cloth:MAT.cloth,clothes:MAT.cloth,planks:MAT.hay};
 const vms=new Map(),vpick=[];
 // v34: carichi visibili. Asse e tronco sulla spalla, sasso in braccio, carretto spinto davanti per pietre, tronchi e minerale.
 // Costruttori e magazzinieri usano gli stessi modelli: li sceglie loadKind() dal carico e da quello che l'abitante sta facendo.
@@ -674,6 +770,7 @@ function loadKind(v){
     if(s==='toWork')return 'log';
     return 'box';
   }
+  if(c==='planks')return s==='toSite'?'plank':'box';
   if(c==='stone')return s==='toWork'?'rock':CART_AT.includes(s)?'cartStone':'box';
   if(c==='iron')return CARTR.includes(s)?'cartOre':'box';
   return 'box';
@@ -774,13 +871,24 @@ const TOOLS=[
   {id:'d2',label:'Agricolo',key:'3',dt:2,col:0x9ccf4a,hint:'Trascina: gli abitanti fonderanno qui le fattorie e i campi.'},
   {id:'d3',label:'Mercato',key:'4',dt:3,col:0xe0773f,hint:'Trascina: qui le famiglie apriranno i banchi per il baratto.'},
   {id:'d4',label:'Forestale',key:'f',dt:4,col:0x3f9a5d,hint:'Trascina: i guardaboschi pianteranno qui alberi che crescono e si possono tagliare di nuovo.'},
-  {id:'d5',label:'Pascolo',key:'p',dt:5,col:0xe8e4d0,hint:'Trascina: le famiglie fonderanno ovili per la lana, che serve ai tessitori (case di livello 3).'},
+  {id:'d5',label:'Pascolo',key:'p',dt:5,col:0xe8e4d0,hint:'Trascina: qui le famiglie fonderanno ovili e tu puoi costruirne con i pastori. La lana serve ai tessitori.'},
   {id:'undistrict',label:'Togli zona',key:'5',dt:0,col:0xd9553f,hint:'Trascina per cancellare un quartiere.'},
   {id:'road',label:'Strada',key:'6',hint:'Trascina per tracciare una strada: resta a lungo anche senza passaggi, poi torna sentiero e sparisce. Puoi demolirla.'},
   {id:'wood',label:'Taglialegna',key:'7',hint:'Vicino a un bosco. Rumoroso: le case vicine perdono attrattiva.'},
   {id:'quarry',label:'Cava',key:'8',hint:'Vicino alle rocce. Molto rumorosa: tienila lontana dalle case.'},
   {id:'forester',label:'Guardaboschi',key:'g',hint:'Pianta alberi nelle zone forestali. Servono circa 2 minuti perché crescano.'},
   {id:'mine',label:'Miniera',key:'m',hint:'Vicino ai filoni di ferro (rocce scure). Molto rumorosa. Il ferro va al magazzino.'},
+  {id:'carpenter',label:'Falegnameria',key:'n',hint:'Gli addetti trasformano il legno del magazzino in assi (2 assi per legno). Scuola, ospizio, chiesa, mulino, locanda, magazzino, fabbro, forno, telaio, sartoria, taverna e sala delle feste richiedono assi; senza falegnameria si pagano in legno (2 legni per asse). Un po\' rumorosa.'},
+  {id:'mason',label:'Bottega del muratore',key:'y',hint:'I muratori portano i materiali ai cantieri e costruiscono il 60% più in fretta degli altri operai.'},
+  {id:'smithy',label:'Fucina del fabbro',key:'',hint:'Trasforma il ferro del magazzino in attrezzi (3 per ferro ogni 10 s) e li porta alle case: con gli attrezzi il giardino rende il 10% in più. Molto più produttiva della bottega di un giardino. Rumorosa.'},
+  {id:'bakery',label:'Forno del panettiere',key:'',hint:'Trasforma la farina del mulino in pane (3 pagnotte per farina ogni 8 s) e lo porta alle famiglie.'},
+  {id:'weaver',label:'Telaio del tessitore',key:'',hint:'Trasforma la lana degli ovili in tessuto (2 per lana ogni 9 s). Serve un ovile con i pastori.'},
+  {id:'tailor',label:'Sartoria',key:'',hint:'Cuce abiti (2 per tessuto ogni 10 s) con il tessuto del telaio e li porta alle case dal livello 3: +3 di felicità. Serve un telaio.'},
+  {id:'fisher',label:'Capanna del pescatore',key:'',hint:'Sulla riva di un lago o di un fiume. Pesce per le famiglie (2 ogni 7 s per pescatore); con il ghiaccio non si pesca.'},
+  {id:'hunter',label:'Capanna del cacciatore',key:'',hint:'Vicino a un bosco fitto. Porta carne alle famiglie (2 ogni 8 s per cacciatore); d\'inverno la selvaggina è scarsa.'},
+  {id:'sheepfold',label:'Ovile',key:'',hint:'Costruisci un ovile vicino a una zona Pascolo: i pastori portano le pecore a brucare e producono la lana per il tessitore. Servono celle libere di pascolo intorno.'},
+  {id:'tavern',label:'Taverna',key:'',hint:'Con un taverniere: chi abita entro 36 celle ha +4 di felicità. Attrae nuovi abitanti.'},
+  {id:'hall',label:'Sala delle feste',key:'',hint:'Con un musicante: chi abita entro 45 celle ha +6 di felicità. Molto piacevole.'},
   {id:'granary',label:'Granaio',key:'b',hint:'Le fattorie portano qui il grano in eccedenza. Il mulino lo macina.'},
   {id:'mill',label:'Mulino',key:'l',hint:'Trasforma il grano del granaio in farina per i panettieri.'},
   {id:'inn',label:'Locanda',key:'i',hint:'Dà da mangiare ai viandanti e ha una stalla per i cavalli. Serve un oste; le famiglie portano il cibo. Qualcuno può fermarsi in paese.'},
@@ -800,7 +908,8 @@ const CATS=[
   {id:'tools',label:'Strumenti',ids:['select','pan','demolish']},
   {id:'zone',label:'Zone e strade',ids:['d1','d2','d3','d4','d5','undistrict','road']},
   {id:'prod',label:'Produzione',ids:['wood','quarry','mine','forester','granary','mill']},
-  {id:'serv',label:'Servizi',ids:['store','well','school','infirmary','church','inn']},
+  {id:'shop',label:'Botteghe',ids:['carpenter','mason','smithy','bakery','sheepfold','weaver','tailor','fisher','hunter']},
+  {id:'serv',label:'Servizi',ids:['store','well','school','infirmary','church','inn','tavern','hall']},
   {id:'deco',label:'Decorazioni',ids:['plaza','flowers','statue']}];
 const CATOF={};CATS.forEach(c=>c.ids.forEach(i=>{CATOF[i]=c.id;}));
 const catBtns={};
@@ -808,10 +917,10 @@ let curCat='tools';
 function setCat(c){curCat=c;for(const k in toolBtns)toolBtns[k].style.display=CATOF[k]===c?'':'none';for(const k in catBtns)catBtns[k].classList.toggle('on',k===c);}
 for(const c of CATS){const b=document.createElement('button');b.className='btn sm';b.type='button';b.textContent=c.label;b.addEventListener('click',()=>setCat(c.id));$('cats').appendChild(b);catBtns[c.id]=b;}
 let tool='select';const toolBtns={};let drag=null,hover=null,pend=false;
-const costHTML=c=>(c.wood?`<span><i class="sw w"></i>${c.wood}</span>`:'')+(c.stone?`<span><i class="sw s"></i>${c.stone}</span>`:'');
+const costHTML=c=>(c.wood?`<span><i class="sw w"></i>${c.wood}</span>`:'')+(c.stone?`<span><i class="sw s"></i>${c.stone}</span>`:'')+(c.planks?`<span><i class="sw p"></i>${c.planks}</span>`:'');
 for(const t of TOOLS){
   const b=document.createElement('button');b.className='btn';b.type='button';
-  b.innerHTML=`<span class="nm">${t.label}<kbd>${t.key.toUpperCase()}</kbd></span><span class="cs">${BT[t.id]?costHTML(BT[t.id].cost):''}</span>`;
+  b.innerHTML=`<span class="nm">${t.label}${t.key?`<kbd>${t.key.toUpperCase()}</kbd>`:''}</span><span class="cs">${BT[t.id]?costHTML(BT[t.id].cost):''}</span>`;
   b.addEventListener('click',()=>setTool(t.id));$('tools').appendChild(b);toolBtns[t.id]=b;
 }
 function setTool(id){pend=false;hover=null;$('pbar').hidden=true;if(CATOF[id]&&CATOF[id]!==curCat)setCat(CATOF[id]);tool=id;ghost.visible=false;arrow.visible=false;$('rotBtn').style.display=(BT[id]&&!NOGATE[id])?'':'none';for(const k in toolBtns)toolBtns[k].classList.toggle('on',k===id);$('hint').textContent=(TOOL[id].hint||'')+((BT[id]&&!NOGATE[id])?' R = ruota: la freccia gialla è l\'ingresso.':'');if(id!=='select')select(null);if(document.body.classList.contains('touch')&&id!=='select')toast(TOOL[id].hint+(BT[id]?' Tocca o trascina sulla mappa, poi conferma con ✓.':''));}
@@ -834,7 +943,7 @@ function refreshSel(){
   let name=t.name,info='',list='';
   const VM=id=>Sim.villagers().find(v=>v.id===id);
   const stt=Sim.stats();
-  if(b.state==='site'){const need=t.cost.wood+t.cost.stone,got=b.got.wood+b.got.stone;info=(b.prog>0?`In costruzione: ${Math.round(b.prog*100)}%`:`Cantiere: materiali portati ${got}/${need}`)+(()=>{const nb=Sim.villagers().filter(v=>v.state==='build'&&v.target===b.id).length;const full=b.got.wood>=t.cost.wood&&b.got.stone>=t.cost.stone;return full?` · operai al lavoro: ${nb}${nb?'':' (servono operai)'}`:'';})()+(S.ph==='work'?'':' · i lavori riprendono al mattino');}
+  if(b.state==='site'){const sc=b.cost||Sim.costOf(b.type),need=sc.wood+sc.stone+(sc.planks||0),got=b.got.wood+b.got.stone+(b.got.planks||0);info=(b.prog>0?`In costruzione: ${Math.round(b.prog*100)}%`:`Cantiere: materiali portati ${got}/${need}${sc.planks?` (assi ${b.got.planks}/${sc.planks})`:''}`)+(()=>{const nb=Sim.villagers().filter(v=>v.state==='build'&&v.target===b.id).length;const full=Sim.siteReady(b);return full?` · operai al lavoro: ${nb}${nb?'':' (servono operai)'}`:'';})()+(S.ph==='work'?'':' · i lavori riprendono al mattino');}
   else if(b.type==='house'){
     name=Sim.LVNAME[b.level-1];const cap=Sim.CAPS[b.level-1],fl=b.flags,gd=b.goods,fn=Sim.fuelNeed();
     const hd=b.head&&VM(b.head);
@@ -856,7 +965,28 @@ function refreshSel(){
     info=`Addetti: ${w.length}/${b.want} · scorte: legno ${S.stock.wood}/${capNow}, pietra ${S.stock.stone}/${capNow}, ferro ${S.stock.iron}/${capNow}`;
     list=w.map((v,i)=>`<div>Addetto ${i+1}: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>Portano i materiali ai cantieri e ritirano quanto prodotto da taglialegna e cave.</div>'+(b.center?'':`<div>Se il centro contiene materiali, gli addetti li portano qui: legno ${S.wh.wood}, pietra ${S.wh.stone}, ferro ${S.wh.iron}.</div>`)+(b.center?`<div>Il centro cresce con il numero di case. Si può demolire solo quando è vuoto.</div>`:'');
   }
-  else if(t.slots&&b.type!=='inn'&&b.type!=='school'&&b.type!=='infirmary'){
+  else if(b.type==='mason'){
+    const w=Sim.villagers().filter(v=>v.job===b.id);
+    info=`Muratori: ${w.length}/${b.want} · assi nel magazzino: ${S.stock.planks}`;
+    list=w.map((v,i)=>`<div>Muratore ${i+1}: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>Portano i materiali ai cantieri e costruiscono il 60% più in fretta. Senza lavori aiutano le famiglie e portano i materiali ai magazzini.</div>'+(w.length===0?`<div>Nessun muratore: servono abitanti liberi.</div>`:'');
+  }
+  else if(Sim.WS[b.type]){
+    const w=Sim.villagers().filter(v=>v.job===b.id),g=Sim.PROD[b.type],spec=Sim.WS[b.type];
+    const GL={tools:'attrezzi',bread:'pane',cloth:'tessuto',clothes:'abiti',fish:'pesce',meat:'carne'};
+    const DESC={
+      carpenter:`Trasforma il legno del magazzino in assi (2 per legno ogni ${spec.t} s per falegname). Legno ${S.stock.wood} · assi ${S.stock.planks}/${Sim.PLANK_CAP}. Le assi servono ai cantieri di scuola, ospizio, chiesa, mulino, locanda, magazzino e botteghe.`,
+      smithy:`Un fabbro trasforma 1 ferro in 3 attrezzi ogni ${spec.t} s e li porta alle case (con gli attrezzi il giardino rende il 10% in più). Ferro nel magazzino: ${S.stock.iron}.`,
+      bakery:`Un panettiere trasforma 1 farina in 3 pagnotte ogni ${spec.t} s e le porta alle famiglie. Farina nei mulini: ${S.stock.flour}.`,
+      weaver:`Un tessitore trasforma 1 lana in 2 pezze di tessuto ogni ${spec.t} s. La lana viene dagli ovili vicini. Le pezze vanno ai sarti e alle case con il telaio.`,
+      tailor:`Un sarto trasforma 1 pezza di tessuto in 2 abiti ogni ${spec.t} s; le case dal livello 3 che li ricevono hanno +3 di felicità. Il tessuto viene dai telai.`,
+      fisher:`Un pescatore porta 2 pesci ogni ${spec.t} s. Con il ghiaccio non si pesca.`,
+      hunter:`Un cacciatore porta 2 pezzi di carne ogni ${spec.t} s; d'inverno la selvaggina è scarsa.`,
+      tavern:`Con almeno un taverniere, chi abita entro ${Sim.FUN.tavern.r} celle ha +${Sim.FUN.tavern.joy} di felicità.`,
+      hall:`Con almeno un musicante, chi abita entro ${Sim.FUN.hall.r} celle ha +${Sim.FUN.hall.joy} di felicità.`}[b.type];
+    info=`Al lavoro: ${w.length} su ${b.want}`+(g?` · pronti: ${GL[g]} ${b.out[g]}/${Sim.OUTCAP}`:'')+(b.type==='carpenter'?` · assi ${S.stock.planks}/${Sim.PLANK_CAP}`:'');
+    list=w.map((v,i)=>`<div>Addetto ${i+1}: ${esc(Sim.roleText(v))}</div>`).join('')+`<div>${DESC}</div>`+(g?`<div>Resa più alta della bottega di un giardino: la merce è portata alle famiglie che ne hanno più bisogno.</div>`:'')+(w.length===0?`<div>Nessun addetto: servono abitanti liberi.</div>`:'')+(b.why&&w.length?`<div>${esc(b.why)}</div>`:'');
+  }
+  else if(t.slots&&b.type!=='inn'&&b.type!=='school'&&b.type!=='infirmary'&&b.type!=='sheepfold'){
     const res=b.type==='wood'?'wood':b.type==='mine'?'iron':'stone';
     const prod=b.buf!==undefined;
     const full=prod&&(b.buf>=Sim.BUFCAP||(S.stock[res]>=capNow*0.9&&b.buf>=2));
@@ -865,7 +995,7 @@ function refreshSel(){
   }
   else if(b.type==='inn'){const w=Sim.villagers().filter(v=>v.job===b.id);info=`Dispensa ${b.pantry}/20 · ospiti ${b.guestsIn}/4 · cavalli in stalla ${b.horses}/3`;
     list=w.map(v=>`<div>Oste: ${esc(Sim.roleText(v))}</div>`).join('')+`<div>Pasti serviti: ${S.visits} · viandanti diventati abitanti: ${S.settled}</div><div>L'oste compra il cibo in eccedenza dalle famiglie.</div>`;}
-  else if(b.type==='sheepfold'){const w=Sim.villagers().filter(v=>v.job===b.id);info=`Lana pronta: ${b.buf}/${Sim.BUFCAP} · pascolo: ${b.fields.length} celle`;list=w.map(v=>`<div>Pastore: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>I tessitori ritirano la lana qui.</div>';}
+  else if(b.type==='sheepfold'){const w=Sim.villagers().filter(v=>v.job===b.id);info=`Lana pronta: ${b.buf}/${Sim.BUFCAP} · pascolo: ${b.fields.length} celle`+(b.owner?'':` · pastori ${w.length}/${b.want}`);list=w.map(v=>`<div>Pastore: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>Il telaio del tessitore e le case con il telaio ritirano la lana qui.</div>'+(!b.fields.length?'<div>Nessun pascolo libero intorno: disegna una zona Pascolo vicino all\'ovile.</div>':'')+(b.why&&w.length?`<div>${esc(b.why)}</div>`:'');}
   else if(b.type==='plaza'||b.type==='flowers'||b.type==='statue')info='Abbellimento: rende più piacevole la zona e attira nuovi abitanti.';
   else if(b.type==='granary')info=`Grano immagazzinato: ${S.stock.grain}/${Sim.stats().capGrain}. Lo ritira il mugnaio.`;
   else if(b.type==='well')info=`Acqua per le case entro ${Sim.WELL_R} celle. Luogo piacevole.`;
@@ -877,7 +1007,7 @@ function refreshSel(){
     list=w.map(v=>`<div>Erborista: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>Cura i malati delle case entro 45 celle: guariscono più in fretta e rischiano meno di morire. Frena anche il contagio.</div>'+(w.length===0?'<div>Senza erborista l\'ospizio non cura.</div>':'');}
   else if(b.type==='cemetery'){info=`Sepolti: ${S.buried} · defunti senza sepoltura: ${S.unburied||0}`;list='<div>I defunti ricevono sepoltura qui: senza un cimitero i morti rendono la zona meno piacevole.</div>';}
   $('selName').textContent=name;$('selInfo').textContent=info;if(selCacheList!==list){selCacheList=list;$('selList').innerHTML=list;}
-  $('selJobs').hidden=!(b.state==='done'&&t.slots>0);
+  $('selJobs').hidden=!(b.state==='done'&&t.slots>0&&!(b.type==='sheepfold'&&b.owner));
   $('selZone').hidden=!(Sim.ZONED[b.type]&&b.state==='done');if(!$('selZone').hidden){$('zR').textContent=b.zone?b.zone.r:(b.type==='forester'?72:39);$('zSet').textContent=zoneEdit===b.id?'Clicca sulla mappa…':(b.zone?'Sposta zona':'Scegli sulla mappa');}$('wCount').textContent=b.want;
   $('selCem').hidden=!(b.type==='church'&&b.state==='done'&&!b.cem);
   $('selDemo').hidden=b.type==='stall';
@@ -922,7 +1052,7 @@ const anchor=(type,c)=>{const [w,h]=Sim.dimsOf(BT[type],rot);return {x:c.cx-Math
 const isDist=id=>TOOL[id]&&TOOL[id].dt!==undefined;
 const keys={};
 const ptrs=new Map(),TOFF=64;let gest=null,lockPtr=false;
-function updPbar(){const on=pend&&BT[tool]&&!zoneEdit;$('pbar').hidden=!on;if(!on)return;const c=BT[tool].cost,p=[];if(c.wood)p.push('legno '+c.wood);if(c.stone)p.push('pietra '+c.stone);$('pName').textContent=BT[tool].name+(p.length?' · '+p.join(', '):'');$('pRot').style.display=NOGATE[tool]?'none':'';}
+function updPbar(){const on=pend&&BT[tool]&&!zoneEdit;$('pbar').hidden=!on;if(!on)return;const c=Sim.costOf(tool),p=[];if(c.wood)p.push('legno '+c.wood);if(c.stone)p.push('pietra '+c.stone);if(c.planks)p.push('assi '+c.planks);$('pName').textContent=BT[tool].name+(p.length?' · '+p.join(', '):'');$('pRot').style.display=NOGATE[tool]?'none':'';}
 $('pOk').addEventListener('click',()=>{if(!hover||!BT[tool])return;const a=anchor(tool,hover),r=Sim.place(tool,a.x,a.y,rot);if(!r.ok)toast(r.msg,true);});
 $('pRot').addEventListener('click',()=>rotate());
 $('pNo').addEventListener('click',()=>{pend=false;hover=null;updPbar();});
@@ -999,7 +1129,7 @@ function endDrag(){
 cv.addEventListener('pointerup',ptrUp);cv.addEventListener('pointercancel',ptrUp);
 cv.addEventListener('pointerleave',e=>{if(e.pointerType!=='touch')hover=null;});
 cv.addEventListener('wheel',e=>{e.preventDefault();cam.goal=Math.max(16,Math.min(150,cam.goal*Math.exp(e.deltaY*0.0012)));},{passive:false});
-const TK={};TOOLS.forEach(t=>TK[t.key]=t.id);
+const TK={};TOOLS.forEach(t=>{if(t.key)TK[t.key]=t.id;});
 addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();keys[k]=true;
   if(TK[k])setTool(TK[k]);
@@ -1250,7 +1380,7 @@ let hudT=0;const PHN={work:'lavoro',meal:'pasto',evening:'sera',night:'notte'};
 function updateHUD(){
   const st=Sim.stats();
   capNow=st.capRes||80;if(attrOn)groundDirty=true;
-  $('rWood').textContent=`${S.stock.wood}/${capNow}`;$('rStone').textContent=`${S.stock.stone}/${capNow}`;$('rFood').textContent=st.food;$('rIron').textContent=`${S.stock.iron}`;$('rGrain').textContent=`${S.stock.grain}·${S.stock.flour}`;
+  $('rWood').textContent=`${S.stock.wood}/${capNow}`;$('rStone').textContent=`${S.stock.stone}/${capNow}`;$('rFood').textContent=st.food;$('rIron').textContent=`${S.stock.iron}`;$('rPlanks').textContent=`${S.stock.planks}`;$('rGrain').textContent=`${S.stock.grain}·${S.stock.flour}`;
   $('rDay').textContent=`${Sim.SEASONS[st.season]} ${st.day%Sim.SEASON_DAYS+1}/${Sim.SEASON_DAYS} · annata ${st.year} · ${PHN[st.ph]}`;
   $('rPop').textContent=`${st.pop}/${st.cap}`+(st.children?` (👶${st.children})`:'');$('rJobs').textContent=`${st.jobs}/${st.slots}`;$('rBarter').textContent=st.barters;
   $('rFire').textContent=`${st.fire}/${st.fireNeed}`;$('rSick').textContent=st.sick+(st.plague?' ☣':'');$('chipSick').classList.toggle('alert',st.sick>0);$('rWell').textContent=Math.round(st.avgJoy)+(st.unhappy?' · '+st.unhappy+' tristi':'');$('chipJoy').classList.toggle('alert',st.unhappy>0&&st.avgJoy<45);
@@ -1340,7 +1470,7 @@ function frame2(now){
     if(ud&&ud.sails)ud.sails.rotation.z-=dt*0.7;
     if(ud&&ud.gv){const n=Math.min(ud.gv.length,S.buried|0);if(ud.shown!==n){ud.shown=n;ud.gv.forEach((m,i)=>{m.visible=i<n;});}}
     if(ud&&ud.logs){ud.logs.scale.y=0.15+0.85*Math.min(1,S.stock.wood/capNow);ud.stones.scale.y=0.2+0.8*Math.min(1,S.stock.stone/capNow);}
-    if(b.state==='site'){const t=BT[b.type],tot=t.cost.wood+t.cost.stone,fr=(b.got.wood+b.got.stone)/Math.max(1,tot);e.body.scale.y=0.1+0.9*(fr*0.25+b.prog*0.75);}
+    if(b.state==='site'){const sc2=b.cost||Sim.costOf(b.type),tot=sc2.wood+sc2.stone+(sc2.planks||0),fr=(b.got.wood+b.got.stone+(b.got.planks||0))/Math.max(1,tot);e.body.scale.y=0.1+0.9*(fr*0.25+b.prog*0.75);}
     else if(e.pop>0){e.pop-=dt;e.body.scale.y=1+Math.sin(Math.max(0,e.pop)/0.4*Math.PI)*0.08;if(e.pop<=0)e.body.scale.y=1;}
   }
   for(const v of Sim.villagers().concat(Sim.guests())){
