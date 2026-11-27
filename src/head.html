@@ -1,0 +1,163 @@
+<title>Borgo Vivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:wght@400;500;700&family=Cinzel:wght@500;700&display=swap">
+<style>
+/* Layout: mappa 3D a tutto schermo, cruscotto in alto, obiettivi a sinistra, barra strumenti in basso. Tema unico: legno scuro e pergamena. */
+:root{--ink:#17110c;--wood:#2a2017;--wood2:#3d2f21;--line:#5e4932;--parch:#eadcb8;--parch2:#cdbb8a;--gold:#d6ad4e;--blood:#c4503a;--moss:#93b56a;--muted:#a69378;
+--serif:'Alegreya',Georgia,'Times New Roman',serif;--disp:'Cinzel','Trajan Pro',Georgia,serif;color-scheme:dark}
+html,body{height:100%}
+body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--serif);overflow:hidden;-webkit-user-select:none;user-select:none}
+#app{position:relative;width:100%;height:100%;overflow:hidden}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+.panel{background:linear-gradient(180deg,rgba(63,48,34,.95),rgba(41,31,22,.95));border:1px solid var(--line);border-radius:6px;box-shadow:0 2px 0 rgba(0,0,0,.35),inset 0 1px 0 rgba(255,235,190,.08)}
+.btn{font:inherit;color:var(--parch);background:var(--wood2);border:1px solid var(--line);border-radius:5px;padding:6px 10px;cursor:pointer}
+.btn:hover{border-color:var(--gold)}
+.btn:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+.btn.on{border-color:var(--gold);background:#5a4528;color:#fff3d0}
+.btn.sm{padding:3px 9px;font-size:14px}
+.btn.danger{border-color:#7b3326;color:#f0b8a8}
+.btn.danger:hover{border-color:var(--blood)}
+#top{position:absolute;top:10px;left:16px;right:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;pointer-events:none}
+#top>*{pointer-events:auto}
+.brand{font-family:var(--disp);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);padding:7px 14px;font-size:15px}
+.stats{display:flex;flex-wrap:wrap;gap:4px 12px;padding:7px 12px}
+.chip{display:inline-flex;align-items:center;gap:5px;color:var(--parch2);font-size:14px}
+.chip b{color:var(--parch);font-variant-numeric:tabular-nums;font-weight:700;min-width:1.5ch}
+.sw{display:inline-block;width:11px;height:11px;border-radius:2px;border:1px solid rgba(0,0,0,.45)}
+.sw.w{background:#9a6a37}.sw.s{background:#9c9c94}.sw.f{background:#7fae4e}
+.speed{display:flex;gap:4px;padding:5px}
+#lvl{position:absolute;top:104px;left:16px;width:292px;max-width:calc(100% - 80px);padding:10px 12px}
+#lvl h2{margin:0;font:700 13px/1.2 var(--disp);letter-spacing:.1em;text-transform:uppercase;color:var(--gold);cursor:pointer;display:flex;justify-content:space-between;gap:8px}
+#lvl h2::after{content:'–';color:var(--muted)}
+#lvl.collapsed h2::after{content:'+'}
+#lvl.collapsed ul{display:none}
+#goals{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:5px}
+#goals li{display:flex;gap:8px;align-items:baseline;font-size:15px;color:var(--parch)}
+#goals li::before{content:'';flex:none;width:11px;height:11px;border:1.5px solid var(--muted);border-radius:2px;transform:translateY(1px)}
+#goals li.done{color:var(--moss)}
+#goals li.done::before{background:var(--moss);border-color:var(--moss)}
+#goals em{font-style:normal;color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+#edicts{position:absolute;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(12,8,3,.62);padding:12px}
+#edicts[hidden]{display:none}
+.edBox{position:relative;width:min(600px,100%);max-height:92vh;overflow:auto;background:linear-gradient(#ecdcae,#d8c48c);color:#3a2812;border:3px solid #6b4a2b;border-radius:6px;box-shadow:0 10px 40px rgba(0,0,0,.6),inset 0 0 40px rgba(120,80,30,.35);padding:18px 20px 16px}
+.edBox h2{margin:0 0 2px;font-family:Georgia,'Times New Roman',serif;font-size:24px;text-align:center;letter-spacing:.04em;color:#4a2f12}
+.edBox .sub{margin:0 0 12px;text-align:center;font-size:13px;opacity:.8;font-style:italic}
+.edC{display:grid;grid-template-columns:56px 1fr auto;gap:12px;align-items:center;padding:10px 12px;margin:8px 0;border:1px solid rgba(90,60,25,.45);border-radius:5px;background:rgba(255,246,214,.55);position:relative}
+.edC.on{background:rgba(255,230,170,.8);border-color:#8c2f23}
+.edC .ic{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;background:radial-gradient(#f6e7b9,#c9ad6b);border:2px solid #6b4a2b}
+.edC b{display:block;font-family:Georgia,serif;font-size:16px;color:#3a1f0c}
+.edC span.d{display:block;font-size:13px;line-height:1.35;margin-top:2px}
+.edC span.fx{display:block;font-size:12px;margin-top:3px;color:#7a2a1c}
+.edC .seal{position:absolute;top:-8px;right:-6px;width:34px;height:34px;border-radius:50%;background:radial-gradient(#c0392b,#7b1f14);color:#f6d9a0;display:none;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 4px rgba(0,0,0,.5)}
+.edC.on .seal{display:flex}
+.edC .btn{background:#5a3c1c;color:#fff0cc;border-color:#3a2410;min-width:84px}
+.edC.on .btn{background:#8c2f23}
+.edC.lock{opacity:.55;border-style:dashed}
+.edBox .x{display:block;margin:10px auto 0}
+@media (max-width:560px){.edC{grid-template-columns:44px 1fr}.edC .ic{width:42px;height:42px;font-size:22px}.edC .btn{grid-column:1/-1}}
+#camctl{position:absolute;top:104px;right:16px;display:flex;flex-direction:column;gap:5px}
+#camctl .btn{width:36px;height:36px;padding:0;font-size:18px;line-height:1}
+#sel{position:absolute;right:16px;bottom:144px;width:340px;max-width:calc(100% - 32px);padding:14px 16px;box-sizing:border-box;overflow:hidden}
+#sel *{min-width:0;overflow-wrap:anywhere}
+#sel h3{margin:0 0 4px;font:700 14px/1.2 var(--disp);letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
+#sel p{margin:0 0 8px;color:var(--parch2);font-size:15px}
+.jobs{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:15px}
+.jobs span{margin-right:auto}
+.jobs b{min-width:1.6ch;text-align:center;font-variant-numeric:tabular-nums}
+#selList{font-size:14px;color:var(--parch2);margin:0 0 10px;display:flex;flex-direction:column;gap:5px;max-height:min(46vh,300px);overflow-y:auto;overflow-x:hidden;padding-right:6px;line-height:1.35;scrollbar-width:thin;scrollbar-color:rgba(214,173,78,.45) transparent}
+#selList::-webkit-scrollbar{width:5px}#selList::-webkit-scrollbar-thumb{background:rgba(214,173,78,.45);border-radius:3px}#selList::-webkit-scrollbar-track{background:transparent}
+#selList>div{padding-bottom:4px;border-bottom:1px solid rgba(214,173,78,.12)}#selList>div:last-child{border-bottom:0}
+#selList:empty{display:none}
+.flags{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0}
+.flags span{padding:1px 9px;border-radius:10px;font-size:13px;border:1px solid var(--line);color:var(--muted)}
+.flags .ok{color:var(--moss);border-color:var(--moss)}
+.flags .no{color:#e08a76;border-color:#7b3326}
+#hint{position:absolute;left:50%;transform:translateX(-50%);bottom:126px;max-width:min(560px,calc(100% - 32px));text-align:center;font-size:15px;color:var(--parch2);background:rgba(23,17,12,.72);padding:4px 12px;border-radius:12px;pointer-events:none}
+#hint:empty{display:none}
+#toast{position:absolute;left:50%;bottom:164px;transform:translate(-50%,8px);max-width:min(520px,calc(100% - 32px));padding:9px 16px;text-align:center;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;font-size:16px}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toast.bad{border-color:var(--blood);color:#ffd7cb}
+#cats{position:absolute;left:16px;bottom:84px;display:flex;gap:4px;padding:4px;max-width:calc(100% - 32px);overflow-x:auto}
+#tools{position:absolute;left:16px;right:16px;bottom:10px;display:flex;gap:6px;overflow-x:auto;padding:6px;scrollbar-width:thin}
+#tools .btn{flex:none;min-width:86px;padding:6px 9px;text-align:left;display:flex;flex-direction:column;gap:2px;border-radius:5px}
+#tools .nm{font:700 12px/1.2 var(--disp);letter-spacing:.05em;text-transform:uppercase;display:flex;justify-content:space-between;gap:8px}
+#tools .nm kbd{font:inherit;font-weight:500;color:var(--muted)}
+#tools .cs{display:flex;gap:8px;font-size:14px;color:var(--parch2);min-height:17px;font-variant-numeric:tabular-nums}
+#tools .cs span{display:inline-flex;align-items:center;gap:4px}
+#tools .btn.poor{opacity:.55}
+#modal{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,7,4,.62);padding:16px}
+#story{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,7,4,.78);padding:16px;z-index:5}
+#story[hidden]{display:none}
+#story .box{max-width:480px;padding:24px 28px;text-align:center}
+#story h2{margin:0 0 10px;font:700 20px/1.2 var(--disp);letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
+#story p{margin:0 0 18px;color:var(--parch);font-size:18px}
+#modal .box{max-width:440px;padding:22px 24px;text-align:center}
+#modal h2{margin:0 0 8px;font:700 20px/1.2 var(--disp);letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
+#modal p{margin:0 0 16px;color:var(--parch);font-size:17px}
+#nogl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;font-size:18px}
+@media (max-width:640px){
+  #lvl{top:auto;bottom:144px;left:16px;width:auto;max-width:calc(100% - 80px)}
+  #sel{left:16px;right:16px;width:auto;bottom:198px}
+  #camctl{top:auto;bottom:144px}
+  #hint{display:none}
+  .brand{display:none}
+}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+</style>
+<div id="app">
+  <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
+  <div id="top">
+    <div class="panel brand">Borgo Vivo</div>
+    <div class="panel stats">
+      <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
+      <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
+      <span class="chip" title="Ferro nei magazzini"><i class="sw" style="background:#55575c"></i>Ferro <b id="rIron">0</b></span>
+      <span class="chip" title="Grano nei granai · farina nei mulini"><i class="sw" style="background:#d6b24e"></i>Grano·Farina <b id="rGrain">0</b></span>
+      <span class="chip" title="Cibo nelle scorte delle famiglie"><i class="sw f"></i>Cibo <b id="rFood">0</b></span>
+      <span class="chip" title="Abitanti / posti nelle case">Abitanti <b id="rPop">0</b></span>
+      <span class="chip" title="Abitanti con un mestiere fuori casa / posti disponibili">Al lavoro <b id="rJobs">0</b></span>
+      <span class="chip" title="Scambi conclusi al mercato">Baratti <b id="rBarter">0</b></span>
+      <span class="chip" title="Giorno e momento della giornata">Giorno <b id="rDay">1</b></span>
+    </div>
+    <div class="panel speed" id="speed">
+      <button class="btn sm" data-s="0">Pausa</button>
+      <button class="btn sm on" data-s="1">×1</button>
+      <button class="btn sm" data-s="3">×3</button>
+      <button class="btn sm on" id="musBtn" title="Musica">♪</button>
+      <input type="range" id="musVol" min="0" max="1" step="0.05" value="0.5" aria-label="Volume musica" style="width:70px;accent-color:#d6ad4e">
+    </div>
+  </div>
+  <div id="lvl" class="panel"><h2 id="lvlTitle"></h2><ul id="goals"></ul></div>
+  <div id="edicts" hidden role="dialog" aria-label="Editti">
+    <div class="edBox"><h2>Editti del Borgo</h2><p class="sub">La tua parola è legge: emana un editto, o ritiralo quando vuoi.</p><div id="edList"></div><button class="btn x" id="edClose" type="button">Chiudi</button></div>
+  </div>
+  <div id="camctl">
+    <button class="btn" id="camL" title="Ruota a sinistra (Q)">↺</button>
+    <button class="btn" id="camR" title="Ruota a destra (E)">↻</button>
+    <button class="btn" id="camIn" title="Avvicina">+</button>
+    <button class="btn" id="camOut" title="Allontana">−</button>
+    <button class="btn" id="rotBtn" title="Ruota l'edificio (R): la freccia gialla indica l'ingresso" style="display:none">⟳</button>
+    <button class="btn" id="edictBtn" title="Emana Editto: decreti del borgo">📜</button>
+    <button class="btn on" id="zoneBtn" title="Zone di caccia e pesca (J): bandiere arancioni caccia, azzurre pesca">🏹</button>
+    <button class="btn" id="attrBtn" title="Mappa dell'attrattiva (V): verde piacevole, rosso rumoroso">☺</button>
+  </div>
+  <div id="sel" class="panel" hidden>
+    <h3 id="selName"></h3>
+    <p id="selInfo"></p>
+    <div id="selList"></div>
+    <div class="jobs" id="selJobs"><span>Lavoratori</span><button class="btn sm" id="wMinus" aria-label="Meno lavoratori">−</button><b id="wCount">0</b><button class="btn sm" id="wPlus" aria-label="Più lavoratori">+</button></div>
+    <div class="jobs" id="selZone" hidden><span>Zona di lavoro</span><button class="btn sm" id="zSet">Scegli sulla mappa</button><button class="btn sm" id="zMinus" aria-label="Zona più piccola">−</button><b id="zR">0</b><button class="btn sm" id="zPlus" aria-label="Zona più grande">+</button><button class="btn sm" id="zReset" title="Torna alla zona attorno all'edificio">↺</button></div>
+    <button class="btn" id="selCem" hidden>Costruisci il Cimitero (legno 6, pietra 10)</button>
+    <button class="btn danger" id="selDemo">Demolisci</button>
+  </div>
+  <div id="hint"></div>
+  <div id="toast" class="panel"></div>
+  <div id="cats" class="panel"></div>
+  <div id="tools" class="panel"></div>
+  <div id="story"><div class="panel box"><h2 id="sTitle"></h2><p id="sText"></p><div id="sBtns" style="display:flex;gap:10px;justify-content:center"></div></div></div>
+  <div id="modal" hidden><div class="panel box"><h2 id="mTitle"></h2><p id="mText"></p><button class="btn" id="mBtn">Continua</button></div></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
