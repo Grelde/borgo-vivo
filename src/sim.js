@@ -491,18 +491,19 @@ function helpFamily(v){
   v.helpH=best.id;v.state='toHelp';return true;
 }
 function buildersAt(id){let n=0;for(const v of villagers)if((v.state==='build'||v.state==='toBuild')&&v.target===id)n++;return n;}
-function findBuild(v){
+function findBuild(v,first){
+  // first=true: solo cantieri con materiali completi e ancora senza costruttori (priorità: almeno un costruttore per cantiere pronto)
   for(const st of buildings.values()){
     if(st.state!=='site')continue;const t=BT[st.type];
     if(st.got.wood<t.cost.wood||st.got.stone<t.cost.stone)continue;
-    if(buildersAt(st.id)>=3)continue;
+    if(first?buildersAt(st.id)>=1:buildersAt(st.id)>=3)continue;
     if(!route(v,st.cell,st.id))continue;
     v.target=st.id;v.state='toBuild';return true;
   }
   return false;
 }
 function helpMode(v){
-  if(findHaul(v))return;if(findBuild(v))return;if(tryCollect(v))return;if(helpFamily(v))return;
+  if(findBuild(v,true))return;if(findHaul(v))return;if(findBuild(v))return;if(tryCollect(v))return;if(helpFamily(v))return;
   v.state='wait';v.timer=4;
 }
 function plantTarget(b){
@@ -543,7 +544,7 @@ function startTransfer(v,b){
 function startWork(v){
   const b=buildings.get(v.job);
   if(!b||b.state!=='done'){v.job=null;return;}
-  if(b.type==='store'){if(findHaul(v))return;if(findBuild(v))return;if(tryCollect(v))return;if(!b.center&&startTransfer(v,b))return;v.state='wait';v.timer=2.5;return;}
+  if(b.type==='store'){if(findBuild(v,true))return;if(findHaul(v))return;if(findBuild(v))return;if(tryCollect(v))return;if(!b.center&&startTransfer(v,b))return;v.state='wait';v.timer=2.5;return;}
   if(b.type==='school'||b.type==='infirmary'){
     if(v.cell===b.entrance){v.state='wait';v.timer=3;}else if(route(v,b.cell,b.id))v.state='toWork';else{v.state='wait';v.timer=3;}
     return;
@@ -712,7 +713,7 @@ function decide(v){
   if(v.job){startWork(v);return;}
   if(v.cool<=0){
     v.cool=1+Math.random()*1.2;
-    if(!v.duty&&(findHaul(v)||findBuild(v)))return;
+    if(!v.duty&&(findBuild(v,true)||findHaul(v)||findBuild(v)))return;
     if(h&&h.state==='done'&&startErrand(v,h))return;
     if(v.home&&Math.random()<(v.duty?0.85:0.35))startGarden(v);
   }
