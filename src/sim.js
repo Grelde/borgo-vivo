@@ -167,6 +167,9 @@ function entranceOf(x,y,w,h,rot){
 const BLOCKED=i=>occ[i]||water[i]||tree[i]||rock[i]||ore[i]||door[i]||field[i]||sap[i]||cen[i]===2;
 function entOK(ex,ey){if(ex<0||ey<0||ex>=N||ey>=N)return false;return !BLOCKED(ey*N+ex);}
 // v32: la casa è un rettangolo (hw×hh, da 3×3 a 6×4), il giardino è un insieme libero di celle (b.gcells: a lato, a L, a U, intorno alla casa, triangolare)
+// taglio diagonale: n = normale verso l'esterno, k = offset; diagVal(b,X,Y) > 0 fuori dal taglio
+function diagOf(p,gcs){const dx=p[2]-p[0],dy=p[3]-p[1],L=Math.hypot(dx,dy);let nx=dy/L,ny=-dx/L,k=nx*p[0]+ny*p[1];let mx=0,my=0;for(const i of gcs){mx+=i%N+.5;my+=((i/N)|0)+.5;}mx/=gcs.length;my/=gcs.length;if(nx*mx+ny*my-k>0){nx=-nx;ny=-ny;k=-k;}return {p,n:[nx,ny],k};}
+const diagVal=(b,X,Y)=>b.diag.n[0]*X+b.diag.n[1]*Y-b.diag.k;
 function lotCells(b){const c=[];for(let yy=b.hy;yy<b.hy+b.hh;yy++)for(let xx=b.hx;xx<b.hx+b.hw;xx++)c.push(yy*N+xx);for(const i of b.gcells)c.push(i);return c;}
 function addBuilding(type,x,y,done,o){
   const t=BT[type];o=o||{};
@@ -179,7 +182,7 @@ function addBuilding(type,x,y,done,o){
     const gcs=o.gcells.slice(),gxs=gcs.map(i=>i%N),gys=gcs.map(i=>(i/N)|0),gx0=Math.min(...gxs),gy0=Math.min(...gys);
     let mx=0,my=0;for(const i of gcs){mx+=i%N;my+=(i/N)|0;}mx/=gcs.length;my/=gcs.length;
     let gcc=gcs[0],gbd=1e9;for(const i of gcs){const d=Math.hypot(i%N-mx,((i/N)|0)-my);if(d<gbd){gbd=d;gcc=i;}}
-    Object.assign(b,{hx:o.hx,hy:o.hy,hw:o.hw||3,hh:o.hh||3,gcells:gcs,shape:o.shape||'rect',gx:gx0,gy:gy0,gw:Math.max(...gxs)-gx0+1,gh:Math.max(...gys)-gy0+1,door:o.door,cell:(o.hy+((o.hh||3)>>1))*N+o.hx+((o.hw||3)>>1),gc:gcc,variant:o.variant|0,level:1,up:0,crop:o.crop,side:o.side||'none',pure:!!o.pure,craft:false,bake:false,weave:false,tailor:false,ovile:null,warm:true,heatDay:-1,ext:[],members:[],pa:{g:0,c:0,b:0,w:0,t:0},hungry:0,tradeCool:0,stall:null,farm:null,attr:0,
+    Object.assign(b,{hx:o.hx,hy:o.hy,hw:o.hw||3,hh:o.hh||3,gcells:gcs,shape:o.shape||'rect',diag:o.diag?diagOf(o.diag,gcs):null,gx:gx0,gy:gy0,gw:Math.max(...gxs)-gx0+1,gh:Math.max(...gys)-gy0+1,door:o.door,cell:(o.hy+((o.hh||3)>>1))*N+o.hx+((o.hw||3)>>1),gc:gcc,variant:o.variant|0,level:1,up:0,crop:o.crop,side:o.side||'none',pure:!!o.pure,craft:false,bake:false,weave:false,tailor:false,ovile:null,warm:true,heatDay:-1,ext:[],members:[],pa:{g:0,c:0,b:0,w:0,t:0},hungry:0,tradeCool:0,stall:null,farm:null,attr:0,
       birthT:S.t+DAY*2,goods,ate,head:null,legacy:null,well:50,flags:{food:false,water:false,church:false,attr:true,tools:true,heat:true,mat:true,fuel:true}});
     b.goods[gardenGood(b.crop)]=3;
     // la famiglia del giardino della legna non ha orto né galline: arriva con una piccola scorta di ortaggi, poi mangia solo ciò che baratta al mercato (o che pesca/caccia)
@@ -1051,7 +1054,7 @@ function lotShape(hw,hh,r){
     else if(kind==='L'){const ts=1+(v&1),tb=3-((v>>1)&1);add(0,hh,hw+ts,tb);add(hw,0,ts,hh);}
     else if(kind==='U'){const tb=2+(v&1);add(-1,hh,hw+2,tb);add(-1,0,1,hh);add(hw,0,1,hh);}
     else if(kind==='ring'){const tb=1+(v&1);add(-1,-1,hw+2,1);add(-1,hh,hw+2,tb);add(-1,0,1,hh);add(hw,0,1,hh);}
-    else{const bs=5+(v&1);for(let i=0;i<bs;i++)add(0,hh+i,bs-i,1);}
+    else{const bs=5+(v&1);for(let i=0;i<bs;i++)add(0,hh+i,bs-i,1);g.diag=[bs,hh,0,hh+bs];}
     return g;
   };
   const ok=g=>g.length>=9&&g.length<=GMAX;
@@ -1063,13 +1066,16 @@ function lotShape(hw,hh,r){
   const tf=([x,y])=>{if(mir)x=-x;for(let k=0;k<rot;k++){const t=x;x=-y;y=t;}return [x,y];};
   const hc=[];for(let y=0;y<hh;y++)for(let x=0;x<hw;x++)hc.push(tf([x,y]));
   const gt=g.map(tf);
+  // v35.1: nel triangolo il bordo è un taglio diagonale della griglia (angoli di cella: specchio X→1-X, rotazione (X,Y)→(1-Y,X))
+  let dg=null;if(g.diag){const tc=([X,Y])=>{if(mir)X=1-X;for(let k=0;k<rot;k++){const t=X;X=1-Y;Y=t;}return [X,Y];};dg=[tc([g.diag[0],g.diag[1]]),tc([g.diag[2],g.diag[3]])];}
   const all=hc.concat(gt),mx=Math.min(...all.map(c=>c[0])),my=Math.min(...all.map(c=>c[1]));
   const H=hc.map(c=>[c[0]-mx,c[1]-my]),G=gt.map(c=>[c[0]-mx,c[1]-my]);
   const hx=Math.min(...H.map(c=>c[0])),hy=Math.min(...H.map(c=>c[1]));
   const set=new Set(H.concat(G).map(c=>c[0]+','+c[1])),hset=new Set(H.map(c=>c[0]+','+c[1]));
   const dc=[],seen=new Set();
   for(const [x,y] of H.concat(G))for(let k=0;k<4;k++){const nx=x+GX[k],ny=y+GY[k],key=nx+','+ny;if(set.has(key)||seen.has(key))continue;seen.add(key);dc.push({x:nx,y:ny,house:hset.has(x+','+y)});}
-  return {kind,hx,hy,hw:Math.max(...H.map(c=>c[0]))-hx+1,hh:Math.max(...H.map(c=>c[1]))-hy+1,g:G,w:Math.max(...all.map(c=>c[0]))-mx+1,h:Math.max(...all.map(c=>c[1]))-my+1,dc};
+  if(dg)dg=[dg[0][0]-mx,dg[0][1]-my,dg[1][0]-mx,dg[1][1]-my];
+  return {kind,diag:dg,hx,hy,hw:Math.max(...H.map(c=>c[0]))-hx+1,hh:Math.max(...H.map(c=>c[1]))-hy+1,g:G,w:Math.max(...all.map(c=>c[0]))-mx+1,h:Math.max(...all.map(c=>c[1]))-my+1,dc};
 }
 function expandGarden(b){
   // il giardino si allarga dalle sue celle di bordo (non da quelle verso la casa) fino alla strada/sentiero (meno di 3 tile = 9 celle) o al giardino di un vicino:
@@ -1082,6 +1088,7 @@ function expandGarden(b){
     for(const c of G){
       const cx=c%N,cy=(c/N)|0;
       if(lot.has((cy+uy)*N+cx+ux)&&cx+ux>=0&&cx+ux<N)continue;
+      if(b.diag&&diagVal(b,cx+ux+.5,cy+uy+.5)>0)continue;
       const walk=[];let hit=0;
       for(let s2=1;s2<=3;s2++){
         const x=cx+ux*s2,y=cy+uy*s2;
@@ -1167,7 +1174,7 @@ function trySpawnHouse(){
       // circa il 35% dei giardini di cibo è "puro": non diventa mai allevamento né bottega (il giardino della legna è già fisso)
       const pt=(nh-nw+1)*0.35;
       const pure=!wood&&(np<pt-0.5||(np<pt+0.5&&hash(cd.x*3,cd.y*7)<0.5));
-      addBuilding('house',cd.x,cd.y,false,{w:bw,h:bh,hx:cd.x+sh.hx,hy:cd.y+sh.hy,hw,hh,gcells:gcs,shape:sh.kind,door:cd.dr,crop,side,pure,variant:(hash(cd.x*11,cd.y*7)*4)|0});
+      addBuilding('house',cd.x,cd.y,false,{w:bw,h:bh,hx:cd.x+sh.hx,hy:cd.y+sh.hy,hw,hh,gcells:gcs,shape:sh.kind,diag:sh.diag?[sh.diag[0]+cd.x,sh.diag[1]+cd.y,sh.diag[2]+cd.x,sh.diag[3]+cd.y]:null,door:cd.dr,crop,side,pure,variant:(hash(cd.x*11,cd.y*7)*4)|0});
       return;
     }
   }
@@ -1868,7 +1875,7 @@ function stats(){
     avgAttr:houses?asum/houses:0,maxAttr:houses?amax:0,day:S.day,ph:S.ph,f:S.f,herds,crafters,bakers,fishers,hunters,tools,saps,weavers,tailors,clothes,season:S.season,year:S.year,visits:S.visits,settled:S.settled,guests:guests.length,children:kids,schooled,births:S.births,deaths:S.deaths,buried:S.buried,
     sick,plagueN,plague:S.plague.on,avgWell:houses?wsum/houses:0,avgJoy:villagers.length?villagers.reduce((a,v)=>a+v.joy,0)/villagers.length:0,unhappy:villagers.filter(v=>v.joy<35).length,left:S.left,fire,fireNeed,inherits:S.inherits,cured:S.cured,moves:S.moves,deathsBy:S.deathsBy,pupils};
 }
-return {SHAPE_NAME,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
+return {SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,costOf,siteReady,
   _t:{chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},

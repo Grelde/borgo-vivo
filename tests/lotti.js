@@ -27,6 +27,12 @@ for(const h of hs){
   // ogni cella di giardino ha almeno un blocco 2×2 o 1 cella ancora (per la grafica): se non c'è 3×3 o 2×2 va bene solo per anello/U sottili
   if(h.shape==='ring'&&h.hw>4)console.log('anello con casa larga',h.hw);
 }
+// triangolo: taglio diagonale: tutte le celle del giardino sono dentro (o sul) taglio e il taglio passa per almeno 4 celle
+let tris=0;
+for(const h of hs)if(h.diag){tris++;let on=0;for(const i of h.gcells){const v=Sim.diagVal(h,i%N+.5,((i/N)|0)+.5);if(v>1e-6){bad++;console.log('cella oltre il taglio',h.id,v);break;}if(Math.abs(v)<.1)on++;}
+  if(on<4){bad++;console.log('taglio diagonale troppo corto',h.id,on);}
+  const p=h.diag.p;if(Math.abs(Math.abs(p[2]-p[0])-Math.abs(p[3]-p[1]))>1e-9){bad++;console.log('taglio non a 45 gradi',h.id);}}
+console.log('triangoli con taglio diagonale',tris);
 const seen=new Map();for(const h of hs)for(const i of h.cells){if(seen.has(i)){bad++;console.log('sovrapposizione');break;}seen.set(i,h.id);}
 // ingresso verso la strada: se una strada tracciata tocca il lotto, la porta sta sulla strada o accanto
 let withRoad=0,facing=0;

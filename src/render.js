@@ -357,7 +357,7 @@ function woodPile(g,x,z){
   bx(g,.04,.32,.04,MAT.timber,x+.95,.42,z+.05).rotation.z=.9;bx(g,.11,.07,.03,MAT.iron,x+1.04,.5,z+.05);
 }
 // staccionata che segue il contorno di tutte le celle del giardino (base + ampliamenti): stessi materiali, nessun tratto interno
-function fenceCells(g,cells,fx,fz,mat,skip){
+function fenceCells(g,cells,fx,fz,mat,skip,diag){
   const h=CS/2-.1,has=(x,y)=>cells.has(y*N+x),posts=new Set();
   const post=(px,pz)=>{const k=px.toFixed(2)+','+pz.toFixed(2);if(posts.has(k))return;posts.add(k);bx(g,.08,.4,.08,mat,px,.2,pz);};
   for(const key of cells){
@@ -365,6 +365,7 @@ function fenceCells(g,cells,fx,fz,mat,skip){
     for(const [nx,ny] of [[0,-1],[0,1],[-1,0],[1,0]]){
       if(has(x+nx,y+ny))continue;
       if(skip&&skip.has((y+ny)*N+x+nx))continue;
+      if(diag&&diag(x+nx+.5,y+ny+.5,x+.5+nx*.5,y+.5+ny*.5))continue;
       const tx=ny!==0?1:0,ty=nx!==0?1:0,ends=[];
       for(const sg of[-1,1]){
         const wx=x+tx*sg,wy=y+ty*sg;let e;
@@ -376,6 +377,12 @@ function fenceCells(g,cells,fx,fz,mat,skip){
       bx(g,tx?len:.05,.05,ty?len:.05,mat,cx+nx*h+tx*mid,.28,cz+ny*h+ty*mid);
     }
   }
+}
+// v35.1: staccionata diagonale lungo il taglio del triangolo (angoli di cella -> mondo)
+function fenceDiag(g,b,fx,fz,mat){
+  const w=(X,Y)=>[Sim.cx2w(0)-CS/2+X*CS-fx,Sim.cy2w(0)-CS/2+Y*CS-fz],[x0,z0]=w(b.diag.p[0],b.diag.p[1]),[x1,z1]=w(b.diag.p[2],b.diag.p[3]);
+  const len=Math.hypot(x1-x0,z1-z0),m=bx(g,len,.05,.05,mat,(x0+x1)/2,.28,(z0+z1)/2);m.rotation.y=-Math.atan2(z1-z0,x1-x0);
+  const n=Math.max(2,Math.round(len/CS));for(let k=0;k<=n;k++)bx(g,.08,.4,.08,mat,x0+(x1-x0)*k/n,.2,z0+(z1-z0)*k/n);
 }
 // v27: le botteghe del giardino (fabbro, panettiere, tessitore, sarto) sono piccoli laboratori ben visibili, con tettoia e insegna colorata
 function shopSign(g,x,z,col){cyl(g,.04,.05,1.25,6,MAT.timber,x,.62,z);bx(g,.34,.04,.04,MAT.timber,x-.15,1.2,z);bx(g,.42,.24,.04,col,x-.2,1.02,z);bx(g,.46,.04,.06,MAT.timber,x-.2,1.16,z);}
@@ -445,7 +452,7 @@ const BUILD={
     const gset=new Set(b.gcells);let mx=0,mz=0;for(const c of b.gcells){mx+=c%N;mz+=(c/N)|0;}mx/=b.gcells.length;mz/=b.gcells.length;
     let anc=null,asz=0,abd=1e9;
     for(const sz of[3,2]){
-      for(const c of b.gcells){const x0=c%N,y0=(c/N)|0;let ok=true;for(let yy=0;yy<sz&&ok;yy++)for(let xx=0;xx<sz;xx++)if(!gset.has((y0+yy)*N+x0+xx)){ok=false;break;}
+      for(const c of b.gcells){const x0=c%N,y0=(c/N)|0;let ok=true;for(let yy=0;yy<sz&&ok;yy++)for(let xx=0;xx<sz;xx++)if(!gset.has((y0+yy)*N+x0+xx)||(b.diag&&Math.abs(Sim.diagVal(b,x0+xx+.5,y0+yy+.5))<.1)){ok=false;break;}
         if(!ok)continue;const d=Math.hypot(x0+(sz-1)/2-mx,y0+(sz-1)/2-mz);if(d<abd){abd=d;anc=[x0,y0];asz=sz;}}
       if(anc)break;
     }
@@ -467,9 +474,11 @@ const BUILD={
     for(const c of (b.ext||[])){cells.add(c);extra.push(c);}
     // la staccionata ricalca il giardino ma si interrompe lungo la casa e davanti al cancello
     const skip=new Set([b.door]);for(let yy=b.hy;yy<b.hy+b.hh;yy++)for(let xx=b.hx;xx<b.hx+b.hw;xx++)skip.add(yy*N+xx);
-    fenceCells(g,cells,fx,fz,b.pure?MAT.cream:MAT.timber,skip);
+    const fm=b.pure?MAT.cream:MAT.timber;
+    fenceCells(g,cells,fx,fz,fm,skip,b.diag?((X,Y,mx2,my2)=>Sim.diagVal(b,X,Y)>0&&Math.abs(Sim.diagVal(b,mx2,my2))<1.2):null);
+    if(b.diag)fenceDiag(g,b,fx,fz,fm);
     shopProps(gg,b);
-    for(const c of extra){const e2=new THREE.Group();e2.position.set(Sim.cx2w(c%N)-fx,0,Sim.cy2w((c/N)|0)-fz);if(b.crop==='herd'){sph(e2,.12,MAT.wool,0,.2,0,1.2,.9,1);}else if(b.crop==='eggs'){sph(e2,.12,MAT.hen,0,.18,0,1,.9,1.3);sph(e2,.06,MAT.henR,0,.3,.08);}else if(b.crop==='wood'){cyl(e2,.09,.09,.5,7,MAT.log,-.1,.1,0,0,Math.PI/2);cyl(e2,.09,.09,.5,7,MAT.logD,.1,.1,.05,0,Math.PI/2);cyl(e2,.09,.09,.5,7,MAT.log,0,.26,.02,0,Math.PI/2);}else{for(const rz of[-.15,.15]){bx(e2,.5,.1,.14,MAT.soil,0,.05,rz);for(let k=-1;k<=1;k++){const m=(k+(rz>0?1:0)+b.id+c)%3===0?MAT.carrot:(k%2?MAT.leaf:MAT.leaf2);sph(e2,.09,m,k*.18,.18,rz,1,1.1,1);}}}
+    for(const c of extra){const e2=new THREE.Group();e2.position.set(Sim.cx2w(c%N)-fx,0,Sim.cy2w((c/N)|0)-fz);if(b.diag&&Math.abs(Sim.diagVal(b,(c%N)+.5,((c/N)|0)+.5))<.1){e2.position.x-=b.diag.n[0]*CS*.22;e2.position.z-=b.diag.n[1]*CS*.22;}if(b.crop==='herd'){sph(e2,.12,MAT.wool,0,.2,0,1.2,.9,1);}else if(b.crop==='eggs'){sph(e2,.12,MAT.hen,0,.18,0,1,.9,1.3);sph(e2,.06,MAT.henR,0,.3,.08);}else if(b.crop==='wood'){cyl(e2,.09,.09,.5,7,MAT.log,-.1,.1,0,0,Math.PI/2);cyl(e2,.09,.09,.5,7,MAT.logD,.1,.1,.05,0,Math.PI/2);cyl(e2,.09,.09,.5,7,MAT.log,0,.26,.02,0,Math.PI/2);}else{for(const rz of[-.15,.15]){bx(e2,.5,.1,.14,MAT.soil,0,.05,rz);for(let k=-1;k<=1;k++){const m=(k+(rz>0?1:0)+b.id+c)%3===0?MAT.carrot:(k%2?MAT.leaf:MAT.leaf2);sph(e2,.09,m,k*.18,.18,rz,1,1.1,1);}}}
       if(b.pure){const fl=[MAT.flower1,MAT.flower2,MAT.flower3];sph(e2,.07,fl[(c+b.id)%3],-.24,.13,-.24);sph(e2,.07,fl[(c+b.id+1)%3],.24,.13,.24);}g.add(e2);}
     g.add(gg);return g;},
   wood(b){const g=new THREE.Group();

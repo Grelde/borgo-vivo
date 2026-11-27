@@ -1,5 +1,11 @@
 # Changelog
 
+## v35.1 – 2026-11-27
+Ritocco: giardino triangolare con taglio diagonale.
+- Il bordo del triangolo non è più a scaletta: la staccionata corre in linea retta a 45° da un angolo all'altro e taglia in diagonale le celle di bordo (le cellette di bordo spostano un po' i loro oggetti verso l'interno).
+- Il blocco 3×3 di orto/animali/bottega non usa le celle tagliate; l'ampliamento non cresce oltre il taglio diagonale.
+- `tests/lotti.js`: nei triangoli tutte le celle stanno dentro il taglio, che passa per almeno 4 celle ed è a 45°. Grafica non verificata in un browser WebGL.
+
 ## v35 – 2026-11-27
 Funzione nuova: edifici lavorativi, assi di legno e ovile con pastori.
 - **Assi di legno:** terzo materiale di cantiere (chip "Assi" in alto, costo con swatch giallo). La **Falegnameria** trasforma 1 legno in 2 assi ogni 6 s per falegname (scorta max 24; non consuma l'ultimo legno se il magazzino è sotto 10, salvo cantieri che aspettano assi). Servono a scuola, ospizio, chiesa, mulino, locanda, magazzino (e alle nuove botteghe, taverna e sala). **Senza falegnameria le assi si pagano in legno** (2 legni per asse), quindi nessun cantiere si blocca; il costo si fissa quando si piazza l'edificio.
