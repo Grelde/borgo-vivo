@@ -1002,6 +1002,7 @@ function renderCard(){
   h+='<h4>Mestiere</h4>';
   if(dead)h+=`<p>${r.trade?Sim.TRADENAME[r.trade]:'Nessun mestiere'}${r.inh?' <span class="tag">ereditato</span>':''}</p><p>${r.cause?({age:'Morto di vecchiaia.',cold:'Morto di freddo.',hunger:'Morto di fame.',ill:'Morto di malattia.',left:'Ha lasciato il paese perché infelice.'})[r.cause]||'':''}</p>`;
   else{h+=`<p>${child?(age<6?'Gioca in giardino':'Gioca e studia'):esc(Sim.roleText(v))}${v.trade&&!child?` · mestiere: ${Sim.TRADENAME[v.trade]}`:''}${v.inh?' <span class="tag">ereditato</span>':''}</p>`;}
+  if(!dead&&v.job){const cd=Math.round(Sim.commuteOf(v));h+=`<p>Casa-lavoro: ${cd} celle${cd>Sim.COMMUTE_OK?' <span class="tag bad">troppo lontano: scontento</span>':''}</p>`;}
   h+='<h4>Istruzione</h4>';
   const sch=dead?r.schooled:v.schooled;
   if(!dead&&child){const p=Math.min(100,Math.round(v.edu/3));h+=`<p>${age<6?'Troppo piccolo per la scuola.':'Frequenta la scuola, se c\'è un maestro.'}</p><div class="bar"><i style="width:${p}%"></i></div><p>Apprendimento: ${p}%</p>`;}
@@ -1058,6 +1059,7 @@ function popPeople(st){
   const at=st.att;
   h+='<h4>Capacità e attrattiva</h4>'+popRow('Posti nelle case',st.capHouses)+popRow('Bonus di attrattiva',`+${st.capBonus}`)+popRow('Adulti senza lavoro',at.unemp)+popRow('Attrattiva (felicità ÷ disoccupati)',Math.round(at.a*100)+'%');
   h+='<p style="opacity:.75;font-size:12px">Più gli abitanti sono felici e meno adulti sono senza lavoro, più gente vuole trasferirsi, anche oltre i posti delle case (in case un po\' affollate).</p>';
+  h+='<h4>Casa e lavoro</h4>'+popRow('Distanza media casa-lavoro',Math.round(st.avgCommute)+' celle')+popRow(`Lavorano lontano (oltre ${Sim.COMMUTE_OK} celle): scontenti`,`${st.far}/${st.commuters}`);
   h+='<h4>Per età</h4>'+AGEB.map(([t,a,b])=>popRow(t,vs.filter(v=>v.age>=a&&v.age<b).length)).join('');
   const jc={};let home=0;
   for(const v of adults){const b=v.job&&Sim.buildings().get(v.job);if(b)jc[b.type]=(jc[b.type]||0)+1;else home++;}

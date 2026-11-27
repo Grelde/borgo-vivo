@@ -222,7 +222,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v30</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v31</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -1378,10 +1378,24 @@ function needsOf(b){
 }
 function wellOf(b){const n=needsOf(b);return Math.round((n.food+n.home+n.water+n.church)/n.max*100);}
 // felicità del singolo: quella della casa, corretta da malattia e carattere
+// distanza casa-lavoro (v31): oltre COMMUTE_OK celle il lavoratore è scontento (COMMUTE_PEN punti per cella, al massimo COMMUTE_MAX)
+const COMMUTE_OK=30,COMMUTE_PEN=0.4,COMMUTE_MAX=25;
+const cellDist=(a,b)=>Math.hypot(a%N-b%N,((a/N)|0)-((b/N)|0));
+function commuteOf(v){const h=v.home&&buildings.get(v.home),j=v.job&&buildings.get(v.job);return h&&j?cellDist(h.cell,j.cell):0;}
+// quanto una casa conviene a chi la cerca: vicinanza al lavoro, pozzo, chiesa (dal livello 2), qualità
+function fitScore(h,v){
+  let s=h.well*0.05+h.attr*0.3;
+  const jb=v&&v.job&&buildings.get(v.job);
+  if(jb)s-=Math.min(80,cellDist(h.cell,jb.cell))*0.12;
+  if(h.flags.water)s+=3;
+  if(h.level>=2&&h.flags.church)s+=2.5;
+  return s;
+}
 function joyOf(v){
   const h=v.home&&buildings.get(v.home);
   let s=(!h||h.state!=='done')?20:h.well;
   if(v.ill)s-=15;
+  {const cd=commuteOf(v);if(cd>COMMUTE_OK)s-=Math.min(COMMUTE_MAX,(cd-COMMUTE_OK)*COMMUTE_PEN);}
   if(h&&h.level>=2&&v.prayT!==undefined&&S.t-v.prayT<DAY*2)s+=6; // andare in chiesa consola
   if(v.trait==='brontolone')s-=18;
   else if(v.trait==='litigioso')s-=6;
@@ -1425,12 +1439,28 @@ function tryMoveOut(b,m){
   for(const h2 of buildings.values()){
     if(h2.type!=='house'||h2.state!=='done'||h2===b||h2.members.length>=capOf(h2)||h2.attr<=-4.5)continue;
     const d=Math.hypot(h2.cell%N-b.cell%N,(h2.cell/N|0)-(b.cell/N|0));if(d>110)continue;
-    const nad=adultsIn(h2),sc=(nad===1?3:nad===0?1:0.3)-d*0.01+h2.well*0.01;
+    const nad=adultsIn(h2),sc=(nad===1?3:nad===0?1:0.3)-d*0.01+fitScore(h2,v)*0.3;
     if(sc>bs){bs=sc;best=h2;}
   }
   if(!best)return;
   v.moveT=S.t+DAY*4;transfer(v,b,best,'Lascia la casa di famiglia e si trasferisce in un\'altra casa.');
   S.moves++;tell('moveout','Un giovane adulto ha lasciato la casa di famiglia per cercarne un\'altra: così nascono nuove famiglie.');
+}
+// chi lavora lontano da casa (o vive senza pozzo/chiesa vicini) cerca una casa più comoda con posto libero
+function tryCloser(b,m){
+  if(Math.random()>0.004||adultsIn(b)<2)return;
+  const needy=!b.flags.water||(b.level>=2&&!b.flags.church);
+  const cand=m.filter(v=>!v.child&&!v.ill&&v.id!==b.head&&(v.moveT||0)<S.t&&(v.state==='idle'||v.state==='wait'||v.state==='tend')&&!v.carry&&(commuteOf(v)>COMMUTE_OK||needy));
+  if(!cand.length)return;
+  cand.sort((a,c)=>commuteOf(c)-commuteOf(a));const v=cand[0];
+  let best=null,bs=fitScore(b,v)+2.5;
+  for(const h2 of buildings.values()){
+    if(h2.type!=='house'||h2.state!=='done'||h2===b||h2.members.length>=capOf(h2)||h2.attr<=-4.5)continue;
+    const sc=fitScore(h2,v);if(sc>bs){bs=sc;best=h2;}
+  }
+  if(!best)return;
+  v.moveT=S.t+DAY*4;transfer(v,b,best,'Si trasferisce in una casa più comoda'+(v.job?', più vicina al lavoro':'')+'.');
+  S.moves++;tell('closer','Una famiglia si è trasferita in una casa più vicina al lavoro e ai servizi (pozzo, chiesa): chi lavora lontano da casa è scontento.');
 }
 function orphanCare(b,m){
   let best=null,bs=1e9;
@@ -1623,7 +1653,7 @@ function houseTick(b){
     if(canWeave){b.pa.w+=share/18;while(b.pa.w>=1&&b.goods.wool>=1){b.pa.w-=1;b.goods.wool--;b.goods.cloth=Math.min(12,b.goods.cloth+1);}}
     if(canTail){b.pa.t+=share/22;while(b.pa.t>=1&&b.goods.cloth>=1){b.pa.t-=1;b.goods.cloth--;b.goods.clothes=Math.min(12,b.goods.clothes+1);}}
     if(canBake){b.pa.b+=share/25;while(b.pa.b>=1&&b.goods.flour>=1&&b.goods.firewood>=1){b.pa.b-=1;b.goods.flour--;b.goods.firewood--;b.goods.bread=Math.min(12,b.goods.bread+2);}}
-    tryMoveOut(b,m);
+    tryMoveOut(b,m);tryCloser(b,m);
   }
   if(b.heatDay!==S.day){b.heatDay=S.day;
     // v27: un giardino normale può diventare bottega anche dopo, appena ha il livello e la filiera (miniera, ovile, mulino)
@@ -1883,12 +1913,15 @@ function tick1(){
   attractTick(capD);
   if(!S.edicts.noImmig&&!S.edicts.quarantine&&villagers.length<capD+S.att.bonus&&hungry*2<=nh&&S.grow>=(openSlots>0?9:16)){
     let pk=null,ps=-1e9;
+    // chi arriva preferisce le case vicine ai posti di lavoro liberi e ai servizi
+    const openB=[...buildings.values()].filter(x=>x.state==='done'&&BT[x.type].slots>0&&x.workers.length<x.want);
+    const imm=b=>{let d=80;for(const o of openB){const q=cellDist(b.cell,o.cell);if(q<d)d=q;}return -d*0.04+(b.flags.water?0.8:0)+(b.level>=2&&b.flags.church?0.6:0);};
     for(const b of buildings.values())if(b.type==='house'&&b.state==='done'&&roomFor(b)&&b.attr>-4.5){
-      const sc=b.attr+(capOf(b)-b.members.length)*0.3+lone(b)+b.well*0.01;if(sc>ps){ps=sc;pk=b;}
+      const sc=b.attr+(capOf(b)-b.members.length)*0.3+lone(b)+b.well*0.01+imm(b);if(sc>ps){ps=sc;pk=b;}
     }
     // case piene: chi arriva per attrattiva (oltre i posti delle case) si adatta in una casa già occupata, ma sovraffollata (max +2)
     if(!pk&&villagers.length>=capD)for(const b of buildings.values())if(b.type==='house'&&b.state==='done'&&b.members.length<capOf(b)+2&&b.attr>-4.5){
-      const sc=b.attr+(capOf(b)-b.members.length)*0.3+lone(b)+b.well*0.01;if(sc>ps){ps=sc;pk=b;}
+      const sc=b.attr+(capOf(b)-b.members.length)*0.3+lone(b)+b.well*0.01+imm(b);if(sc>ps){ps=sc;pk=b;}
     }
     if(pk){S.grow=0;const v=addVillager(cx2w(pk.door%N),cy2w((pk.door/N)|0),18+Math.random()*18);v.home=pk.id;pk.members.push(v.id);logV(v,'Arriva in paese in cerca di casa e lavoro.');}
     else tell('noisy','Nessuno vuole trasferirsi nelle case più rumorose: costruisci pozzi, mercati o chiese per rendere le zone più attraenti.');
@@ -1963,16 +1996,17 @@ function stats(){
       else slots+=b.want;
     }else sites++;
   }
+  let far=0,cdSum=0,cdN=0;for(const v of villagers){const cd=commuteOf(v);if(cd>0){cdN++;cdSum+=cd;if(cd>COMMUTE_OK)far++;}}
   let kids=0,schooled=0,sick=0,plagueN=0,pupils=0;for(const v of villagers){if(v.child)kids++;if(v.schooled)schooled++;if(v.ill){sick++;if(v.ill.k==='plague')plagueN++;}if(v.state==='learn')pupils++;}
   let roads=0,saps=0;const dc=[0,0,0,0,0,0];for(let i=0;i<N*N;i++){roads+=road[i];dc[dist[i]]++;saps+=sap[i];}
   for(let k=0;k<6;k++)dc[k]=Math.round(dc[k]/9);roads=Math.round(roads/SC);
   let jobs=0;for(const v of villagers)if(v.job)jobs++;
-  return {pop:villagers.length,jobs,slots,houses,cap:cap+S.att.bonus,capHouses:cap,capBonus:S.att.bonus,att:S.att,sites,roads,dc,built,levels,food,farms,stalls,hungry,barters:S.barters,helps:S.helps,stock:S.stock,capRes:capTotal(),capGrain:capGrain(),capFlour:capFlour(),
+  return {pop:villagers.length,jobs,slots,far,avgCommute:cdN?cdSum/cdN:0,commuters:cdN,houses,cap:cap+S.att.bonus,capHouses:cap,capBonus:S.att.bonus,att:S.att,sites,roads,dc,built,levels,food,farms,stalls,hungry,barters:S.barters,helps:S.helps,stock:S.stock,capRes:capTotal(),capGrain:capGrain(),capFlour:capFlour(),
     avgAttr:houses?asum/houses:0,maxAttr:houses?amax:0,day:S.day,ph:S.ph,f:S.f,herds,crafters,bakers,fishers,hunters,tools,saps,weavers,tailors,clothes,season:S.season,year:S.year,visits:S.visits,settled:S.settled,guests:guests.length,children:kids,schooled,births:S.births,deaths:S.deaths,buried:S.buried,
     sick,plagueN,plague:S.plague.on,avgWell:houses?wsum/houses:0,avgJoy:villagers.length?villagers.reduce((a,v)=>a+v.joy,0)/villagers.length:0,unhappy:villagers.filter(v=>v.joy<35).length,left:S.left,fire,fireNeed,inherits:S.inherits,cured:S.cured,moves:S.moves,deathsBy:S.deathsBy,pupils};
 }
 return {setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
-  reg,DIS,TRADENAME,TRAITS,needsOf,fuelNeed,dateStr,
+  reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,fuelNeed,dateStr,
   _t:{chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
   grids:{tree,rock,ore,water,sap,sapT,road,dist,occ,wear,plev,field,door,attr,cen},guests:()=>guests,buildings:()=>buildings,villagers:()=>villagers};
 })();
@@ -2981,6 +3015,7 @@ function renderCard(){
   h+='<h4>Mestiere</h4>';
   if(dead)h+=`<p>${r.trade?Sim.TRADENAME[r.trade]:'Nessun mestiere'}${r.inh?' <span class="tag">ereditato</span>':''}</p><p>${r.cause?({age:'Morto di vecchiaia.',cold:'Morto di freddo.',hunger:'Morto di fame.',ill:'Morto di malattia.',left:'Ha lasciato il paese perché infelice.'})[r.cause]||'':''}</p>`;
   else{h+=`<p>${child?(age<6?'Gioca in giardino':'Gioca e studia'):esc(Sim.roleText(v))}${v.trade&&!child?` · mestiere: ${Sim.TRADENAME[v.trade]}`:''}${v.inh?' <span class="tag">ereditato</span>':''}</p>`;}
+  if(!dead&&v.job){const cd=Math.round(Sim.commuteOf(v));h+=`<p>Casa-lavoro: ${cd} celle${cd>Sim.COMMUTE_OK?' <span class="tag bad">troppo lontano: scontento</span>':''}</p>`;}
   h+='<h4>Istruzione</h4>';
   const sch=dead?r.schooled:v.schooled;
   if(!dead&&child){const p=Math.min(100,Math.round(v.edu/3));h+=`<p>${age<6?'Troppo piccolo per la scuola.':'Frequenta la scuola, se c\'è un maestro.'}</p><div class="bar"><i style="width:${p}%"></i></div><p>Apprendimento: ${p}%</p>`;}
@@ -3037,6 +3072,7 @@ function popPeople(st){
   const at=st.att;
   h+='<h4>Capacità e attrattiva</h4>'+popRow('Posti nelle case',st.capHouses)+popRow('Bonus di attrattiva',`+${st.capBonus}`)+popRow('Adulti senza lavoro',at.unemp)+popRow('Attrattiva (felicità ÷ disoccupati)',Math.round(at.a*100)+'%');
   h+='<p style="opacity:.75;font-size:12px">Più gli abitanti sono felici e meno adulti sono senza lavoro, più gente vuole trasferirsi, anche oltre i posti delle case (in case un po\' affollate).</p>';
+  h+='<h4>Casa e lavoro</h4>'+popRow('Distanza media casa-lavoro',Math.round(st.avgCommute)+' celle')+popRow(`Lavorano lontano (oltre ${Sim.COMMUTE_OK} celle): scontenti`,`${st.far}/${st.commuters}`);
   h+='<h4>Per età</h4>'+AGEB.map(([t,a,b])=>popRow(t,vs.filter(v=>v.age>=a&&v.age<b).length)).join('');
   const jc={};let home=0;
   for(const v of adults){const b=v.job&&Sim.buildings().get(v.job);if(b)jc[b.type]=(jc[b.type]||0)+1;else home++;}

@@ -1,5 +1,12 @@
 # Changelog
 
+## v31 – 2026-11-27
+Cambio di regole: vicinanza tra casa, lavoro e servizi.
+- **Scontento da pendolarismo:** chi lavora a più di 30 celle da casa perde felicità (0,4 per cella oltre la soglia, al massimo 25).
+- **Traslochi più comodi:** chi cerca casa (giovani adulti che escono dalla famiglia, nuovi arrivati) preferisce le case vicine al lavoro (o ai posti di lavoro liberi), al pozzo e alla chiesa (dal livello 2). Un adulto non capofamiglia che lavora lontano, o vive senza pozzo o chiesa vicini, può trasferirsi in una casa con posto libero più comoda (vantaggio minimo 2,5 punti, pausa di 4 giorni).
+- Pannello Abitanti: "Casa e lavoro" (distanza media, quanti lavorano lontano). Scheda: distanza casa-lavoro con avviso.
+- Misura (`tests/population.js`, 4 annate, stessa mappa con e senza traslochi): distanza media a fine prova 27 contro 30 celle; l'effetto dei traslochi è modesto perché poche case hanno posto libero. L'effetto principale è lo scontento. Grafica non provata in un browser WebGL.
+
 ## v30 – 2026-11-27
 Cambio di regole: il CAP degli abitanti dipende dall'attrattiva.
 - **CAP = posti delle case + bonus di attrattiva.** Attrattiva A = (felicità media/100) ÷ (1 + adulti senza lavoro/10): direttamente proporzionale alla felicità, inversamente al numero di adulti non impiegati (sani, né in un mestiere né in servizio). Bonus = A × 0,3 × posti delle case.
