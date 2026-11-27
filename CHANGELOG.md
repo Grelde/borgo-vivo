@@ -1,5 +1,14 @@
 # Changelog
 
+## v36 – 2026-11-27
+Funzione nuova: l'ovile nasce dentro la zona Pascolo, la zona crea un recinto e le pecore restano dentro.
+- **Posa solo nel pascolo:** l'ovile (del giocatore o fondato da una famiglia) si può costruire solo con tutta l'impronta dentro una zona Pascolo; altrove la posa è rifiutata con il motivo ("L'ovile va costruito dentro una zona Pascolo: disegnala prima (tasto P)").
+- **Recinto:** quando l'ovile è completato, la zona Pascolo contigua (impronta compresa, fino a 90 celle libere) diventa il suo recinto, con una staccionata che ne segue tutto il contorno e un varco davanti all'ingresso dell'ovile. Prima il pascolo era un insieme di celle sparse entro 9 celle dall'ovile, senza confini.
+- **Pecore dentro:** nel recinto compaiono da 2 a 9 pecore (secondo il pascolo libero) che passeggiano di cella in cella solo tra le celle del recinto, mai fuori né sull'ovile. Il pastore porta le pecore a brucare in quelle celle e produce la lana come prima.
+- Testi aggiornati (zona Pascolo, scheda e costo dell'ovile, messaggio quando il pascolo è finito: "allarga la zona Pascolo intorno all'ovile").
+- Test: nuovo `tests/ovile.js` (posa rifiutata fuori dal pascolo, impronta e recinto contigui, 6000 passi di pecore senza uscite, pastore e lana). Gli altri test restano verdi. Recinto e pecore verificati solo con DOM finto, non in un browser WebGL.
+- Limiti: il recinto è un confine visivo e fissato al completamento (se dopo si disegna altro pascolo accanto, non si allarga); i passanti non lo trattano come ostacolo. Se una strada o un ostacolo taglia il pascolo, il recinto comprende solo la parte contigua all'ovile.
+
 ## v35.1 – 2026-11-27
 Ritocco: giardino triangolare con taglio diagonale.
 - Il bordo del triangolo non è più a scaletta: la staccionata corre in linea retta a 45° da un angolo all'altro e taglia in diagonale le celle di bordo (le cellette di bordo spostano un po' i loro oggetti verso l'interno).

@@ -727,6 +727,38 @@ function mountBody(e){
   for(let i=pickables.length-1;i>=0;i--)if(pickables[i].userData.bid===b.id&&pickables[i]!==e.hit)pickables.splice(i,1);
   e.body.traverse(o=>{if(o.isMesh){o.userData.bid=b.id;pickables.push(o);}});
 }
+// v36: recinto dell'ovile = staccionata lungo il contorno della zona Pascolo contigua; le pecore passeggiano di cella in cella restando dentro
+function mountPen(e){
+  const b=e.b;
+  if(e.pen){scene.remove(e.pen);e.pen=null;e.sheep=null;}
+  if(b.type!=='sheepfold'||b.state!=='done'||!b.pen||!b.pen.length)return;
+  const g=new THREE.Group(),[ex,ey]=Sim.entranceOf(b.x,b.y,b.w,b.h,b.rot|0);
+  fenceCells(g,new Set(b.pen),0,0,MAT.timber,new Set([ey*N+ex]));
+  const free=new Set(b.fields),sheep=[];
+  const n=free.size?Math.min(9,2+((free.size/10)|0)):0,arr=[...free];
+  for(let k=0;k<n;k++){
+    const c=arr[(Math.random()*arr.length)|0],sg=new THREE.Group();
+    bx(sg,.5,.32,.32,MAT.wool,0,.33,0);sph(sg,.12,MAT.timber,.3,.38,0);
+    const x=Sim.cx2w(c%N),z=Sim.cy2w((c/N)|0);sg.position.set(x,0,z);sg.rotation.y=Math.random()*6.28;g.add(sg);
+    sheep.push({g:sg,c,x,z,tx:x,tz:z,nc:c,wait:Math.random()*4});
+  }
+  e.pen=g;e.sheep={list:sheep,free};scene.add(g);
+}
+function animSheep(e,dt){
+  const {list,free}=e.sheep;
+  for(const s of list){
+    if(s.wait>0){s.wait-=dt;continue;}
+    if(s.nc===s.c){
+      const opts=[];for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=s.c%N+dx,ny=((s.c/N)|0)+dy;if(nx<0||ny<0||nx>=N||ny>=N)continue;const j=ny*N+nx;if(free.has(j))opts.push(j);}
+      if(!opts.length){s.wait=3;continue;}
+      s.nc=opts[(Math.random()*opts.length)|0];s.tx=Sim.cx2w(s.nc%N);s.tz=Sim.cy2w((s.nc/N)|0);
+      s.g.rotation.y=Math.atan2(-(s.tz-s.z),s.tx-s.x);
+    }
+    const dx=s.tx-s.x,dz=s.tz-s.z,d=Math.hypot(dx,dz),st=0.35*dt;
+    if(d<=st){s.x=s.tx;s.z=s.tz;s.c=s.nc;s.wait=1.5+Math.random()*4;s.g.position.set(s.x,0,s.z);}
+    else{s.x+=dx/d*st;s.z+=dz/d*st;s.g.position.set(s.x,Math.abs(Math.sin(clock*6+s.x))*0.03,s.z);}
+  }
+}
 Sim.hooks.building=function(b){
   const root=new THREE.Group(),[cx,cz]=footCenter(b);root.position.set(cx,0,cz);
   const scaf=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(b.w*CS*.96,2.6,b.h*CS*.96)),new THREE.LineBasicMaterial({color:0x6b4a2b}));
@@ -734,12 +766,12 @@ Sim.hooks.building=function(b){
   const hit=new THREE.Mesh(new THREE.BoxGeometry(b.w*CS,3,b.h*CS),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));
   hit.position.y=1.5;hit.userData.bid=b.id;root.add(hit);pickables.push(hit);
   if(b.state==='done')scaf.visible=false;
-  const e={b,root,body:null,scaf,hit};ents.set(b.id,e);mountBody(e);scene.add(root);
+  const e={b,root,body:null,scaf,hit};ents.set(b.id,e);mountBody(e);scene.add(root);mountPen(e);
 };
-Sim.hooks.done=function(b){const e=ents.get(b.id);if(!e)return;e.scaf.visible=false;e.body.scale.y=1;e.pop=0.35;};
+Sim.hooks.done=function(b){const e=ents.get(b.id);if(!e)return;e.scaf.visible=false;e.body.scale.y=1;e.pop=0.35;mountPen(e);};
 Sim.hooks.upgraded=function(b){const e=ents.get(b.id);if(!e)return;mountBody(e);e.pop=0.5;};
 Sim.hooks.removed=function(b){
-  const e=ents.get(b.id);if(!e)return;scene.remove(e.root);ents.delete(b.id);
+  const e=ents.get(b.id);if(!e)return;scene.remove(e.root);if(e.pen)scene.remove(e.pen);ents.delete(b.id);
   for(let i=pickables.length-1;i>=0;i--)if(pickables[i].userData.bid===b.id)pickables.splice(i,1);
   if(sel===b.id)select(null);
 };
@@ -880,7 +912,7 @@ const TOOLS=[
   {id:'d2',label:'Agricolo',key:'3',dt:2,col:0x9ccf4a,hint:'Trascina: gli abitanti fonderanno qui le fattorie e i campi.'},
   {id:'d3',label:'Mercato',key:'4',dt:3,col:0xe0773f,hint:'Trascina: qui le famiglie apriranno i banchi per il baratto.'},
   {id:'d4',label:'Forestale',key:'f',dt:4,col:0x3f9a5d,hint:'Trascina: i guardaboschi pianteranno qui alberi che crescono e si possono tagliare di nuovo.'},
-  {id:'d5',label:'Pascolo',key:'p',dt:5,col:0xe8e4d0,hint:'Trascina: qui le famiglie fonderanno ovili e tu puoi costruirne con i pastori. La lana serve ai tessitori.'},
+  {id:'d5',label:'Pascolo',key:'p',dt:5,col:0xe8e4d0,hint:'Trascina: l\'ovile nasce solo dentro il pascolo. La zona intorno all\'ovile viene chiusa da un recinto e le pecore restano lì dentro. La lana serve ai tessitori.'},
   {id:'undistrict',label:'Togli zona',key:'5',dt:0,col:0xd9553f,hint:'Trascina per cancellare un quartiere.'},
   {id:'road',label:'Strada',key:'6',hint:'Trascina per tracciare una strada: resta a lungo anche senza passaggi, poi torna sentiero e sparisce. Puoi demolirla.'},
   {id:'wood',label:'Taglialegna',key:'7',hint:'Vicino a un bosco. Rumoroso: le case vicine perdono attrattiva.'},
@@ -895,7 +927,7 @@ const TOOLS=[
   {id:'tailor',label:'Sartoria',key:'',hint:'Cuce abiti (2 per tessuto ogni 10 s) con il tessuto del telaio e li porta alle case dal livello 3: +3 di felicità. Serve un telaio.'},
   {id:'fisher',label:'Capanna del pescatore',key:'',hint:'Sulla riva di un lago o di un fiume. Pesce per le famiglie (2 ogni 7 s per pescatore); con il ghiaccio non si pesca.'},
   {id:'hunter',label:'Capanna del cacciatore',key:'',hint:'Vicino a un bosco fitto. Porta carne alle famiglie (2 ogni 8 s per cacciatore); d\'inverno la selvaggina è scarsa.'},
-  {id:'sheepfold',label:'Ovile',key:'',hint:'Costruisci un ovile vicino a una zona Pascolo: i pastori portano le pecore a brucare e producono la lana per il tessitore. Servono celle libere di pascolo intorno.'},
+  {id:'sheepfold',label:'Ovile',key:'',hint:'Costruisci l\'ovile dentro una zona Pascolo (tasto P): la zona intorno si chiude con un recinto, i pastori portano le pecore a brucare lì dentro e producono la lana per il tessitore.'},
   {id:'tavern',label:'Taverna',key:'',hint:'Con un taverniere: chi abita entro 36 celle ha +4 di felicità. Attrae nuovi abitanti.'},
   {id:'hall',label:'Sala delle feste',key:'',hint:'Con un musicante: chi abita entro 45 celle ha +6 di felicità. Molto piacevole.'},
   {id:'granary',label:'Granaio',key:'b',hint:'Le fattorie portano qui il grano in eccedenza. Il mulino lo macina.'},
@@ -1004,7 +1036,7 @@ function refreshSel(){
   }
   else if(b.type==='inn'){const w=Sim.villagers().filter(v=>v.job===b.id);info=`Dispensa ${b.pantry}/20 · ospiti ${b.guestsIn}/4 · cavalli in stalla ${b.horses}/3`;
     list=w.map(v=>`<div>Oste: ${esc(Sim.roleText(v))}</div>`).join('')+`<div>Pasti serviti: ${S.visits} · viandanti diventati abitanti: ${S.settled}</div><div>L'oste compra il cibo in eccedenza dalle famiglie.</div>`;}
-  else if(b.type==='sheepfold'){const w=Sim.villagers().filter(v=>v.job===b.id);info=`Lana pronta: ${b.buf}/${Sim.BUFCAP} · pascolo: ${b.fields.length} celle`+(b.owner?'':` · pastori ${w.length}/${b.want}`);list=w.map(v=>`<div>Pastore: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>Il telaio del tessitore e le case con il telaio ritirano la lana qui.</div>'+(!b.fields.length?'<div>Nessun pascolo libero intorno: disegna una zona Pascolo vicino all\'ovile.</div>':'')+(b.why&&w.length?`<div>${esc(b.why)}</div>`:'');}
+  else if(b.type==='sheepfold'){const w=Sim.villagers().filter(v=>v.job===b.id);info=`Lana pronta: ${b.buf}/${Sim.BUFCAP} · pascolo: ${b.fields.length} celle`+(b.owner?'':` · pastori ${w.length}/${b.want}`);list=w.map(v=>`<div>Pastore: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>Il telaio del tessitore e le case con il telaio ritirano la lana qui.</div>'+(!b.fields.length?'<div>Nessun pascolo libero dentro il recinto: allarga la zona Pascolo intorno all\'ovile.</div>':'')+(b.why&&w.length?`<div>${esc(b.why)}</div>`:'');}
   else if(b.type==='plaza'||b.type==='flowers'||b.type==='statue')info='Abbellimento: rende più piacevole la zona e attira nuovi abitanti.';
   else if(b.type==='granary')info=`Grano immagazzinato: ${S.stock.grain}/${Sim.stats().capGrain}. Lo ritira il mugnaio.`;
   else if(b.type==='well')info=`Acqua per le case entro ${Sim.WELL_R} celle. Luogo piacevole.`;
@@ -1476,6 +1508,7 @@ function frame2(now){
   if(groundDirty&&now-lastGround>350){drawGround();groundDirty=false;lastGround=now;}
   for(const e of ents.values()){
     const b=e.b,ud=e.body.userData;
+    if(e.sheep)animSheep(e,dt);
     if(ud&&ud.sails)ud.sails.rotation.z-=dt*0.7;
     if(ud&&ud.gv){const n=Math.min(ud.gv.length,S.buried|0);if(ud.shown!==n){ud.shown=n;ud.gv.forEach((m,i)=>{m.visible=i<n;});}}
     if(ud&&ud.logs){ud.logs.scale.y=0.15+0.85*Math.min(1,S.stock.wood/capNow);ud.stones.scale.y=0.2+0.8*Math.min(1,S.stock.stone/capNow);}

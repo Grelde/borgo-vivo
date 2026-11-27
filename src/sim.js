@@ -192,7 +192,7 @@ function addBuilding(type,x,y,done,o){
   }
   if(type==='stall')Object.assign(b,{owner:o.owner,open:false,keeper:null});
   if(type==='farm')Object.assign(b,{owner:o.owner||null,fields:[]});
-  if(type==='sheepfold')Object.assign(b,{owner:o.owner||null,fields:[],buf:0});
+  if(type==='sheepfold')Object.assign(b,{owner:o.owner||null,fields:[],pen:[],buf:0});
   if(type==='inn')Object.assign(b,{pantry:0,guestsIn:0,horses:0});
   if(type==='school'||type==='infirmary')b.pupils=0;
   if(WS[type])b.out={tools:0,bread:0,cloth:0,clothes:0,fish:0,meat:0};
@@ -281,6 +281,7 @@ function canPlace(type,x,y,rot){
     if(field[i])return 'Campo coltivato di una fattoria';
     if(door[i])return "Ingresso di un edificio: lascialo libero";
     if(cen[i]===2)return "Cancello del centro cittadino: lascialo libero";
+    if(type==='sheepfold'&&dist[i]!==5)return "L'ovile va costruito dentro una zona Pascolo: disegnala prima (tasto P)";
   }
   if(t.need==='tree'&&!nearAny(tree,x,y,36))return 'Servono alberi nelle vicinanze';
   if(t.need==='rock'&&!nearAny(rock,x,y,36))return 'Servono rocce nelle vicinanze';
@@ -691,7 +692,7 @@ function startWork(v){
   b.why='';
   if(b.type==='farm'&&S.season===3&&Math.random()<0.6){v.state='wait';v.timer=4;return;}
   if(b.type==='sheepfold'){
-    if(!b.fields.length){b.why='Nessun pascolo libero: disegna una zona Pascolo vicino all\'ovile';v.state='wait';v.timer=3;return;}
+    if(!b.fields.length){b.why='Nessun pascolo libero dentro il recinto: allarga la zona Pascolo intorno all\'ovile';v.state='wait';v.timer=3;return;}
     if(Math.random()<0.2){v.state='wait';v.timer=3;return;}
     const c=b.fields[(Math.random()*b.fields.length)|0];
     if(!route(v,c,0)){v.state='wait';v.timer=3;return;}
@@ -1637,6 +1638,22 @@ function farmTick(){
   if(!best)return;
   const f=addBuilding('farm',best.x,best.y,false,{owner:hh.id,rot:best.r});hh.farm=f.id;
 }
+// v36: il recinto dell'ovile è la zona Pascolo contigua all'ovile (impronta compresa): la staccionata ne segue il contorno e le pecore restano dentro
+const PEN_FREE=90;
+function buildPen(b){
+  const seen=new Set(),q=[],pen=[],free=[];
+  for(let y=b.y;y<b.y+b.h;y++)for(let x=b.x;x<b.x+b.w;x++){const i=y*N+x;seen.add(i);q.push(i);pen.push(i);}
+  for(let k=0;k<q.length&&free.length<PEN_FREE;k++){
+    const i=q[k],x=i%N,y=(i/N)|0;
+    for(let d=0;d<4&&free.length<PEN_FREE;d++){
+      const nx=x+GX[d],ny=y+GY[d];if(nx<0||ny<0||nx>=N||ny>=N)continue;
+      const j=ny*N+nx;if(seen.has(j))continue;seen.add(j);
+      if(!cellFree(j,5))continue;
+      pen.push(j);free.push(j);q.push(j);
+    }
+  }
+  b.pen=pen;b.fields=free;
+}
 function sheepTick(){
   for(const b of buildings.values())if(b.type==='sheepfold'&&b.state==='site')return;
   if(uncommitted('wood')<BT.sheepfold.cost.wood||Math.random()>0.5)return;
@@ -1715,12 +1732,8 @@ function finish(b){
     tell('farm','Una famiglia ha fondato una fattoria nella zona agricola.');
   }
   if(b.type==='sheepfold'){
-    const cand=[];
-    for(let y=b.y-9;y<b.y+b.h+9;y++)for(let x=b.x-9;x<b.x+b.w+9;x++){
-      if(x<0||y<0||x>=N||y>=N)continue;const i=y*N+x;if(cellFree(i,5))cand.push([Math.hypot(x-b.x-b.w/2,y-b.y-b.h/2),i]);
-    }
-    cand.sort((a,c)=>a[0]-c[0]);for(const [,i] of cand.slice(0,90))b.fields.push(i);
-    tell('sheep','Una famiglia ha fondato un ovile nella zona di pascolo: la lana serve ai tessitori.');
+    buildPen(b);
+    tell('sheep',b.owner?'Una famiglia ha fondato un ovile nella zona di pascolo: la zona è chiusa da un recinto e la lana serve ai tessitori.':'L\'ovile è pronto: la zona Pascolo intorno è chiusa da un recinto e le pecore restano lì dentro.');
   }
   if(b.type==='inn')tell('inn0','La locanda è pronta: serve un oste, e le famiglie con cibo in più lo porteranno alla dispensa. Arriveranno viandanti.');
   if(b.type==='store')tell('store','Il nuovo magazzino ha bisogno di tre addetti.');
