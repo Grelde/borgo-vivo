@@ -245,7 +245,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v40</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v40.1</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -1489,12 +1489,13 @@ function assignJobs(){
 const cellFree=(i,dt)=>cen[i]!==2&&!occ[i]&&!tree[i]&&!rock[i]&&!ore[i]&&!road[i]&&!field[i]&&!door[i]&&!water[i]&&!sap[i]&&plev[i]<2&&dist[i]===dt;
 const GX=[1,-1,0,0],GY=[0,0,1,-1];
 const doorFree=i=>!(occ[i]||tree[i]||rock[i]||ore[i]||field[i]||door[i]||water[i]||sap[i]||cen[i]===2);
-const GMAX=24; // un giardino arriva al massimo a 24 celle
+const GMAX=24; // il giardino di base arriva al massimo a 24 celle; fino alla strada può arrivare a ROADMAX
+const ROADMAX=36;
 // v32: forme organiche dei lotti. La casa è un rettangolo hw×hh in (0,0); il giardino è un insieme di celle "dietro" (y>=hh), ai lati o intorno.
 // Poi tutto viene specchiato/ruotato a caso e riportato nel riquadro minimo. Ritorna anche le celle libere attorno al lotto (candidati ingresso).
 const SHAPE_NAME={rect:'a lato',L:'a L',U:'a ferro di cavallo',ring:'intorno alla casa',tri:'triangolare'};
 function lotShape(hw,hh,r){
-  const kr=r(0),want=kr<.2?'rect':kr<.45?'L':kr<.62?'U':kr<.74?'ring':'tri';
+  const kr=r(0),want=kr<.1?'rect':kr<.34?'L':kr<.54?'U':kr<.66?'ring':'tri';
   const build=(kind,v)=>{
     const g=[],add=(x0,y0,w,h)=>{for(let y=y0;y<y0+h;y++)for(let x=x0;x<x0+w;x++)g.push([x,y]);};
     if(kind==='rect'){const gw=3+(v&1),gh=3+((v>>1)&1);add((hw-gw)>>1,hh,gw,gh);}
@@ -1527,7 +1528,7 @@ function lotShape(hw,hh,r){
 function expandGarden(b){
   // il giardino si allarga dalle sue celle di bordo (non da quelle verso la casa) fino alla strada/sentiero (meno di 3 tile = 9 celle) o al giardino di un vicino:
   // con una strada diagonale il bordo segue la diagonale. Dalla v32 funziona su giardini di forma qualsiasi e non supera 24 celle in tutto.
-  const room=GMAX-b.gcells.length-b.ext.length;if(room<=0)return false;
+  const room=ROADMAX-b.gcells.length-b.ext.length;if(room<=0)return false;
   const G=b.gcells.concat(b.ext),lot=new Set(b.cells.concat(b.ext));
   const cands=[];
   for(let d=0;d<4;d++){
@@ -1537,7 +1538,7 @@ function expandGarden(b){
       if(lot.has((cy+uy)*N+cx+ux)&&cx+ux>=0&&cx+ux<N)continue;
       if(b.diag&&diagVal(b,cx+ux+.5,cy+uy+.5)>0)continue;
       const walk=[];let hit=0;
-      for(let s2=1;s2<=4;s2++){
+      for(let s2=1;s2<=6;s2++){
         const x=cx+ux*s2,y=cy+uy*s2;
         if(x<0||y<0||x>=N||y>=N)break;
         const i=y*N+x;
@@ -1579,8 +1580,9 @@ function trySpawnHouse(){
   let [hw0,hh0]=HS[Math.min(HS.length-1,Math.floor(Math.pow(hash(S.t|0,23),1.4)*HS.length))];
   if(hw0!==hh0&&hash(S.t|0,29)<0.5)[hw0,hh0]=[hh0,hw0];
   const roadAt=(x,y,w,h)=>rect(pp,x,y,w,h);
-  const sh=lotShape(hw0,hh0,k=>hash(S.t|0,40+k)),hw=sh.hw,hh=sh.hh,bw=sh.w,bh=sh.h;
   for(const tol of [picky,-6]){
+   for(let at=0;at<3;at++){ // v40.1: se la forma estratta non trova posto se ne prova un'altra, così i rettangoli restano l'ultima scelta
+    const sh=lotShape(hw0,hh0,k=>hash(S.t|0,40+k+at*17)),hw=sh.hw,hh=sh.hh,bw=sh.w,bh=sh.h;
     const top=[];
     for(let y=0;y<=N-bh;y++)for(let x=0;x<=N-bw;x++){
       if(((x*7+y*13+(S.t|0))%3)!==0)continue;
@@ -1622,9 +1624,11 @@ function trySpawnHouse(){
       const pt=(nh-nw+1)*0.35;
       const pure=!wood&&(np<pt-0.5||(np<pt+0.5&&hash(cd.x*3,cd.y*7)<0.5));
       if(pure&&crop==='eggs')crop='veg'; // un giardino fisso non ha galline né uova: solo orto e fiori
-      addBuilding('house',cd.x,cd.y,false,{w:bw,h:bh,hx:cd.x+sh.hx,hy:cd.y+sh.hy,hw,hh,gcells:gcs,shape:sh.kind,diag:sh.diag?[sh.diag[0]+cd.x,sh.diag[1]+cd.y,sh.diag[2]+cd.x,sh.diag[3]+cd.y]:null,door:cd.dr,crop,side,pure,variant:(hash(cd.x*11,cd.y*7)*4)|0});
+      addBuilding('house',cd.x,cd.y,false,{w:bw,h:bh,hx:cd.x+sh.hx,hy:cd.y+sh.hy,hw,hh,gcells:gcs,shape:sh.kind,diag:sh.diag?[sh.diag[0]+cd.x,sh.diag[1]+cd.y,sh.diag[2]+cd.x,sh.diag[3]+cd.y]:null,door:cd.dr,crop,side,pure,variant:(hash(cd.x*11,cd.y*7)*4)|0})
+      {const nb2=buildings.get(nextId-1);if(nb2)for(let g2=0;g2<8;g2++)if(!expandGarden(nb2))break;} // il giardino nasce già attaccato alla strada: riempie lo spazio fino alla strada più vicina
       return;
     }
+   }
   }
 }
 function nearDone(type,cell,r){
@@ -1958,7 +1962,7 @@ function houseTick(b){
     const canWeave=b.weave&&b.goods.wool>=1,canTail=b.tailor&&b.goods.cloth>=1;
     const share=TK*tenders/(1+(canCraft?1:0)+(canBake?1:0)+(canWeave?1:0)+(canTail?1:0))*(S.edicts.woodDuty?0.85:1);
     const sf=S.season===3?(b.crop==='veg'?0.35:b.crop==='eggs'?0.6:0.8):S.season===2?1.25:1;
-    b.pa.g+=share/(b.crop==='herd'?26:16)*(b.level>=3?1.5:1)*sf*(1+0.25*Math.max(0,b.gcells.length+b.ext.length-9))*(b.goods.tools>=1?1.1:1);
+    b.pa.g+=share/(b.crop==='herd'?26:16)*(b.level>=3?1.5:1)*sf*(1+0.25*Math.max(0,Math.min(GMAX,b.gcells.length+b.ext.length)-9))*(b.goods.tools>=1?1.1:1);
     const gk=gardenGood(b.crop),gcap=gardenCap(b.crop);
     while(b.pa.g>=1){b.pa.g-=1;if(b.goods[gk]<gcap)b.goods[gk]++;}
     if(canCraft){b.pa.c+=share/20;while(b.pa.c>=1&&b.goods.iron>=1&&b.goods.firewood>=1){b.pa.c-=1;b.goods.iron--;b.goods.firewood--;b.goods.tools=Math.min(12,b.goods.tools+1);}}
@@ -1973,7 +1977,7 @@ function houseTick(b){
     if(S.season===3){if(b.goods.firewood>=1){b.goods.firewood--;b.warm=true;}else{b.warm=false;if(b.crop!=='wood')tell('cold','Una casa è rimasta senza legna da ardere: solo le famiglie con il giardino della legna la producono, le altre la comprano al banco del mercato. Disegna una zona mercato.');}}else{b.warm=true;if(S.day%2===0&&b.goods.firewood>=1)b.goods.firewood--;}}  // v23: cucina tutto l'anno: fuori dall'inverno 1 legna ogni 2 giorni
   b.attr=attr[b.cell];b.fun=funOf(b);
   // v36.1: il giardino cresce piano piano verso la strada più vicina (non solo al salto di livello)
-  if(b.gcells.length+b.ext.length<GMAX&&hash(S.t|0,b.id*13)<0.25)expandGarden(b);
+  if(b.gcells.length+b.ext.length<ROADMAX&&hash(S.t|0,b.id*13)<0.25)expandGarden(b);
   birthTick(b);
   const f=b.flags;f.heat=b.warm;
   f.food=TYPES.filter(tp=>S.t-b.ate[tp]<DAY*2).length>=(b.level>=3?3:2)&&b.hungry<30;

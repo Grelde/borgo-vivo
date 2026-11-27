@@ -13,7 +13,7 @@ const nb=i=>[i+1,i-1,i+N,i-N];
 for(const h of hs){
   sizes[h.hw+'x'+h.hh]=(sizes[h.hw+'x'+h.hh]||0)+1;shapes[h.shape]=(shapes[h.shape]||0)+1;
   const gn=h.gcells.length+h.ext.length;
-  if(!(Math.min(h.hw,h.hh)>=3&&Math.max(h.hw,h.hh)<=6&&h.hw*h.hh<=24&&h.gcells.length>=9&&gn<=24)){bad++;console.log('dimensioni fuori range',h.hw,h.hh,gn);}
+  if(!(Math.min(h.hw,h.hh)>=3&&Math.max(h.hw,h.hh)<=6&&h.hw*h.hh<=24&&h.gcells.length>=9&&h.gcells.length<=24&&gn<=36)){bad++;console.log('dimensioni fuori range',h.hw,h.hh,gn);}
   for(const i of h.cells)if(G.occ[i]!==h.id){bad++;console.log('cella non occupata',h.id);break;}
   const lot=new Set(h.cells.concat(h.ext));
   // il giardino è connesso (4 direzioni) e tocca la casa
@@ -36,6 +36,13 @@ console.log('triangoli con taglio diagonale',tris);
 // v36.1: il giardino generico (fisso) non ha uova
 const pures=hs.filter(h=>h.pure);for(const h of pures)if(h.crop==='eggs'){bad++;console.log('giardino fisso con uova',h.id);}
 console.log('giardini fissi',pures.length,'case con giardino ampliato',hs.filter(h=>h.ext.length).length);
+// il giardino riempie lo spazio fino alla strada: nessun varco libero di 1-5 celle in linea retta tra il bordo del giardino e una strada
+const GXs=[1,-1,0,0],GYs=[0,0,1,-1];let gaps=0;
+for(const h of hs){const lot=new Set(h.cells.concat(h.ext));let gap=false;
+  for(const c of h.gcells.concat(h.ext)){for(let d=0;d<4&&!gap;d++){if(lot.has(c+GXs[d]+GYs[d]*N))continue;
+    for(let k=1;k<=6;k++){const x=c%N+GXs[d]*k,y=((c/N)|0)+GYs[d]*k;if(x<0||y<0||x>=N||y>=N)break;const i=y*N+x;if(G.road[i]||G.plev[i]>=Sim.PATH){if(k>1)gap=true;break;}if(G.occ[i]||G.tree[i]||G.rock[i]||G.water[i]||G.door[i])break;}}if(gap)break;}
+  if(gap)gaps++;}
+console.log('case con varco libero fino alla strada',gaps,'su',hs.length);
 const seen=new Map();for(const h of hs)for(const i of h.cells){if(seen.has(i)){bad++;console.log('sovrapposizione');break;}seen.set(i,h.id);}
 // ingresso verso la strada: se una strada tracciata tocca il lotto, la porta sta sulla strada o accanto
 let withRoad=0,facing=0;
@@ -46,5 +53,5 @@ for(const h of hs){
 }
 console.log('case',hs.length,'casa',JSON.stringify(sizes),'forme',JSON.stringify(shapes));
 console.log('lotti a contatto con una strada',withRoad,'con ingresso sulla strada',facing);
-const ok=bad===0&&hs.length>=10&&Object.keys(shapes).length>=3&&(withRoad===0||facing/withRoad>=0.7);
+const ok=bad===0&&hs.length>=10&&Object.keys(shapes).length>=3&&(withRoad===0||facing/withRoad>=0.7)&&gaps<=hs.length*0.3;
 console.log(ok?'LOTTI_OK':'LOTTI_FAIL');process.exit(ok?0:1);

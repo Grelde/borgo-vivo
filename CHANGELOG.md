@@ -1,5 +1,12 @@
 # Changelog
 
+## v40.1 – 2026-11-27
+Ritocco: il giardino nasce attaccato alla strada e la riempie fino in fondo.
+- **Alla nascita:** appena posata la casa il giardino si allarga subito verso le strade vicine, riempiendo tutto lo spazio libero fino alla strada (varchi fino a 5 celle, in qualsiasi direzione, anche a gradini che seguono una strada diagonale).
+- **Crescita:** il giardino riempie lo spazio fino alla strada anche oltre le 24 celle (fino a 36); la produzione conta al massimo 24 celle.
+- **Più forme, meno rettangoli:** se la forma estratta non trova posto se ne provano altre due prima di ripiegare; il rettangolo semplice è più raro (10% invece di 20%).
+- `tests/lotti.js`: al massimo il 30% dei lotti può avere un varco libero in linea retta fino a una strada (nella prova 4 su 24). Grafica non verificata in un browser WebGL.
+
 ## v40 – 2026-11-27
 Funzione nuova: salvataggio e caricamento della partita.
 - **Posti di salvataggio** nella memoria del browser: un salvataggio **automatico** (ogni minuto, quando la scheda va in secondo piano e quando la pagina si chiude) e tre **posti manuali**. Pulsante 💾 accanto ai comandi della mappa (o **Ctrl+S**, che salva nel posto 1); per ogni posto si vede data di gioco, abitanti, livello e quando è stato salvato, con Salva / Carica / Elimina e conferma prima di sovrascrivere o sostituire la partita in corso.
