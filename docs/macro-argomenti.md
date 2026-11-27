@@ -1,4 +1,4 @@
-# Borgo Vivo — macro argomenti (stato a v41)
+# Borgo Vivo — macro argomenti (stato a v42)
 
 Prototipo: city builder medievale, un solo file HTML (Three.js). Sorgente di riferimento: il repository GitHub `Grelde/borgo-vivo` (`src/`, build con `./build.sh`, gioco in `index.html`). I documenti `claude/borgo-vivo-v*.html` nel Progetto sono solo istantanee. La v21 unisce la linea "popolazione" (malattie, eredità, editti, scheda, legna per casa) con la linea "giardini puri" (35% di giardini che non diventano mai allevamento/bottega; solo le case col giardino della legna la raccolgono, le altre la comprano al mercato).
 
@@ -6,7 +6,8 @@ Struttura del file: CSS+markup, poi `const Sim=(function(){…})()` (simulazione
 
 ## 1. Mondo, zone e strade
 Stato: zone Residenziale/Agricolo/Mercato/Forestale/Pascolo; sentieri a 4 livelli che nascono dai passaggi; strade costruite dal giocatore (durano molto di più); terreno con lago/fiume. Pascolo (v36): l'ovile si costruisce solo dentro una zona Pascolo; la zona contigua all'ovile diventa un recinto (staccionata lungo il contorno, varco all'ingresso) e le pecore restano dentro.
-Da fare: mappe/terreni nuovi, ponti, colline, selciato, pendolarismo.
+Mappe (v42): ogni partita ha un seme casuale (`S.seed`, avviso a inizio partita, `?seme=N` nell'indirizzo per rivedere una valle); `genTerrain` in `sim.js` crea lago (centro, raggi, rotazione, riva rumorosa, stagno 40%) o fiume (direzione libera, meandri, larghezza variabile, 2 guadi) e macchie di bosco, roccia e ferro in posti diversi; `terrainOK` scarta e rigenera le mappe non giocabili (acqua vicina alla partenza, risorse scarse). Test: `tests/mappe.js`.
+Da fare: ponti, colline, mare/coste, altre forme di mappa (isole, valli strette), scelta del seme dal menu, selciato, pendolarismo.
 
 ## 2. Case, giardini e specializzazioni
 Stato: lotto casa+giardino (dalla v29 casa da 3×3 a 6×4, ingresso verso la strada; dalla v33 il giardino ha forma libera: a lato, L, U, anello intorno alla casa o triangolo, 9-24 celle (fino a 36 riempiendo lo spazio verso la strada, nasce già attaccato ad essa), e produce in proporzione alla grandezza), 5 livelli (dalla v25 il livello 5, Palazzo, richiede una zona di qualità ottima: attrattiva ≥3), 16 varianti, giardino che si espande, allevamento o bottega a ogni salita di livello. Dalla v24 per salire di livello servono, in modo cumulativo: livello 1 cibo (1 tipo), acqua e legna da ardere (4 in autunno-inverno, 2 altrimenti); livello 2 anche chiesa e 2 tipi di cibo; livello 3 anche scuola vicina (45 celle) e 3 tipi di cibo. Dalla v23 ogni giardino ha una sola coltura: orto, galline, allevamento oppure legna da ardere (~12% delle case; giardino che non cambia e non apre botteghe).

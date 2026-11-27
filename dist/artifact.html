@@ -241,7 +241,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v41</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v42</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -485,6 +485,66 @@ function updClock(){const tt=S.t+6;S.day=Math.floor(tt/DAY);S.f=(tt%DAY)/DAY;S.p
 function dateStr(t){const tt=Math.max(0,t)+6,day=Math.floor(tt/DAY),si=Math.floor(day/SEASON_DAYS)%4,yr=Math.floor(day/(SEASON_DAYS*4))+1;return SEASONS[si]+', annata '+yr;}
 function logV(v,txt){const r=reg.get(v.id);if(!r)return;r.log.push({t:S.t,txt});if(r.log.length>40)r.log.shift();}
 
+// v42: mappe organiche. Il seme decide tutto: forma e posizione di lago o fiume, boschi, cave e ferro. Ogni partita ha un seme nuovo.
+function mulberry(a){return function(){a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return ((t^(t>>>14))>>>0)/4294967296;};}
+// un tentativo di terreno: riempie tree/rock/ore/water. Il tentativo n usa un seme derivato, così il risultato dipende solo dal seme di partenza.
+function genTerrain(mode,sd,att){
+  seed=(sd+Math.imul(att,7919))|0;
+  const R=mulberry((Math.imul(sd|0,2654435761)^Math.imul(att+1,40503))>>>0);
+  const rr=(a,b)=>a+(b-a)*R(),ri=(a,b)=>Math.floor(rr(a,b+1)),cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const M=N/SC,CX=32,CY=32;
+  for(const a of [tree,rock,ore,water])a.fill(0);
+  // boschi e rocce di fondo: soglia e scala del rumore cambiano da mappa a mappa (valli più fitte o più aperte)
+  const tth=rr(0.585,0.655),rth=rr(0.70,0.76),fq=rr(0.10,0.15);
+  for(let y=0;y<M;y++)for(let x=0;x<M;x++){
+    const d=Math.hypot(x-CX,y-CY);
+    const n=vnoise(x*fq,y*fq)*0.65+vnoise(x*fq*2.75+40,y*fq*2.75)*0.35;
+    if(d>8&&n>tth&&hash(x,y+7)>0.25)setFine(tree,x,y,1,1);
+    const m=vnoise(x*0.1+200,y*0.1+90);
+    if(d>11&&m>rth&&hash(x+3,y)>0.3)setFine(rock,x,y,10,2);
+  }
+  // macchie: posti diversi a ogni mappa, ma sempre almeno una a portata di mano
+  const spot=(dmin,dmax,mg)=>{for(let k=0;k<40;k++){const a=R()*6.2832,d=rr(dmin,dmax),x=CX+Math.cos(a)*d,y=CY+Math.sin(a)*d;if(x>mg&&y>mg&&x<M-mg&&y<M-mg)return [x|0,y|0];}return [(CX+(R()<0.5?-1:1)*dmin)|0,CY];};
+  const nT=ri(4,6);for(let k=0;k<nT;k++){const [x,y]=k<2?spot(12,20,3):spot(14,30,3);blob(tree,x,y,rr(3.4,6),1);}
+  const nR=ri(2,3);for(let k=0;k<nR;k++){const [x,y]=k<1?spot(10,18,3):spot(14,28,3);blob(rock,x,y,rr(2.6,3.8),10);}
+  const nO=ri(2,3);for(let k=0;k<nO;k++){const [x,y]=k<1?spot(20,28,4):spot(22,32,4);blob(ore,x,y,rr(2.8,3.4),10);}
+  if(mode==='lake'){
+    const a=R()*6.2832,d=rr(19,28),lx=cl(CX+Math.cos(a)*d,10,M-10),ly=cl(CY+Math.sin(a)*d,10,M-10);
+    const rx=rr(6.5,11),ry=rr(5.2,8),th=R()*Math.PI,ct=Math.cos(th),st=Math.sin(th),amp=rr(0.45,0.8),nf=rr(0.22,0.34);
+    const pond=R()<0.4?spot(18,30,6):null,pr=rr(2.5,4);
+    for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+      const xc=x/SC,yc=y/SC,u=(xc-lx)*ct+(yc-ly)*st,v=-(xc-lx)*st+(yc-ly)*ct;
+      let e=(u/rx)**2+(v/ry)**2+(vnoise(xc*nf,yc*nf)-0.5)*amp;
+      if(e>=1&&pond)e=((xc-pond[0])**2+(yc-pond[1])**2)/(pr*pr)+(vnoise(xc*0.4+90,yc*0.4)-0.5)*0.5;
+      if(e<1)water[y*N+x]=1;
+    }
+  }else{
+    // fiume: una retta di direzione casuale che serpeggia (due onde + rumore), larghezza variabile, due guadi
+    const phi=R()*6.2832,dx=Math.cos(phi),dy=Math.sin(phi),nx=-dy,ny=dx,off=rr(12,21)*(R()<0.5?-1:1),bx=CX+nx*off,by=CY+ny*off;
+    const A1=rr(2.5,6),A2=rr(0.8,2.2),f1=rr(0.7,1.4),f2=rr(2,3.4),p1=R()*6.2832,p2=R()*6.2832;
+    const pts=[];
+    for(let s=-80;s<=80;s+=0.25){
+      const px=bx+dx*s,py=by+dy*s;if(px<-3||py<-3||px>M+3||py>M+3)continue;
+      const lat=A1*Math.sin(s*0.09*f1+p1)+A2*Math.sin(s*0.21*f2+p2)+(vnoise(s*0.08+300,off)-0.5)*3;
+      pts.push([px+nx*lat,py+ny*lat,1.6+1.4*vnoise(s*0.12+500,3)]);
+    }
+    const disc=(qx,qy,hw,val,onlyWater)=>{const r=hw*SC,cx=qx*SC,cy=qy*SC;for(let y=Math.max(0,Math.floor(cy-r));y<=Math.min(N-1,Math.ceil(cy+r));y++)for(let x=Math.max(0,Math.floor(cx-r));x<=Math.min(N-1,Math.ceil(cx+r));x++){if((x-cx)**2+(y-cy)**2>r*r)continue;const i=y*N+x;if(onlyWater){if(water[i])water[i]=val;}else water[i]=val;}};
+    for(const p of pts)disc(p[0],p[1],p[2],1,false);
+    if(pts.length>20)for(const fr of [rr(0.15,0.4),rr(0.6,0.85)]){const p=pts[Math.floor(pts.length*fr)];disc(p[0],p[1],p[2]+0.7,2,true);}
+  }
+  for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;if(Math.hypot(x/SC-CX,y/SC-CY)<8){tree[i]=0;rock[i]=0;ore[i]=0;}if(water[i]){tree[i]=0;rock[i]=0;ore[i]=0;}}
+}
+// la mappa è giocabile? acqua lontana dal punto di partenza, quantità d'acqua sensata, legno, pietra e ferro raggiungibili
+function terrainOK(mode){
+  let wc=0,mw=1e9,t26=0,t18=0,r26=0,r18=0,oT=0,o32=0;
+  for(let i=0;i<N*N;i++){const x=(i%N)/SC,y=((i/N)|0)/SC,d=Math.hypot(x-32,y-32);
+    if(water[i]){wc++;if(d<mw)mw=d;}
+    if(tree[i]){if(d<26)t26++;if(d<18)t18++;}
+    if(rock[i]){if(d<26)r26++;if(d<18)r18++;}
+    if(ore[i]){oT++;if(d<32)o32++;}}
+  return mw>=(mode==='lake'?11:9)&&wc>=1500&&wc<=3600&&t26>=330&&t18>=100&&r26>=200&&r18>=60&&oT>=30&&o32>=12;
+}
+
 function init(sd,mode){
   seed=sd||7;S.mode=mode==='river'?'river':'lake';
   for(const a of [tree,rock,ore,water,sap,road,dist,door,cen])a.fill(0);
@@ -493,28 +553,10 @@ function init(sd,mode){
   buildings.clear();stCache=null;villagers=[];vmap.clear();reg.clear();resv.clear();plantResv.clear();nextId=1;guests.length=0;
   S.t=0;S.festA=[];S.fests=0;festSeq=0;S.edicts=EDICT0();S.births=0;S.deaths=0;S.buried=0;S.unburied=0;S.wh={wood:0,stone:0,iron:0};S.xf={wood:0,stone:0,iron:0};S.stock={wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0};S.inflight={wood:0,stone:0,iron:0};S.grow=0;S.left=0;S.att={joy:0,unemp:0,a:0,bonus:0};S.barters=0;S.helps=0;S.visits=0;S.settled=0;S.season=0;S.year=1;S.frozen=false;acc.a1=0;acc.a05=0;acc.farm=0;acc.attr=99;for(const k in told)delete told[k];
   S.deathsBy={age:0,cold:0,hunger:0,ill:0};S.plague={on:false,since:0,dead:0};S.inherits=0;S.cured=0;S.sickTot=0;S.moves=0;S.made={};S.delivered=0;
-  const M=N/SC;
+  let okT=false,att=0;const base=(sd||7)|0;
+  for(;att<48&&!okT;att++){genTerrain(S.mode,base,att);okT=terrainOK(S.mode);}
+  S.seed=base;S.mapTries=att;S.mapOK=okT;
   for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;jit[i]=hash(x,y+500)*0.15;}
-  for(let y=0;y<M;y++)for(let x=0;x<M;x++){
-    const d=Math.hypot(x-32,y-32);
-    const n=vnoise(x*0.12,y*0.12)*0.65+vnoise(x*0.33+40,y*0.33)*0.35;
-    if(d>8&&n>0.62&&hash(x,y+7)>0.25)setFine(tree,x,y,1,1);
-    const m=vnoise(x*0.1+200,y*0.1+90);
-    if(d>11&&m>0.72&&hash(x+3,y)>0.3)setFine(rock,x,y,10,2);
-  }
-  blob(tree,24,26,5,1);blob(tree,41,39,5,1);blob(tree,38,22,4,1);blob(tree,25,41,4,1);
-  blob(rock,44,30,3.4,10);blob(rock,20,36,3,10);
-  blob(ore,12,14,3.2,10);blob(ore,13,51,3,10);
-  if(S.mode==='lake'){
-    for(let y=0;y<N;y++)for(let x=0;x<N;x++){const xc=x/SC,yc=y/SC;const e=((xc-50)/9.5)**2+((yc-47)/7.5)**2+(vnoise(xc*0.28,yc*0.28)-0.5)*0.55;if(e<1)water[y*N+x]=1;}
-  }else{
-    for(let y=0;y<N;y++){
-      const yc=y/SC,cxr=45+7*Math.sin(yc*0.1+1)+3*Math.sin(yc*0.23);
-      for(let x=0;x<N;x++){if(Math.abs(x/SC-cxr)<=2.1)water[y*N+x]=1;}
-    }
-    for(const fy of [19,44])for(let y=fy*SC;y<(fy+2)*SC;y++)for(let x=0;x<N;x++)if(water[y*N+x])water[y*N+x]=2;
-  }
-  for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;if(Math.hypot(x/SC-32,y/SC-32)<8){tree[i]=0;rock[i]=0;ore[i]=0;}if(water[i]){tree[i]=0;rock[i]=0;ore[i]=0;}}
   updClock();
   addBuilding('store',31*SC,31*SC,true,{center:true});
   for(let k=0;k<3;k++){const v=addVillager(cx2w(31*SC+1+k*2),cy2w(31*SC+9),22+k*4);logV(v,'Partito da Rocca Nera con la carovana: uno dei primi abitanti del borgo.');}
@@ -4222,7 +4264,10 @@ function showStory(){
 function begin(mode){
   if(readSlot('auto')&&!askOk('Esiste già un salvataggio automatico: una nuova partita lo sostituirà entro un minuto (i posti 1-3 non cambiano). Iniziare comunque?'))return;
   Music.start();$('story').hidden=true;lastAuto=performance.now();
-  Sim.init(7,mode);started=true;if(COARSE)setTimeout(()=>toast('Un dito: sposta la mappa. Due dita: pizzica per zoomare, ruota per girare. Scegli una categoria e uno strumento in basso.'),7000);
+  // v42: ogni partita ha una mappa nuova; con ?seme=1234 nell'indirizzo si rivede una mappa già giocata
+  let sd=0;try{if(typeof location!=='undefined'){const q=new URLSearchParams(location.search).get('seme');if(q&&/^\d{1,9}$/.test(q))sd=+q;}}catch(e){}
+  if(!sd)sd=1+((Math.random()*999999999)|0);
+  Sim.init(sd,mode);started=true;setTimeout(()=>toast('Valle n. '+sd+'. Per rivederla: aggiungi ?seme='+sd+' all\'indirizzo.'),1500);if(COARSE)setTimeout(()=>toast('Un dito: sposta la mappa. Due dita: pizzica per zoomare, ruota per girare. Scegli una categoria e uno strumento in basso.'),7000);
   if(treesDirty)rebuildTrees();if(rocksDirty)rebuildRocks();if(sapsDirty)rebuildSaps();groundDirty=true;
   showLevel();
 }

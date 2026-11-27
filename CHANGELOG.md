@@ -1,5 +1,15 @@
 # Changelog
 
+## v42 – 2026-11-27
+Funzione nuova: mappe organiche, diverse a ogni partita.
+- **Seme casuale:** ogni nuova partita genera una valle nuova (prima il seme era sempre 7 e lago, fiume, boschi, cave e ferro stavano negli stessi punti). Il numero della valle compare in un avviso all'inizio; aggiungendo `?seme=1234` all'indirizzo si rivede una mappa già giocata. Lo stesso seme dà sempre la stessa mappa.
+- **Lago:** posizione, grandezza, orientamento e frastagliatura della riva cambiano; con il 40% di probabilità c'è anche uno stagno.
+- **Fiume:** direzione qualsiasi (non solo da nord a sud), meandri a due onde con rumore, larghezza variabile lungo il corso, sempre due guadi in punti diversi.
+- **Boschi, rocce e ferro:** soglia e scala del rumore variano (valli più fitte o più aperte); 4-6 macchie di bosco, 2-3 di roccia e 2-3 di ferro in posti diversi a ogni mappa, con almeno una macchia di bosco e una di roccia a portata di mano e il ferro a media distanza.
+- **Sempre giocabile:** una mappa viene scartata e rigenerata (di norma servono 2-3 tentativi, in media circa 20 ms) se l'acqua è troppo vicina alla partenza (lago 11 celle, fiume 9), se ce n'è troppo o troppo poca, o se mancano legno, pietra o ferro raggiungibili. Entro 8 celle dal centro non ci sono mai alberi, sassi, ferro né acqua. Il centro cittadino e i tre primi abitanti restano al centro della mappa.
+- Test: nuovo `tests/mappe.js` (40 semi per lago e per fiume: mappe tutte distinte, acqua che cambia posto, risorse e area di partenza, guadi, riproducibilità, simulazione che parte); gli altri test restano verdi, `tests/workshops.js` supera comunque i 4 minuti (lo faceva già prima). La grafica del terreno non è stata guardata in un browser WebGL: il terreno usa gli stessi dati di prima, ma conviene aprire qualche valle e controllare a occhio rive, guadi e macchie.
+- Limiti: la scelta lago/fiume resta quella della storia (non ci sono ancora colline, ponti o mari); le mappe sono tutte 64×64 vecchi tile, la partenza è sempre al centro; non c'è ancora un modo per scegliere il seme dal menu, solo dall'indirizzo.
+
 ## v41 – 2026-11-27
 Funzione nuova: la festa di paese, che si indice dalla piazza.
 - **Indizione:** clic sulla piazza con fontana (completata) e pulsante "Indici la festa di paese" (servono almeno 6 abitanti). Si può annullare durante i preparativi (il legno raccolto torna al magazzino, il cibo no).

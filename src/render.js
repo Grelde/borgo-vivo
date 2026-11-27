@@ -1725,7 +1725,10 @@ function showStory(){
 function begin(mode){
   if(readSlot('auto')&&!askOk('Esiste già un salvataggio automatico: una nuova partita lo sostituirà entro un minuto (i posti 1-3 non cambiano). Iniziare comunque?'))return;
   Music.start();$('story').hidden=true;lastAuto=performance.now();
-  Sim.init(7,mode);started=true;if(COARSE)setTimeout(()=>toast('Un dito: sposta la mappa. Due dita: pizzica per zoomare, ruota per girare. Scegli una categoria e uno strumento in basso.'),7000);
+  // v42: ogni partita ha una mappa nuova; con ?seme=1234 nell'indirizzo si rivede una mappa già giocata
+  let sd=0;try{if(typeof location!=='undefined'){const q=new URLSearchParams(location.search).get('seme');if(q&&/^\d{1,9}$/.test(q))sd=+q;}}catch(e){}
+  if(!sd)sd=1+((Math.random()*999999999)|0);
+  Sim.init(sd,mode);started=true;setTimeout(()=>toast('Valle n. '+sd+'. Per rivederla: aggiungi ?seme='+sd+' all\'indirizzo.'),1500);if(COARSE)setTimeout(()=>toast('Un dito: sposta la mappa. Due dita: pizzica per zoomare, ruota per girare. Scegli una categoria e uno strumento in basso.'),7000);
   if(treesDirty)rebuildTrees();if(rocksDirty)rebuildRocks();if(sapsDirty)rebuildSaps();groundDirty=true;
   showLevel();
 }
