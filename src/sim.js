@@ -1711,7 +1711,8 @@ function roleText(v){
     case 'toChurch':case 'pray':return 'Prega in chiesa';
     case 'toHelp':case 'helpTend':return "Aiuta un'altra famiglia";
     case 'toCollect':case 'toStoreC':return 'Porta i materiali al magazzino';
-    case 'toStore':case 'toSite':return 'Porta i materiali al cantiere';
+    case 'toStore':return v.task?'Va al magazzino a prendere '+(v.task.res==='stone'?'la pietra':'il legno')+' per il cantiere':'Va al magazzino a prendere i materiali';
+    case 'toSite':return v.task?'Porta '+(v.task.res==='stone'?'la pietra':'il legno')+' al cantiere':'Porta i materiali al cantiere';
     case 'toStall':case 'keep':return 'Mercante al banco';
     case 'toMarket':return 'Baratta al mercato';
     case 'toHomeT':return v.cargo?'Torna col baratto':'Torna dal mercato';

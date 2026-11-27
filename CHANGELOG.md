@@ -1,5 +1,13 @@
 # Changelog
 
+## v34 – 2026-11-27
+Funzione nuova (solo grafica e testi): carichi visibili per chi costruisce e per chi lavora al magazzino.
+- **Chi costruisce va al magazzino a prendere i materiali:** la regola c'era già (magazzinieri, aiutanti e adulti senza lavoro vanno a mani vuote al magazzino, prelevano e portano il carico al cantiere); ora si vede. Nella scheda il ruolo dice "Va al magazzino a prendere il legno/la pietra per il cantiere" e poi "Porta il legno/la pietra al cantiere".
+- **Carichi diversi:** il legno per un cantiere si porta come **assi** (fascio di tre tavole sulla spalla); il legno appena tagliato come **tronco** sulla spalla; la pietra per un cantiere e quella raccolta alla cava come **carretto di pietre**, spinto davanti con le ruote che girano; la pietra che il cavatore porta alla cava è un **sasso** in braccio; molto legno (3-4 pezzi) o il trasferimento tra magazzini va in un **carretto di tronchi**, il ferro in un **carretto di minerale**. Gli altri carichi (verdura, acqua, grano, legna da ardere ecc.) restano il blocchetto colorato di prima.
+- **Stessa grafica per tutti:** il modello lo sceglie `loadKind()` dal carico e da ciò che l'abitante sta facendo, quindi magazzinieri e costruttori hanno gli stessi carichi. I pezzi nel carretto sono quelli raccolti (1-4); per cantiere e trasferimento il carretto è pieno.
+- Nessuna regola di gioco cambia (`sim.js` cambia solo i testi di `roleText`). I modelli si creano alla prima volta che servono, per non appesantire chi non porta nulla.
+- Nuovo test `tests/carichi.js`: tabella dei carichi e, su una partita di 6 giorni, controllo che sia i magazzinieri sia gli altri costruttori vadano al magazzino a mani vuote e portino al cantiere assi o carretto di pietre. Grafica non provata in un browser WebGL (i test di render usano un THREE finto): da guardare aprendo il gioco; misure e posizioni del carretto e delle assi sono stime da ritoccare a vista.
+
 ## v33 – 2026-11-27
 Funzione nuova: lotti organici (casa + giardino non più rettangoli).
 - **Forme del giardino:** a lato, a L, a ferro di cavallo, intorno alla casa (anello) o triangolare; la casa resta un rettangolo da 3×3 a 6×4. Il giardino iniziale ha 9-24 celle, forma specchiata/ruotata a caso.
