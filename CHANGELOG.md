@@ -1,5 +1,12 @@
 # Changelog
 
+## v26 – 2026-11-27
+Funzione nuova: istruzione utile, chiesa nella giornata, giorno più lungo.
+- **Istruzione:** chi sa leggere e scrivere lavora il 25% meglio (raccolta, giardino) e consuma meno cibo (25% dei pasti non toglie nulla dalla scorta). La scheda lo dice.
+- **Chiesa nella giornata:** dal livello 2 (non più dal 4) ogni abitante va in chiesa una volta al giorno la sera, dopo il pozzo (dal livello 3). Chi ha pregato negli ultimi 2 giorni ha +6 di felicità.
+- **Giorno più lungo:** `DAY` passa da 100 a 150 s, per dare tempo a scuola, pozzo, chiesa e cammino. Invecchiamento (`AGEY` 360 s per anno di vita, annata = 3600 s = 10 anni) e durata delle malattie seguono il giorno; produzione dei giardini, rischi di morte, malattie, contagio e immigrazione sono riportati ai ritmi per giorno di prima (`TK`). Le stagioni durano quindi 900 s a velocità 1.
+- Test: `population.js` e `legna.js` usano `Sim.YEARL`. Confronto 4 annate, stessa mappa: popolazione finale 209 → 207, morti 84 → 80 (di fame 42 → 27), felicità media 68 → 78, partenze 13 → 4. Grafica non provata in un browser WebGL.
+
 ## v25 – 2026-11-27
 Funzione nuova: **livello 5 (Palazzo)**. La qualità della zona decide il salto dal livello 4 al 5.
 - Una Casa signorile (livello 4) diventa **Palazzo** (livello 5) solo se la zona ha qualità **ottima**: attrattiva 3 o più (la scritta "Ottima" del pannello). Restano richiesti, come sempre, i requisiti dei livelli precedenti (cibo, acqua, legna, chiesa, scuola vicina). Chiese, pozzi, piazze, statue e aiuole alzano la qualità; cave, miniere e taglialegna la abbassano.

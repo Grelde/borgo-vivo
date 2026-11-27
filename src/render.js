@@ -957,7 +957,7 @@ function renderCard(){
   h+='<h4>Istruzione</h4>';
   const sch=dead?r.schooled:v.schooled;
   if(!dead&&child){const p=Math.min(100,Math.round(v.edu/3));h+=`<p>${age<6?'Troppo piccolo per la scuola.':'Frequenta la scuola, se c\'è un maestro.'}</p><div class="bar"><i style="width:${p}%"></i></div><p>Apprendimento: ${p}%</p>`;}
-  else h+=`<p>${sch?'Sa leggere e scrivere.':'Non sa leggere né scrivere.'}</p>`;
+  else h+=`<p>${sch?'Sa leggere e scrivere: lavora meglio (+25%) e a tavola consuma meno cibo (-25%).':'Non sa leggere né scrivere.'}</p>`;
   if(!dead){
     h+='<h4>Salute</h4>';
     if(v.ill)h+=`<p>Malato: ${Sim.DIS[v.ill.k].n} <span class="tag bad">a letto</span></p>`;
