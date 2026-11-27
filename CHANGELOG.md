@@ -1,5 +1,12 @@
 # Changelog
 
+## v43.1 – 2026-11-27
+Ritocco: passaggio tra un lotto e l'altro.
+- Tra due lotti (casa o giardino, anche ampliato) resta sempre **almeno una cella libera**, anche in diagonale: gli abitanti possono passare tra un lotto e l'altro. Prima l'ampliamento riempiva lo spazio fino al giardino del vicino e le staccionate si toccavano.
+- Il giardino non cresce più "fino al vicino": si ferma una cella prima. Resta invariato l'ampliamento verso strade e sentieri.
+- I carretti sono solo grafica (non hanno percorso proprio): il passaggio è percorribile da tutti gli abitanti; non c'è un divieto separato per i carretti.
+- `tests/lotti.js`: nessuna cella di lotto a contatto con un altro lotto (nella prova 0). Grafica non verificata in un browser WebGL.
+
 ## v43 – 2026-11-27
 Cambio di regole: placement organico delle case, ispirato ai villaggi medievali (analisi in `docs/insediamenti-medievali.md`).
 - **Toft e croft:** la casa si appoggia a un sentiero/strada con la porta verso di esso; il giardino non ha più una forma preimpostata ma **cresce** dietro e ai lati della casa con fronte stretto (la casa sta sul fronte, il cortile davanti è piccolo), segue lo spazio libero tra sentieri, alberi, acqua e altri lotti, resta in un pezzo solo e tocca la casa.

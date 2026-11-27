@@ -55,6 +55,10 @@ if(behind/tot<0.7){bad++;console.log('troppe celle davanti alla casa');}
 // i giardini restano nella zona residenziale
 let fuori=0;for(const h of hs)for(const i of h.gcells.concat(h.ext))if(G.dist[i]!==1)fuori++;
 console.log('celle di giardino fuori dalla zona residenziale',fuori);if(fuori){bad++;}
+// passaggio: nessuna cella di un lotto è a contatto (anche in diagonale) con un altro lotto
+const own=new Map();for(const h of hs)for(const i of h.cells.concat(h.ext))own.set(i,h.id);
+let touch=0;for(const [i,id] of own){const x=i%N,y=(i/N)|0;let t2=false;for(let dy=-1;dy<=1&&!t2;dy++)for(let dx=-1;dx<=1;dx++){const j=(y+dy)*N+x+dx,o=own.get(j);if(o&&o!==id){t2=true;break;}}if(t2)touch++;}
+console.log('celle di lotto a contatto con un altro lotto',touch);if(touch)bad++;
 const seen=new Map();for(const h of hs)for(const i of h.cells){if(seen.has(i)){bad++;console.log('sovrapposizione');break;}seen.set(i,h.id);}
 // ingresso verso la strada: se una strada tracciata tocca il lotto, la porta sta sulla strada o accanto
 let withRoad=0,facing=0;

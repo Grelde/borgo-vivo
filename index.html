@@ -245,7 +245,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v43</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v43.1</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -1618,6 +1618,8 @@ function assignJobs(){
 const cellFree=(i,dt)=>cen[i]!==2&&!occ[i]&&!tree[i]&&!rock[i]&&!ore[i]&&!road[i]&&!field[i]&&!door[i]&&!water[i]&&!sap[i]&&plev[i]<2&&dist[i]===dt;
 const GX=[1,-1,0,0],GY=[0,0,1,-1];
 const doorFree=i=>!(occ[i]||tree[i]||rock[i]||ore[i]||field[i]||door[i]||water[i]||sap[i]||cen[i]===2);
+// v44: tra due lotti resta sempre almeno una cella libera (passaggio per gli abitanti)
+function foreignNear(i,id){const x=i%N,y=(i/N)|0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=N||ny>=N)continue;const o=occ[ny*N+nx];if(o>0&&o!==id)return true;}return false;}
 const GMAX=24; // il giardino di base arriva al massimo a 24 celle; fino alla strada può arrivare a ROADMAX
 const ROADMAX=36;
 // v32: forme organiche dei lotti. La casa è un rettangolo hw×hh in (0,0); il giardino è un insieme di celle "dietro" (y>=hh), ai lati o intorno.
@@ -1673,6 +1675,7 @@ function expandGarden(b){
         const i=y*N+x;
         if(road[i]||plev[i]>=PATH){if(s2>1)hit=s2-1;break;}
         if(dist[i]!==1)break; // il giardino non esce dalla zona residenziale
+        if(!road[i]&&plev[i]<PATH&&doorFree(i)&&foreignNear(i,b.id))break; // lascia una cella di passaggio verso gli altri lotti
         if(!doorFree(i)){
           if(occ[i]>0&&s2>1){const ob=buildings.get(occ[i]);if(ob&&ob.type==='house'&&ob.id!==b.id)hit=s2-1;}
           break;
@@ -1704,7 +1707,7 @@ function growGarden(hcs,doorCell,hx,hy,hw,hh,target,seed,pp){
   const hd=(horiz?hw:hh)/2,hwid=(horiz?hh:hw)/2;                  // mezza profondità e mezza larghezza della casa rispetto al fronte
   const nbr=(c,k)=>{const x=c%N;if(k===0)return x<N-1?c+1:-1;if(k===1)return x>0?c-1:-1;if(k===2)return c+N<N*N?c+N:-1;return c-N>=0?c-N:-1;};
   const okc=i=>{if(i<0||lot.has(i)||i===doorCell||!cellFree(i,1))return false;
-    for(let k=0;k<4;k++){const j=nbr(i,k);if(j>=0&&occ[j]>0)return false;}return true;};
+    return !foreignNear(i,-1);};
   while(g.length<target){
     let best=-1,bs=1e9;const seen=new Set();
     for(const c of (g.length?g:hcs))for(let k=0;k<4;k++){ // il giardino resta in un pezzo solo: parte dalla casa e poi cresce da se stesso
