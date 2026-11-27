@@ -199,7 +199,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v22</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v22.1</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -2192,19 +2192,35 @@ function houseLevel(g,b){
       cyl(g,.18,.22,.2,8,MAT.stoneD,0,.2,0);cyl(g,.12,.12,.04,8,MAT.fount,0,.31,0);chim(g,-.7,1.95,-.4,.6);cyl(g,.02,.02,.9,4,MAT.timber,0,2.2,-.6);bx(g,.34,.2,.03,MAT.gold,.17,2.5,-.6);}
   }
 }
+// v23: giardino fisso (b.pure) = staccionata chiara, bordo fiorito e alberello da frutta; casa col giardino della legna (b.side==='wood') = legnaia con tettoia e ceppo con ascia
+function woodPile(g,x,z){
+  for(let L=0;L<3;L++)for(let k=0;k<4-L;k++)cyl(g,.095,.095,.9,7,(k+L)%2?MAT.logD:MAT.log,x+(k-(3-L)/2)*.21,.11+L*.17,z,0,Math.PI/2);
+  for(const sx of[-.5,.5])bx(g,.06,.7,.06,MAT.timber,x+sx,.35,z-.17);
+  bx(g,1.15,.06,.5,MAT.thatch,x,.72,z-.08).rotation.x=.18;
+  cyl(g,.16,.18,.26,8,MAT.log,x+.95,.13,z+.05);
+  bx(g,.04,.32,.04,MAT.timber,x+.95,.42,z+.05).rotation.z=.9;bx(g,.11,.07,.03,MAT.iron,x+1.04,.5,z+.05);
+}
 function garden(g,b){
-  for(const s of[-1,1]){bx(g,1.8,.05,.05,MAT.timber,0,.28,s*.9);bx(g,.05,.05,1.8,MAT.timber,s*.9,.28,0);}
-  for(const sx of[-1,1])for(const sz of[-1,1])bx(g,.08,.4,.08,MAT.timber,sx*.9,.2,sz*.9);
+  const fm=b.pure?MAT.cream:MAT.timber,wood=b.side==='wood';
+  for(const s of[-1,1]){bx(g,1.8,.05,.05,fm,0,.28,s*.9);bx(g,.05,.05,1.8,fm,s*.9,.28,0);}
+  for(const sx of[-1,1])for(const sz of[-1,1])bx(g,.08,.4,.08,fm,sx*.9,.2,sz*.9);
+  if(b.pure){
+    const fl=[MAT.flower1,MAT.flower2,MAT.flower3];
+    for(let k=0;k<7;k++){sph(g,.075,fl[(k+b.id)%3],-.78+k*.26,.13,-.8,1,1,1);sph(g,.075,fl[(k+b.id+1)%3],-.84,.13,-.55+k*.2,1,1,1);sph(g,.075,fl[(k+b.id+2)%3],.84,.13,-.55+k*.2,1,1,1);}
+    cyl(g,.05,.07,.55,6,MAT.timber,-.62,.28,-.6);sph(g,.3,MAT.leaf2,-.62,.78,-.6,1,.9,1);
+    for(let k=0;k<5;k++)sph(g,.045,MAT.red,-.62+Math.cos(k*1.3)*.24,.78+Math.sin(k*2.1)*.12,-.6+Math.sin(k*1.3)*.24);
+  }
   if(b.crop==='herd'){
     for(const [px,pz] of[[-.45,-.4],[.2,.4],[.45,-.35]]){bx(g,.45,.28,.28,MAT.wool,px,.3,pz,(px+pz)*2);sph(g,.12,MAT.timber,px+.26,.34,pz);}
     bx(g,.7,.5,.6,MAT.log,.5,.25,-.5);bx(g,.9,.07,.8,MAT.thatch,.5,.58,-.5).rotation.z=.15;
   }else if(b.crop==='veg'){
-    for(let r=-1;r<=1;r++){bx(g,1.5,.1,.22,MAT.soil,0,.05,r*.5);
+    for(let r=-1;r<=(wood?0:1);r++){bx(g,1.5,.1,.22,MAT.soil,0,.05,r*.5);
       for(let k=-2;k<=2;k++){const m=(k+r+b.id)%3===0?MAT.carrot:(k%2?MAT.leaf:MAT.leaf2);sph(g,.11,m,k*.3,.2,r*.5,1,1.1,1);}}
   }else{
     bx(g,.7,.5,.6,MAT.log,.45,.25,-.45);bx(g,.9,.07,.8,MAT.thatch,.45,.58,-.45).rotation.z=.15;bx(g,.2,.25,.04,MAT.door,.45,.18,-.14);
     for(let k=0;k<4;k++){const hx=-.5+((b.id*7+k*5)%9)*.1,hz=.1+((b.id*3+k*7)%8)*.08-.1*k*.2;sph(g,.12,MAT.hen,hx,.18,hz+k*.12-.1,1,.9,1.3);sph(g,.06,MAT.henR,hx,.32,hz+k*.12-.02);}
   }
+  if(wood)woodPile(g,-.45,.58);
 }
 const BUILD={
   house(b){
@@ -2522,7 +2538,7 @@ function refreshSel(){
   else if(b.type==='house'){
     name=Sim.LVNAME[b.level-1];const cap=Sim.CAPS[b.level-1],fl=b.flags,gd=b.goods,fn=Sim.fuelNeed();
     const hd=b.head&&VM(b.head);
-    info=`Famiglia ${hd?esc(hd.fam):''}: ${b.members.length}/${cap} · giardino: ${b.crop==='veg'?'orto':b.crop==='eggs'?'galline':'allevamento'}${b.pure?' (resta giardino)':''}${b.craft?' · bottega':''}${b.bake?' · panificio':''}${b.weave?' · tessitore':''}${b.tailor?' · sarto':''}`;
+    info=`Famiglia ${hd?esc(hd.fam):''}: ${b.members.length}/${cap} · giardino: ${b.crop==='veg'?'orto':b.crop==='eggs'?'galline':'allevamento'}${b.pure?' (giardino fisso: staccionata chiara e fiori, resta sempre così)':''}${b.side==='wood'?' · legnaia in giardino':''}${b.craft?' · bottega':''}${b.bake?' · panificio':''}${b.weave?' · tessitore':''}${b.tailor?' · sarto':''}`;
     const rows=b.members.map(id=>{const v=VM(id);return v?`<div><span class="lk" data-v="${v.id}">${esc(v.name)}</span>${v.id===b.head?' ★':''} (${v.age|0} anni${v.schooled?', istruito':''}${v.ill?', malato':''}): ${esc(Sim.roleText(v))}</div>`:'';}).join('');
     const need=b.level>=Sim.MAXLV?'':('Per migliorare: cibo'+(b.level>=2?', acqua':'')+(b.level>=3?', chiesa':'')+(b.level>=2?', quiete, legna':'')+(()=>{const u=Sim.UPC[b.level+1];return u?`, materiali (legno ${u.wood}${u.stone?`, pietra ${u.stone}`:''})`:'';})()+` (${Math.min(25,b.up)}/25)`);
     list=rows+`<div>Felicità <b>${b.well}</b>/100</div><div class="wbar"><i style="width:${b.well}%"></i></div>${needsHtml(b)}<div>Legna da ardere: ${gd.firewood}/${fn} ${gd.firewood>=fn?'(scorta sufficiente)':'(scorta scarsa)'}</div>`+(S.edicts&&S.edicts.noUpgrade?'<div>Editto in vigore: le case non migliorano.</div>':'')+`${b.ext&&b.ext.length?`<div>Giardino ampliato di ${b.ext.length} celle, verso la strada.</div>`:''}<div>Attività secondaria: ${b.side==='fish'?'pesca (casa vicino all\'acqua)':b.side==='hunt'?'caccia (casa vicino a un bosco tranquillo)':'legna da ardere'}. ${b.side==='wood'?'Quella in più la vende al mercato.':(S.edicts.woodDuty?'Per editto la raccoglie anche lei.':'Non raccoglie legna: la compra al mercato.')}</div><div>Attrattiva della zona: ${Sim.attrLabel(b.attr)} (${b.attr.toFixed(1)})</div>`+

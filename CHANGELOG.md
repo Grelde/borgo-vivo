@@ -1,5 +1,11 @@
 # Changelog
 
+## v22.1 – 2026-11-27
+Ritocco grafico (nessuna regola di gioco cambia).
+- **Giardino fisso** (il ~35% di giardini che non diventano allevamento né bottega): staccionata chiara, bordo di fiori e un alberello da frutta, così si riconosce dall'alto. Il pannello casa dice "giardino fisso".
+- **Casa col giardino della legna**: legnaia con tettoia e ceppo con ascia dentro il giardino (l'orto perde una fila per fare posto). Il pannello casa riporta "legnaia in giardino".
+- Nessun guadagno dalla vendita della legna: resta baratto.
+
 ## v22 – 2026-11-27
 Funzione nuova: felicità degli abitanti e tratti negativi.
 - La **felicità** (ex "benessere") di ogni casa dipende ora da quattro bisogni: cibo (30), casa (25: caldo, legna, quiete, spazio), acqua (25) e chiesa (20, **solo dal livello 2**; ai livelli bassi il punteggio si calcola sugli altri tre). Il pannello casa e la scheda mostrano il dettaglio dei bisogni.
