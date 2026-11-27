@@ -1,5 +1,16 @@
 # Changelog
 
+## v45.1 – 2026-11-27
+Correzione: chi lavora al giardino della legna va davvero nel bosco a raccoglierla.
+- **Problema (dalla v23):** il giardino della legna produceva da solo, quindi i familiari addetti restavano tutto il tempo in casa a "curare" un giardino che non serviva a nulla.
+- **Ora:** la casa con il giardino della legna non produce legna in giardino. Chi se ne occupa (`duty`) esce di casa e va a raccogliere la legna nel bosco (prima nel folto, entro 64 celle, poi anche un albero isolato) e torna con un fascio da 3. Gli aiutanti che passano in un giardino della legna non la producono più "per magia". Le altre case continuano a comprarla al mercato.
+- **Scorta:** la legna è il prodotto di queste case, quindi ne tengono fino a 24 (32 con l'editto "obbligo di legna"); le altre case restano a 12 (20 con l'editto). Quando la scorta è a meno di 2 pezzi dal limite gli addetti non vanno al bosco e restano a casa.
+- **Prestazioni:** l'albero scelto è sempre lo stesso per una casa, quindi lo si ricorda; se non c'è un bosco raggiungibile (o il percorso fallisce) si riprova solo dopo 20-40 s. Senza questo il test `workshops` passava da 300 s a oltre 500 s.
+- Testi: il ruolo dice "Va nel bosco a raccogliere la legna", "Raccoglie legna da ardere", "Porta la legna a casa"; il pannello casa e l'editto sono aggiornati.
+- **Misura** (3 mappe, semi 7, 21, 33, 3 annate): i familiari delle case della legna passano il 19-28% del tempo di lavoro nel bosco (prima 0%), con 61-97 viaggi all'annata; il resto è banco e baratto, giardino e pause quando la scorta è piena. Nessuna casa al freddo, nessuna affamata (`tests/legna.js`: felicità 92-95; legna totale in casa 89-173 secondo la partita, più di prima perché le case della legna ne tengono 24).
+- Test: tutti passano. `tests/festa.js` ha dato un fallimento su 6 esecuzioni (nessuno in piazza durante la festa) prima della correzione di prestazioni, poi 7 su 7 verdi come sul remoto puro; potrebbe dipendere dal seme casuale della v42.
+- Limiti: la raccolta non consuma alberi; con poca domanda di legna il tempo nel bosco scende. Grafica non verificata in un browser WebGL.
+
 ## v45 – 2026-11-27
 Funzione nuova: passaggi tra lotti che diventano giardino; bordi diagonali al posto della scaletta.
 - **Passaggi inutilizzati:** ogni cella di passaggio tra due lotti (a contatto con un altro lotto) che per un anno intero nessuno ha calpestato viene aggiunta al giardino accanto (fino a 3 celle per volta, tetto 36 celle, dentro la zona residenziale, solo se le porte restano raggiungibili). Il giorno-ultimo-passaggio di ogni cella non è salvato: dopo un caricamento l'anno riparte da quel momento.

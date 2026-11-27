@@ -115,7 +115,9 @@ const fuelCap=()=>S.edicts.woodDuty?20:12;
 const fuelTarget=()=>S.edicts.woodDuty?fuelNeed()*2:fuelNeed();
 // v23: la coltura del giardino è una sola: 'veg' (orto), 'eggs' (galline), 'herd' (allevamento) o 'wood' (legna da ardere). Il bene prodotto dal giardino:
 const gardenGood=c=>c==='herd'?'meat':c==='wood'?'firewood':c;
-const gardenCap=c=>c==='wood'?fuelCap():12;
+// la scorta di legna è il prodotto della casa della legna: ne tiene molta più delle altre case (che ne tengono fuelCap())
+const gardenCap=c=>c==='wood'?fuelCap()+12:12;
+const fwCap=h=>h&&h.crop==='wood'?gardenCap('wood'):fuelCap();
 
 function hash(x,y){let h=(Math.imul(x|0,374761393)+Math.imul(y|0,668265263)+seed)|0;h=Math.imul(h^(h>>>13),1274126177);h^=h>>>16;return (h>>>0)/4294967296;}
 function vnoise(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;const u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
@@ -1022,12 +1024,18 @@ function startErrand(v,h){
   if(!kind&&h.weave&&h.goods.wool<1){let ov=null;for(const o of buildings.values())if(o.type==='sheepfold'&&o.state==='done'&&o.buf>=1&&(!ov||o.buf>ov.buf))ov=o;if(ov){kind='wool';tgt=ov.cell;tocc=ov.id;src=ov.id;}}
   if(!kind&&h.tailor&&h.goods.cloth<1){for(const o of buildings.values())if(o.type==='house'&&o!==h&&o.state==='done'&&o.weave&&o.goods.cloth>=2&&Math.hypot(o.cell%N-h.cell%N,(o.cell/N|0)-(h.cell/N|0))<135){kind='cloth';tgt=o.cell;tocc=o.id;src=o.id;break;}}
   if(!kind){const mc=merceryErrand(h);if(mc){kind='merc';tgt=mc.b.cell;tocc=mc.b.id;src=mc.b.id;mg=mc.g;}}
-  // v23: la legna da ardere non si raccoglie più con una commissione: la produce il giardino delle case con la coltura 'wood' (vedi la produzione dei giardini). Qui restano solo pesca e caccia.
+  // v42.1: il giardino della legna non produce da solo: chi se ne occupa (v.duty) va a raccogliere la legna nel bosco, prima nel folto, poi anche un albero isolato; porta a casa un fascio da 3
+  // l'albero scelto è sempre lo stesso per la casa: lo si ricorda (finché esiste) e, se non c'è un bosco raggiungibile, si riprova solo dopo 40 s (la ricerca è costosa)
+  if(!kind&&h.crop==='wood'&&v.duty&&h.goods.firewood<gardenCap('wood')-2&&S.t>=(h.woodTry||0)){
+    if(!(h.woodSpot>=0&&tree[h.woodSpot])){h.woodSpot=treeTarget(h.cell,64,true);if(h.woodSpot<0)h.woodSpot=treeTarget(h.cell,64,false);if(h.woodSpot<0)h.woodTry=S.t+40;}
+    if(h.woodSpot>=0){tgt=h.woodSpot;kind='wood';}
+  }
   if(!kind&&Math.random()<0.3){
     if(h.side==='fish'&&h.goods.fish<8&&!S.frozen&&fishOK(h.hx,h.hy)){tgt=shoreTarget(h.cell,66);if(tgt>=0)kind='fish';}
     else if(h.side==='hunt'&&h.goods.meat<8&&huntOK(h.hx,h.hy)){tgt=treeTarget(h.cell,48,true);if(tgt>=0)kind='hunt';}
   }
-  if(!kind||!route(v,tgt,tocc))return false;
+  if(!kind)return false;
+  if(!route(v,tgt,tocc)){if(kind==='wood'){h.woodSpot=-1;h.woodTry=S.t+20;}return false;}
   v.err={kind,q:0,src,g:mg};v.state='toErr';return true;
 }
 // ---- vita quotidiana ----
@@ -1166,7 +1174,7 @@ function onArrive(v){
       break;}
     case 'toHomeErr':{
       const h=buildings.get(v.home);
-      if(h&&v.err){const key=v.err.kind==='merc'?v.err.g:ERRKEY[v.err.kind],cp=key==='firewood'?fuelCap():12;h.goods[key]=Math.min(cp,h.goods[key]+(v.cq||1));if(v.err.kind==='merc')S.fetched=(S.fetched|0)+(v.cq||1);}
+      if(h&&v.err){const key=v.err.kind==='merc'?v.err.g:ERRKEY[v.err.kind],cp=key==='firewood'?fwCap(h):12;h.goods[key]=Math.min(cp,h.goods[key]+(v.cq||1));if(v.err.kind==='merc')S.fetched=(S.fetched|0)+(v.cq||1);}
       v.carry=null;v.err=null;v.state='idle';break;}
     case 'toCollect':{
       const c=v.cargo,st=nearestStore(v.cell);v.carry=c.res;v.cq=c.q;
@@ -1229,7 +1237,7 @@ function abortTask(v){
     case 'toStoreC':{const c=v.cargo;if(c){S.stock[c.res]+=Math.min(c.q,stockRoom(c.res));S.inflight[c.res]-=c.q;}break;}
     case 'toStore':{const t=v.task;if(t){const st=buildings.get(t.site);S.stock[t.res]++;if(st&&st.fly[t.res]>0)st.fly[t.res]--;}break;}
     case 'toSite':{const t=v.task,st=t&&buildings.get(t.site);if(st&&st.state==='site'){st.got[t.res]++;st.fly[t.res]--;}else if(t)S.stock[t.res]++;break;}
-    case 'toHomeErr':{if(h&&v.err){const key=v.err.kind==='merc'?v.err.g:ERRKEY[v.err.kind],cp=key==='firewood'?fuelCap():12;h.goods[key]=Math.min(cp,h.goods[key]+(v.cq||1));}break;}
+    case 'toHomeErr':{if(h&&v.err){const key=v.err.kind==='merc'?v.err.g:ERRKEY[v.err.kind],cp=key==='firewood'?fwCap(h):12;h.goods[key]=Math.min(cp,h.goods[key]+(v.cq||1));}break;}
     case 'toHomeF':{if(h)h.goods.grain=Math.min(12,h.goods.grain+(v.cq||1));break;}
     case 'toGranary':S.stock.grain+=Math.min(v.cq||1,stockRoom('grain'));break;
     case 'toStockG':{const c=v.cargo;if(c){const fb=buildings.get(c.from);if(fb&&fb.out)fb.out[c.g]+=c.q;}break;}
@@ -1265,7 +1273,7 @@ function updV(v,dt){
     case 'mill':v.timer-=dt*workRate(v);if(v.timer<=0){if(S.stock.grain>=2){S.stock.grain-=2;S.stock.flour=Math.min(capFlour(),S.stock.flour+2);}v.inside=false;v.state='idle';}break;
     case 'doErr':v.timer-=dt;if(v.timer<=0){
       const h=buildings.get(v.home),k=v.err&&v.err.kind;
-      v.carry=k==='fish'?'fish':k==='hunt'?'meat':'wood';v.cq=k==='fish'?2:1;
+      v.carry=k==='fish'?'fish':k==='hunt'?'meat':'wood';v.cq=k==='fish'?2:k==='wood'?3:1;
       if(h&&route(v,h.cell,h.id))v.state='toHomeErr';else{v.carry=null;v.err=null;v.state='idle';}
     }break;
     case 'tend':
@@ -1273,7 +1281,7 @@ function updV(v,dt){
     case 'learn':{v.moving=false;const sc=v.sch&&buildings.get(v.sch);{const tc=sc&&sc.workers.length?vmap.get(sc.workers[0]):null;v.edu+=dt*(S.edicts.schoolMandatory?1.6:1)*(1+SK_WORK*(tc?skLevel(tc,'school'):0));}if(!inClass()||!sc||sc.state!=='done'||!sc.workers.length){v.inside=false;v.sd=!(S.edicts.schoolMandatory&&S.ph==='meal');v.sch=null;v.state='idle';}break;}
     case 'draw':v.timer-=dt;if(v.timer<=0){v.drew=true;v.carry='water';goHomeAfter(v);}break;
     case 'pray':v.timer-=dt;if(v.timer<=0){v.prayed=true;v.prayT=S.t;goHomeAfter(v);}break;
-    case 'helpTend':v.timer-=dt;if(v.timer<=0){const h=buildings.get(v.helpH);if(h){const k=gardenGood(h.crop);h.goods[k]=Math.min(gardenCap(h.crop),h.goods[k]+2);S.helps++;}v.state='idle';}break;
+    case 'helpTend':v.timer-=dt;if(v.timer<=0){const h=buildings.get(v.helpH);if(h){if(h.crop!=='wood'){const k=gardenGood(h.crop);h.goods[k]=Math.min(gardenCap(h.crop),h.goods[k]+2);}S.helps++;}v.state='idle';}break;
     case 'eat':v.timer-=dt;if(v.timer<=0){v.inside=false;v.state='idle';}break;
     case 'sleep':if(S.ph!==v.sleepPh){v.inside=false;v.state='idle';}break;
     case 'keep':{
@@ -1892,7 +1900,7 @@ function houseTick(b){
     const canWeave=b.weave&&b.goods.wool>=1,canTail=b.tailor&&b.goods.cloth>=1;
     const share=TK*tenders/(1+(canCraft?1:0)+(canBake?1:0)+(canWeave?1:0)+(canTail?1:0))*(S.edicts.woodDuty?0.85:1);
     const sf=S.season===3?(b.crop==='veg'?0.35:b.crop==='eggs'?0.6:0.8):S.season===2?1.25:1;
-    b.pa.g+=share/(b.crop==='herd'?26:16)*(b.level>=3?1.5:1)*sf*(1+0.25*Math.max(0,Math.min(GMAX,b.gcells.length+b.ext.length)-9))*(b.goods.tools>=1?1.1:1);
+    if(b.crop!=='wood')b.pa.g+=share/(b.crop==='herd'?26:16)*(b.level>=3?1.5:1)*sf*(1+0.25*Math.max(0,Math.min(GMAX,b.gcells.length+b.ext.length)-9))*(b.goods.tools>=1?1.1:1);
     const gk=gardenGood(b.crop),gcap=gardenCap(b.crop);
     while(b.pa.g>=1){b.pa.g-=1;if(b.goods[gk]<gcap)b.goods[gk]++;}
     if(canCraft){b.pa.c+=share/20;while(b.pa.c>=1&&b.goods.iron>=1&&b.goods.firewood>=1){b.pa.c-=1;b.goods.iron--;b.goods.firewood--;b.goods.tools=Math.min(12,b.goods.tools+1);}}
@@ -2347,7 +2355,7 @@ function roleText(v){
     case 'toMarket':return 'Baratta al mercato';
     case 'toHomeT':return v.cargo?'Torna col baratto':'Torna dal mercato';
     case 'toErr':case 'doErr':case 'toHomeErr':{const k=v.err&&v.err.kind;
-      return k==='merc'?('Compra '+(GN[v.err.g]||'merce')+' alla merceria'):k==='wool'?'Ritira la lana all\'ovile':k==='cloth'?'Compra tessuto dal tessitore':k==='fish'?'Pesca':k==='hunt'?'Va a caccia':k==='iron'?'Ritira il ferro al magazzino':k==='flour'?'Ritira la farina al mulino':'Raccoglie legna da ardere';}
+      return k==='merc'?('Compra '+(GN[v.err.g]||'merce')+' alla merceria'):k==='wool'?'Ritira la lana all\'ovile':k==='cloth'?'Compra tessuto dal tessitore':k==='fish'?'Pesca':k==='hunt'?'Va a caccia':k==='iron'?'Ritira il ferro al magazzino':k==='flour'?'Ritira la farina al mulino':v.state==='toErr'?'Va nel bosco a raccogliere la legna':v.state==='toHomeErr'?'Porta la legna a casa':'Raccoglie legna da ardere';}
     case 'toPlant':case 'plant':return 'Pianta alberi';
     case 'toMill':case 'mill':return 'Macina il grano';
     case 'toShop':case 'shop':{const jb=v.job&&buildings.get(v.job);return jb&&TRADENAME[jb.type]?TRADENAME[jb.type][0].toUpperCase()+TRADENAME[jb.type].slice(1)+' al lavoro':'Al lavoro in bottega';}
