@@ -1,5 +1,8 @@
 # Changelog
 
+## v17.1 – 2026-11-27
+- Correzione per `index.html` standalone: mancava il reset `[hidden]` (aggiunto dalla piattaforma solo alla pagina pubblicata), quindi il pannello "Continua" restava sempre visibile, bloccava i clic e faceva avanzare i livelli a ogni clic. Aggiunti anche doctype, charset e viewport.
+
 ## v17 – 2026-11-27
 - Il giardino ampliato di una casa segue la coltura del giardino (galline ora visibili nelle espansioni).
 - Specializzazioni: a ogni salita di livello la casa può cambiare ruolo (allevamento, telaio, artigiano, sarto, panificio) con controllo di domanda e saturazione; ruoli in eccesso tornano al giardino.
