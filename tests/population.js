@@ -9,7 +9,7 @@ let msgs=[];Sim.hooks.toast=m=>msgs.push(Math.round(S.t)+' '+m.slice(0,70));
 const pl=[['wood',60,40],['quarry',130,60],['well',88,96],['school',100,110],['infirmary',74,110],['church',84,84]];
 for(const [t,x,y] of pl){let b=null;for(let dx=0;dx<30&&!b;dx+=3)for(let dy=0;dy<30&&!b;dy+=3)b=tryP(t,x+dx,y+dy);console.log(t,!!b);}
 const t0=Date.now();
-for(let a=1;a<=4;a++){run(Sim.YEARL);const st=Sim.stats();console.log('annata',a,'pop',st.pop,'kids',st.children,'houses',st.houses,'sick',st.sick,'dead',st.deaths,JSON.stringify(st.deathsBy),'inh',st.inherits,'cured',st.cured,'moves',st.moves,'well',st.avgWell.toFixed(0),'fire',st.fire+'/'+st.fireNeed,'plague',st.plague,'school',st.schooled);
+for(let a=1;a<=4;a++){run(Sim.YEARL);const st=Sim.stats();console.log('  attrattiva: case',st.capHouses,'bonus',st.capBonus,'cap',st.cap,'pop',st.pop,'senza lavoro',st.att.unemp,'A',Math.round(st.att.a*100)+'%','felicità',Math.round(st.att.joy));console.log('annata',a,'pop',st.pop,'kids',st.children,'houses',st.houses,'sick',st.sick,'dead',st.deaths,JSON.stringify(st.deathsBy),'inh',st.inherits,'cured',st.cured,'moves',st.moves,'well',st.avgWell.toFixed(0),'fire',st.fire+'/'+st.fireNeed,'plague',st.plague,'school',st.schooled);
  if(a===1){for(const k of ['birthBonus','schoolMandatory','woodDuty'])Sim.setEdict(k,true);}
  if(a===2){Sim.setEdict('quarantine',true);}if(a===3)Sim.setEdict('quarantine',false);}
 {const st=Sim.stats(),tr={};for(const v of Sim.villagers()){const k=v.trait||'nessuno';tr[k]=(tr[k]||0)+1;}console.log('felicità media',Math.round(st.avgJoy),'tristi',st.unhappy,'partiti',st.left,'tratti',JSON.stringify(tr));}

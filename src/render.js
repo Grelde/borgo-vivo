@@ -1055,6 +1055,9 @@ const popRow=(a,b)=>`<div class="row"><span>${a}</span><b>${b}</b></div>`;
 function popPeople(st){
   const vs=Sim.villagers(),S2=Sim.S,adults=vs.filter(v=>!v.child);
   let h=`<div class="kv"><div>Abitanti<b>${st.pop}/${st.cap}</b></div><div>Bambini<b>${st.children}</b></div><div>Adulti<b>${adults.length}</b></div><div>Istruiti<b>${st.schooled}</b></div><div>Malati<b>${st.sick}${st.plague?' ☣':''}</b></div><div>Al lavoro<b>${st.jobs}/${st.slots}</b></div></div>`;
+  const at=st.att;
+  h+='<h4>Capacità e attrattiva</h4>'+popRow('Posti nelle case',st.capHouses)+popRow('Bonus di attrattiva',`+${st.capBonus}`)+popRow('Adulti senza lavoro',at.unemp)+popRow('Attrattiva (felicità ÷ disoccupati)',Math.round(at.a*100)+'%');
+  h+='<p style="opacity:.75;font-size:12px">Più gli abitanti sono felici e meno adulti sono senza lavoro, più gente vuole trasferirsi, anche oltre i posti delle case (in case un po\' affollate).</p>';
   h+='<h4>Per età</h4>'+AGEB.map(([t,a,b])=>popRow(t,vs.filter(v=>v.age>=a&&v.age<b).length)).join('');
   const jc={};let home=0;
   for(const v of adults){const b=v.job&&Sim.buildings().get(v.job);if(b)jc[b.type]=(jc[b.type]||0)+1;else home++;}

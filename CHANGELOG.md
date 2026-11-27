@@ -1,5 +1,12 @@
 # Changelog
 
+## v30 – 2026-11-27
+Cambio di regole: il CAP degli abitanti dipende dall'attrattiva.
+- **CAP = posti delle case + bonus di attrattiva.** Attrattiva A = (felicità media/100) ÷ (1 + adulti senza lavoro/10): direttamente proporzionale alla felicità, inversamente al numero di adulti non impiegati (sani, né in un mestiere né in servizio). Bonus = A × 0,3 × posti delle case.
+- Se i posti delle case sono finiti, i nuovi arrivati per attrattiva si sistemano in case già occupate, fino a +2 oltre il limite (sovraffollamento: meno spazio nella felicità, più malattie).
+- Pannello Abitanti: "Posti nelle case", "Bonus di attrattiva", "Adulti senza lavoro", "Attrattiva"; `Abitanti x/y` usa il CAP totale.
+- Misura (`tests/population.js`, 4 annate): bonus di soli 2-6 posti perché in quella mappa restano molti adulti senza lavoro (36-98): dare lavoro alza l'attrattiva. Le costanti `ATT_U` e `ATT_K` sono da tarare. Grafica non provata in un browser WebGL.
+
 ## v29 – 2026-11-27
 Funzione nuova: case e giardini di dimensioni diverse; l'ingresso guarda la strada.
 - **Case** da 3×3 fino a 6×4 celle (anche ruotate, quindi 4×6): le più piccole sono le più frequenti. Il modello 3D si allunga su un lato; se la lunghezza è 5 o 6 si affiancano due moduli (casa a schiera).
