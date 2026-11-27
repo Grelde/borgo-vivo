@@ -1,5 +1,15 @@
 # Changelog
 
+## v24 – 2026-11-27
+Cambio di regole: requisiti per far salire di livello le case (cumulativi: ogni livello richiede anche quelli precedenti).
+- **Capanna → Casa (livello 1):** almeno 1 tipo di cibo, acqua (pozzo entro 30 celle) e scorta di legna da ardere.
+- **Casa → due piani (livello 2):** in più la chiesa vicina (54 celle) e 2 tipi di cibo.
+- **Due piani → signorile (livello 3):** in più una scuola vicina (45 celle, nuova costante `SCHOOL_R`) e 3 tipi di cibo.
+- Non bloccano più la salita: quiete della zona, attrezzo di ferro e caldo d'inverno (la legna resta richiesta). Il costo in materiali resta.
+- Pannello casa: elenco "Per migliorare" e indicatori (Cibo con il numero di tipi, Scuola dal livello 3) aggiornati; suggerimenti di chiesa e scuola aggiornati.
+- Grafica: quando il giardino si amplia, la staccionata segue il contorno di tutto il giardino (base + ampliamenti) e non resta più chiusa sul quadrato originale; le celle aggiunte hanno lo stesso aspetto del giardino base (orto a file, fiori nei giardini fissi), senza piastra di terra.
+- Test: `tests/tier.js` (nessun salto senza i requisiti; senza scuola nessuna casa supera il livello 3). Grafica verificata solo con DOM finto e con un controllo geometrico della staccionata, non in un browser WebGL.
+
 ## v23 – 2026-11-27
 Funzione nuova: la legna da ardere è una specializzazione del giardino. Sostituisce la "legnaia in giardino" della v22.1.
 - Ogni giardino ha **una sola coltura**: orto, galline, allevamento oppure **legna da ardere**. Il giardino della legna non produce ortaggi né uova, e non diventa mai allevamento né bottega.
