@@ -877,7 +877,7 @@ function loadKind(v,wh){
   const c=v.carry,s=v.state;
   if(!c)return null;
   if(c==='wood'){
-    if(s==='toSite')return 'plank';
+    if(s==='toSite')return 'log';
     if(s==='toStoreC')return wh&&(v.cq|0)>=3?'cartWood':'log';
     if(s==='toWhT'||s==='toCenterT')return wh?'cartWood':'log';
     if(s==='toWork')return 'log';

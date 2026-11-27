@@ -255,7 +255,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v45.1</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v46</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -960,17 +960,20 @@ function nearestOf(type,cell,maxd){
 }
 const nearestStore=cell=>nearestOf('store',cell,600);
 // magazziniere: porta dal magazzino ai cantieri
+// v46: chi porta un carico lo prende al magazzino e lo porta a UN cantiere preciso. own=true: lo porta il costruttore di quel cantiere
+function haulTo(v,s,own){
+  const t=costRes(s);let r=null;
+  for(const k of ['wood','stone','planks'])if((t[k]||0)-s.got[k]-s.fly[k]>0&&S.stock[k]>0){r=k;break;}
+  if(!r)return false;
+  const st=nearestStore(v.cell);if(!st||!route(v,st.cell,st.id))return false;
+  S.stock[r]--;s.fly[r]++;v.task={res:r,site:s.id,own:!!own};v.state='toStore';return true;
+}
+// gli altri (non costruttori) portano il materiale prima ai cantieri che non hanno ancora un costruttore, poi agli altri
 function findHaul(v){
-  const st=nearestStore(v.cell);if(!st)return false;
-  for(const s of buildings.values()){
-    if(s.state!=='site')continue;const t=costRes(s);
-    for(const r of ['wood','stone','planks']){
-      const need=(t[r]||0)-s.got[r]-s.fly[r];
-      if(need>0&&S.stock[r]>0){
-        if(!route(v,st.cell,st.id))return false;
-        S.stock[r]--;s.fly[r]++;v.task={res:r,site:s.id};v.state='toStore';return true;
-      }
-    }
+  for(const pass of [0,1])for(const s of buildings.values()){
+    if(s.state!=='site')continue;
+    if(pass===0&&buildersAt(s.id)>0)continue;
+    if(haulTo(v,s,false))return true;
   }
   return false;
 }
@@ -1003,15 +1006,31 @@ function helpFamily(v){
   v.helpH=best.id;v.state='toHelp';return true;
 }
 function siteReady(st){const c=costRes(st);return st.got.wood>=c.wood&&st.got.stone>=c.stone&&st.got.planks>=(c.planks||0);}
-function buildersAt(id){let n=0;for(const v of villagers)if((v.state==='build'||v.state==='toBuild')&&v.target===id)n++;return n;}
+// v46: la costruzione avanza solo fin dove sono arrivati i materiali (quota di materiali consegnati sul totale)
+const siteNeed=st=>{const c=costRes(st);return (c.wood||0)+(c.stone||0)+(c.planks||0);};
+const siteGot=st=>st.got.wood+st.got.stone+(st.got.planks||0);
+const siteCap=st=>Math.min(1,siteGot(st)/Math.max(1,siteNeed(st)));
+const siteFly=st=>st.fly.wood+st.fly.stone+(st.fly.planks||0);
+const siteIdle=st=>!siteReady(st)&&st.prog>=siteCap(st)-1e-6;// niente da costruire coi materiali che ci sono
+// costruttori di un cantiere: chi costruisce, chi ci sta andando e chi è andato al magazzino a prendere i materiali per il suo cantiere
+// contati una volta a ogni passo (BA); chi diventa costruttore nello stesso passo si aggiunge subito (findBuild)
+let BA=new Map();
+function countBuilders(){BA=new Map();for(const v of villagers){
+  let id=0;
+  if((v.state==='build'||v.state==='toBuild')&&v.target)id=v.target;
+  else if((v.state==='toStore'||v.state==='toSite')&&v.task&&v.task.own)id=v.task.site;
+  if(id)BA.set(id,(BA.get(id)||0)+1);
+}}
+const buildersAt=id=>BA.get(id)||0;
 function findBuild(v,first){
-  // first=true: solo cantieri con materiali completi e ancora senza costruttori (priorità: almeno un costruttore per cantiere pronto)
+  // first=true: cantieri senza costruttore che hanno materiali da usare (o completi). Finché mancano materiali il costruttore è uno solo; coi materiali completi si aggiungono fino a 3
   for(const st of buildings.values()){
     if(st.state!=='site')continue;
-    if(!siteReady(st))continue;
-    if(first?buildersAt(st.id)>=1:buildersAt(st.id)>=3)continue;
+    if(first?siteIdle(st):!siteReady(st))continue;
+    const nb=buildersAt(st.id);
+    if(first?nb>=1:nb>=3)continue;
     if(!route(v,st.cell,st.id))continue;
-    v.target=st.id;v.state='toBuild';return true;
+    v.target=st.id;v.state='toBuild';BA.set(st.id,nb+1);return true;
   }
   return false;
 }
@@ -1535,7 +1554,10 @@ function onArrive(v){
     case 'toSite':{
       const task=v.task,s=task&&buildings.get(task.site);
       if(s&&s.state==='site'){s.got[task.res]++;s.fly[task.res]--;}else if(task)S.stock[task.res]++;
-      v.carry=null;v.task=null;v.state='idle';break;}
+      v.carry=null;v.task=null;
+      // il costruttore che ha portato il carico al suo cantiere si rimette a costruire
+      if(task&&task.own&&s&&s.state==='site'&&S.ph==='work'&&!(S.f>=DUSK&&v.home)){v.target=s.id;v.bw=0;v.state='build';}else v.state='idle';
+      break;}
   }
 }
 function endGather(v){
@@ -1597,7 +1619,15 @@ function updV(v,dt){
     case 'fest':{v.moving=false;v.timer-=dt;const fb=buildings.get(v.festB);if(v.timer<=0||!fb||!fb.fest||fb.fest.st!=='on')v.state='idle';break;}
     case 'chop':case 'mine':case 'till':
       v.timer-=dt*workRate(v);if(v.timer<=0)endGather(v);break;
-    case 'build':{v.moving=false;const bb=buildings.get(v.target);if(!bb||bb.state!=='site'||S.ph!=='work'||(S.f>=DUSK&&v.home))v.state='idle';break;}
+    case 'build':{v.moving=false;const bb=buildings.get(v.target);
+      if(!bb||bb.state!=='site'||S.ph!=='work'||(S.f>=DUSK&&v.home)){v.state='idle';v.bw=0;break;}
+      if(siteIdle(bb)){
+        // niente da costruire con i materiali arrivati: il costruttore va al magazzino a prendere quelli per il suo cantiere
+        if(haulTo(v,bb,true)){v.bw=0;break;}
+        // niente in magazzino e niente in arrivo: dopo un po' lascia il posto (si riprende il cantiere quando c'è materiale)
+        v.bw=(v.bw||0)+dt;if(v.bw>8&&siteFly(bb)===0){v.state='idle';v.bw=0;}
+      }else v.bw=0;
+      break;}
     case 'graze':v.timer-=dt*workRate(v);if(v.timer<=0){const b=buildings.get(v.job);if(b&&b.buf!==undefined)b.buf=Math.min(BUFCAP+2,b.buf+2);v.state='idle';}break;
     case 'plant':v.timer-=dt*workRate(v);if(v.timer<=0){const i=v.target;if(!tree[i]&&!sap[i]&&!occ[i]){sap[i]=1;sapT[i]=0;hooks.saps();}plantResv.delete(i);v.state='idle';}break;
     case 'shop':v.timer-=dt*workRate(v);if(v.timer<=0)endShop(v);break;
@@ -2656,19 +2686,24 @@ function decay(){
   if(any)hooks.ground();
 }
 function step(dt){
-  S.t+=dt;
+  S.t+=dt;countBuilders();
   const bc={},bm={};for(const v of villagers)if(v.state==='build'){bc[v.target]=(bc[v.target]||0)+1;const jb=v.job&&buildings.get(v.job);if(jb&&jb.type==='mason')bm[v.target]=1;}
   for(const b of buildings.values()){
     if(b.state!=='site')continue;const t=BT[b.type];
     const nb=bc[b.id]||0;
     // v32: i muratori (addetti della bottega del muratore) costruiscono il 60% più in fretta
-    if(nb>0&&siteReady(b)){b.prog+=dt/t.time*[0,1,1.7,2.2][Math.min(3,nb)]*(bm[b.id]?1.6:1);if(b.prog>=1)finish(b);}
+    if(nb>0){
+      const lim=siteCap(b);
+      if(b.prog<lim)b.prog=Math.min(lim,b.prog+dt/t.time*[0,1,1.7,2.2][Math.min(3,nb)]*(bm[b.id]?1.6:1));
+      if(b.prog>=1&&siteReady(b))finish(b);
+    }
   }
   for(const v of villagers)updV(v,dt);
   for(const g of guests.slice())updG(g,dt);
   acc.a05+=dt;if(acc.a05>=0.5){acc.a05-=0.5;decay();}
   acc.a1+=dt;if(acc.a1>=1){acc.a1-=1;acc.attr+=1;tick1();}
 }
+const RESNAME={wood:'il legno',stone:'la pietra',planks:'le assi'};
 function roleText(v){
   if(v.ill&&(v.state==='sleep'||v.state==='eat'||v.state==='wait'||v.state==='idle'))return 'Malato ('+DIS[v.ill.k].n.toLowerCase()+'): a letto';
   switch(v.state){
@@ -2680,8 +2715,10 @@ function roleText(v){
     case 'toFest':case 'fest':return 'Alla festa di paese';
     case 'toHelp':case 'helpTend':return "Aiuta un'altra famiglia";
     case 'toCollect':case 'toStoreC':return 'Porta i materiali al magazzino';
-    case 'toStore':return v.task?'Va al magazzino a prendere '+(v.task.res==='stone'?'la pietra':'il legno')+' per il cantiere':'Va al magazzino a prendere i materiali';
-    case 'toSite':return v.task?'Porta '+(v.task.res==='stone'?'la pietra':'il legno')+' al cantiere':'Porta i materiali al cantiere';
+    case 'toStore':return v.task?'Va al magazzino a prendere '+RESNAME[v.task.res]+(v.task.own?' per il suo cantiere':' per un cantiere'):'Va al magazzino a prendere i materiali';
+    case 'toSite':return v.task?'Porta '+RESNAME[v.task.res]+(v.task.own?' al suo cantiere':' al cantiere'):'Porta i materiali al cantiere';
+    case 'toBuild':return 'Va al cantiere';
+    case 'build':{const tb=buildings.get(v.target);return tb&&tb.state==='site'&&siteIdle(tb)?'Aspetta i materiali al cantiere':'Costruisce';}
     case 'toStall':case 'keep':return 'Mercante al banco';
     case 'toMarket':return 'Baratta al mercato';
     case 'toHomeT':return v.cargo?'Torna col baratto':'Torna dal mercato';
@@ -3679,7 +3716,7 @@ function loadKind(v,wh){
   const c=v.carry,s=v.state;
   if(!c)return null;
   if(c==='wood'){
-    if(s==='toSite')return 'plank';
+    if(s==='toSite')return 'log';
     if(s==='toStoreC')return wh&&(v.cq|0)>=3?'cartWood':'log';
     if(s==='toWhT'||s==='toCenterT')return wh?'cartWood':'log';
     if(s==='toWork')return 'log';

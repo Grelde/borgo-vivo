@@ -11,7 +11,8 @@ const {loadKind,loadQty}=new Function(src.slice(a,b)+';return {loadKind,loadQty}
 let fail=0;const ok=(c,m)=>{if(!c){fail++;console.log('FALLITO:',m);}};
 const T=(carry,state,cq,wh)=>loadKind({carry,state,cq},wh);
 // tabella dei carichi (v39: i carretti sono solo dei magazzinieri, wh = true)
-ok(T('wood','toSite')==='plank','legno al cantiere = assi');
+ok(T('wood','toSite')==='log','legno al cantiere = tronco sulla spalla');
+ok(T('planks','toSite')==='plank','assi al cantiere = fascio di assi');
 ok(T('stone','toSite',0,true)==='cartStone','magazziniere: pietra al cantiere = carretto di pietre');
 ok(T('stone','toSite',0,false)==='rock','altri: pietra al cantiere = sasso in braccio, mai carretto');
 ok(T('stone','toStoreC',3,true)==='cartStone','magazziniere: pietra raccolta alla cava = carretto di pietre');
@@ -38,7 +39,7 @@ const isStoreWorker=v=>{const bb=v.job&&Sim.buildings().get(v.job);return !!bb&&
 const sample=()=>{for(const v of Sim.villagers()){
   const who=isStoreWorker(v)?'store':'other';
   if(v.state==='toStore'){seen.toStore[who]++;walkToStore++;if(!roleTxt)roleTxt=Sim.roleText(v);ok(!v.carry,'verso il magazzino si va a mani vuote');}
-  if(v.state==='toSite'){seen.toSite[who]++;const k=loadKind(v,who==='store');kinds[who][k]=(kinds[who][k]||0)+1;ok(who==='store'?(k==='plank'||k==='cartStone'):(k==='plank'||k==='rock'),'carico al cantiere ('+who+'): '+k);}
+  if(v.state==='toSite'){seen.toSite[who]++;const k=loadKind(v,who==='store');kinds[who][k]=(kinds[who][k]||0)+1;ok(who==='store'?(k==='plank'||k==='log'||k==='cartStone'):(k==='plank'||k==='log'||k==='rock'),'carico al cantiere ('+who+'): '+k);}
 }};
 for(const [t,x,y] of [['wood',70,80],['quarry',130,90],['well',96,90],['plaza',100,96],['church',104,110],['school',96,100]])put(t,x,y,30);
 for(let i=0;i<Sim.DAY*6/0.2;i++){Sim.step(0.2);sample();if(i%20===0){S.stock.wood=Math.max(S.stock.wood,150);S.stock.stone=Math.max(S.stock.stone,100);}}
