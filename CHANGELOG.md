@@ -1,5 +1,17 @@
 # Changelog
 
+## v40 – 2026-11-27
+Funzione nuova: salvataggio e caricamento della partita.
+- **Posti di salvataggio** nella memoria del browser: un salvataggio **automatico** (ogni minuto, quando la scheda va in secondo piano e quando la pagina si chiude) e tre **posti manuali**. Pulsante 💾 accanto ai comandi della mappa (o **Ctrl+S**, che salva nel posto 1); per ogni posto si vede data di gioco, abitanti, livello e quando è stato salvato, con Salva / Carica / Elimina e conferma prima di sovrascrivere o sostituire la partita in corso.
+- **Schermata iniziale:** se esiste un salvataggio compare "Continua la partita" (carica il più recente) e "Salvataggi". Iniziare una nuova partita con un automatico già presente chiede conferma, perché lo sostituirebbe entro un minuto (i posti 1-3 non cambiano).
+- **Esporta / Importa in un file `.json`:** per portare la partita su un altro dispositivo (telefono compreso) o tenerne una copia fuori dal browser.
+- **Che cosa si salva:** tutta la simulazione (mappa con alberi, rocce, strade e sentieri, zone, edifici con le loro regole, abitanti con mestiere, bravura e famiglia, registro anagrafico, viandanti, scorte, editti, stagione e calendario) più livello e obiettivi, telecamera e velocità. Non si salvano i modelli 3D: si ricostruiscono dal caricamento.
+- **Sicurezza:** un salvataggio rovinato, incompleto o creato da una versione più recente viene rifiutato con un messaggio e la partita in corso resta intatta (la validazione avviene prima di toccare lo stato). Se la memoria del browser è piena compare un avviso che suggerisce di eliminare un posto o esportare in un file.
+- **Compatibilità futura:** il file porta `fmt` (formato, oggi 1) e la versione del gioco. Ogni versione nuova che aggiunge campi allo stato deve dare loro un valore di riserva in `Sim.importState`, così i salvataggi vecchi restano caricabili; `fmt` si incrementa solo se il formato diventa illeggibile alle versioni precedenti.
+- Codice: `Sim.exportState()` / `Sim.importState(d)` in `src/sim.js` (griglie compresse a run + base64, resto JSON); interfaccia in `src/render.js` (blocco "salvataggi") e `src/head.html`.
+- Test: `tests/save.js` (ciclo esporta → importa → riesporta identico byte per byte, nessun numero non finito, 15 giorni di simulazione dopo il caricamento, 12 salvataggi rovinati rifiutati con la partita intatta, hook della grafica) e `tests/save-render.js` (posti, Ctrl+S, automatico alla chiusura, memoria piena, esportazione, nessun errore nei fotogrammi dopo il caricamento). Gli altri test restano verdi.
+- Limiti: interfaccia (dialogo, pulsanti, download e scelta del file) verificata solo con DOM finto, non in un browser vero: va provata aprendo il gioco, anche da telefono. Un salvataggio pesa circa 2 KB per abitante (≈170 KB a 100 abitanti): il browser concede ~5 MB per sito, quindi quattro posti bastano fino a borghi di qualche centinaio di abitanti, oltre conviene esportare in un file. Nel salvataggio non c'è un seme casuale: dopo il caricamento gli eventi casuali (nascite, malattie, arrivi) seguono strade diverse da quelle della partita originale.
+
 ## v39.1 – 2026-11-27
 Ritocco: giardini generici (fissi) più belli, senza uova; ampliamento più lungo.
 - **Niente uova nel giardino generico:** un giardino fisso è orto e fiori, mai galline (né animali); le celle aggiunte sono prato fiorito con cespugli e alberelli, non righe di orto.

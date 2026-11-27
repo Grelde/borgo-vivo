@@ -1250,7 +1250,9 @@ cv.addEventListener('pointerleave',e=>{if(e.pointerType!=='touch')hover=null;});
 cv.addEventListener('wheel',e=>{e.preventDefault();cam.goal=Math.max(16,Math.min(150,cam.goal*Math.exp(e.deltaY*0.0012)));},{passive:false});
 const TK={};TOOLS.forEach(t=>{if(t.key)TK[t.key]=t.id;});
 addEventListener('keydown',e=>{
-  const k=e.key.toLowerCase();keys[k]=true;
+  const k=e.key.toLowerCase();
+  if((e.ctrlKey||e.metaKey)&&k==='s'){e.preventDefault();quickSave();return;}
+  keys[k]=true;
   if(TK[k])setTool(TK[k]);
   if(k==='r'&&BT[tool]&&!NOGATE[tool]){rotate();}
   if(k==='v')toggleAttr();
@@ -1324,10 +1326,10 @@ const LEVELS=[
     {txt:'Traccia 25 tratti di strada',cur:s=>s.roads,n:25}]}
 ];
 let lvl=0,goalEls=[],cleared=false;
-function showLevel(){
+function showLevel(silent){
   const L0=LEVELS[lvl];$('lvlTitle').textContent=`Livello ${lvl+1} · ${L0.title}`;
   const ul=$('goals');ul.innerHTML='';goalEls=L0.goals.map(gl=>{const li=document.createElement('li');li.innerHTML=`<span>${gl.txt}</span><em></em>`;ul.appendChild(li);return li;});
-  cleared=false;toast(L0.intro);
+  cleared=false;if(!silent)toast(L0.intro);
 }
 function checkGoals(st){
   const L0=LEVELS[lvl];let all=true;
@@ -1562,15 +1564,120 @@ const STORY=[
  {t:'La valle',x:"Dopo undici giorni di strada la nebbia si apre. Boschi fitti, rocce, e qualche vena di ferro che luccica nelle pendici. Il capocarovana, che sei tu, sa che la primavera è appena cominciata: se si danno da fare, il primo raccolto arriverà prima del gelo."},
  {t:'Dove ci fermiamo?',x:"Anselmo ricorda due valli sulla sua mappa. Una ha un lago tranquillo, ricco di pesce. L'altra è attraversata da un fiume che si guada soltanto in due punti. Scegli dove piantare i pali del primo recinto.",choice:true}
 ];
+// ---------- salvataggi (v40) ----------
+// Posti: 'auto' (automatico, ogni minuto e quando la pagina si chiude) e 1-3 (manuali), nella memoria del browser (localStorage).
+// Ogni salvataggio contiene lo stato della simulazione (Sim.exportState) e quello dell'interfaccia (livello, telecamera, velocità).
+// Si può anche esportare in un file .json e importarlo su un altro dispositivo.
+const SAVE_PFX='borgovivo.slot.',SAVE_SLOTS=['auto','1','2','3'],SAVE_APP='borgo-vivo',GAME_VER=($('ver').textContent||'').replace(/^v/,'');
+let lastAuto=performance.now(),saveErrShown=false;
+function makeSave(){
+  return {app:SAVE_APP,ver:GAME_VER,at:Date.now(),
+    meta:{pop:Sim.villagers().length,date:Sim.dateStr(S.t),day:S.day,lvl:lvl+1,mode:S.mode},
+    ui:{lvl,cleared,speed,cam:{x:cam.x,z:cam.z,yaw:cam.yaw,pitch:cam.pitch,dist:cam.dist,goal:cam.goal}},
+    sim:Sim.exportState()};
+}
+function writeSlot(k,quiet){
+  try{localStorage.setItem(SAVE_PFX+k,JSON.stringify(makeSave()));saveErrShown=false;return true;}
+  catch(e){console.error(e);if(!quiet||!saveErrShown){saveErrShown=true;toast('Salvataggio non riuscito: lo spazio del browser è pieno o bloccato. Elimina un salvataggio, oppure usa "Esporta in un file".',true);}return false;}
+}
+function readSlot(k){
+  try{const t=localStorage.getItem(SAVE_PFX+k);if(!t)return null;const w=JSON.parse(t);return w&&w.app===SAVE_APP&&w.sim?w:null;}catch(e){return null;}
+}
+function newestSave(){let best=null;for(const k of SAVE_SLOTS){const w=readSlot(k);if(w&&(!best||w.at>best.at))best=w;}return best;}
+function applySave(w){
+  if(!w||w.app!==SAVE_APP||!w.sim)throw new Error('Questo file non è un salvataggio di Borgo Vivo.');
+  Sim.importState(w.sim); // se il salvataggio è rovinato lancia un errore prima di toccare la partita in corso
+  const u=w.ui||{};
+  started=true;$('story').hidden=true;$('modal').hidden=true;
+  closeCard();closePop();select(null);openEdicts(false);openSaves(false);
+  lvl=Math.max(0,Math.min(LEVELS.length-1,u.lvl|0));showLevel(true);cleared=lvl===LEVELS.length-1&&!!u.cleared;
+  const c=u.cam;if(c&&['x','z','yaw','pitch','dist','goal'].every(k=>Number.isFinite(c[k])))Object.assign(cam,{x:c.x,z:c.z,yaw:c.yaw,pitch:c.pitch,dist:c.dist,goal:c.goal});
+  Music.start();setSpeed(u.speed===0?0:u.speed===3?3:1);
+  if(treesDirty)rebuildTrees();if(rocksDirty)rebuildRocks();if(sapsDirty)rebuildSaps();groundDirty=true;
+  lastAuto=performance.now();
+}
+const askOk=m=>typeof confirm!=='function'||confirm(m);
+function saveInfo(w){
+  const m=w.meta||{},d=new Date(w.at),when=isNaN(d)?'':d.toLocaleString('it-IT',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  return `${esc(m.date||'')} · ${m.pop|0} abitanti · livello ${m.lvl|0}<br>salvato ${esc(when)}`;
+}
+function renderSaves(){
+  $('svList').innerHTML=SAVE_SLOTS.map(k=>{
+    const w=readSlot(k),name=k==='auto'?'Salvataggio automatico':'Posto '+k;
+    const btns=(k==='auto'?'':`<button class="btn" type="button" data-sv="save" data-k="${k}"${started?'':' disabled'}>Salva</button>`)+(w?`<button class="btn" type="button" data-sv="load" data-k="${k}">Carica</button>`:'')+(w&&k!=='auto'?`<button class="btn danger" type="button" data-sv="del" data-k="${k}">Elimina</button>`:'');
+    return `<div class="svC${w?'':' empty'}"><div><b>${name}</b><span class="d">${w?saveInfo(w):'Vuoto'}</span></div><div class="svB">${btns}</div></div>`;
+  }).join('');
+  $('svExport').disabled=!started;
+}
+function openSaves(v){$('saves').hidden=!v;$('saveBtn').classList.toggle('on',!!v);if(v)renderSaves();}
+function saveTo(k){
+  if(!started)return;
+  if(readSlot(k)&&!askOk('Sovrascrivere il salvataggio nel posto '+k+'?'))return;
+  if(writeSlot(k))toast('Partita salvata nel posto '+k+'.');
+  renderSaves();
+}
+function quickSave(){if(started)saveTo('1');}
+function loadFrom(k){
+  const w=readSlot(k);if(!w){toast('Salvataggio non trovato o rovinato.',true);renderSaves();return;}
+  if(started&&!askOk('Caricare questo salvataggio? La partita in corso andrà persa se non l\'hai salvata.'))return;
+  try{applySave(w);toast('Partita caricata.');}catch(e){console.error(e);toast(e.message||'Caricamento non riuscito.',true);}
+}
+function exportFile(){
+  if(!started)return;
+  try{
+    const blob=new Blob([JSON.stringify(makeSave())],{type:'application/json'}),a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download=`borgo-vivo-annata${S.year}-giorno${S.day+1}.json`;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    toast('Salvataggio esportato in un file.');
+  }catch(e){console.error(e);toast('Esportazione non riuscita.',true);}
+}
+function importFile(){
+  const inp=document.createElement('input');inp.type='file';inp.accept='.json,application/json';
+  inp.addEventListener('change',()=>{
+    const f=inp.files&&inp.files[0];if(!f)return;
+    const rd=new FileReader();
+    rd.onload=()=>{
+      let w;try{w=JSON.parse(rd.result);}catch(e){toast('Il file non è un salvataggio valido.',true);return;}
+      if(started&&!askOk('Caricare questo file? La partita in corso andrà persa se non l\'hai salvata.'))return;
+      try{applySave(w);toast('Partita caricata dal file.');}catch(e){console.error(e);toast(e.message||'Caricamento non riuscito.',true);}
+    };
+    rd.onerror=()=>toast('Impossibile leggere il file.',true);
+    rd.readAsText(f);
+  });
+  inp.click();
+}
+$('saveBtn').addEventListener('click',()=>openSaves($('saves').hidden));
+$('svClose').addEventListener('click',()=>openSaves(false));
+$('svExport').addEventListener('click',exportFile);
+$('svImport').addEventListener('click',importFile);
+$('svList').addEventListener('click',e=>{
+  const b=e.target.closest&&e.target.closest('[data-sv]');if(!b||b.disabled)return;
+  const k=b.dataset.k,a=b.dataset.sv;
+  if(a==='save')saveTo(k);else if(a==='load')loadFrom(k);
+  else if(a==='del'&&askOk('Eliminare il salvataggio nel posto '+k+'?')){try{localStorage.removeItem(SAVE_PFX+k);}catch(err){}renderSaves();}
+});
+// salvataggio automatico: ogni minuto, quando la scheda va in secondo piano e quando la pagina si chiude
+function autoSave(){if(started)writeSlot('auto',true);}
+addEventListener('pagehide',autoSave);
+if(document.addEventListener)document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')autoSave();});
 let sIdx=0;
 function showStory(){
   const sc=STORY[sIdx];$('sTitle').textContent=sc.t;$('sText').textContent=sc.x;$('sBtns').innerHTML='';
   if(sc.choice){
     for(const [m,l] of[['lake','Il lago'],['river','Il fiume']]){const b=document.createElement('button');b.className='btn';b.type='button';b.textContent=l;b.addEventListener('click',()=>begin(m));$('sBtns').appendChild(b);}
-  }else{const b=document.createElement('button');b.className='btn';b.type='button';b.textContent=sIdx===0?'Inizia':'Avanti';b.addEventListener('click',()=>{Music.start();sIdx++;showStory();});$('sBtns').appendChild(b);}
+  }else{
+    const mk=(txt,fn)=>{const b=document.createElement('button');b.className='btn';b.type='button';b.textContent=txt;b.addEventListener('click',fn);$('sBtns').appendChild(b);};
+    mk(sIdx===0?'Inizia':'Avanti',()=>{Music.start();sIdx++;showStory();});
+    if(sIdx===0){
+      const best=newestSave();
+      if(best)mk('Continua la partita',()=>{try{applySave(best);}catch(e){console.error(e);toast(e.message||'Caricamento non riuscito.',true);}});
+      mk('Salvataggi',()=>openSaves(true));
+    }
+  }
 }
 function begin(mode){
-  Music.start();$('story').hidden=true;
+  if(readSlot('auto')&&!askOk('Esiste già un salvataggio automatico: una nuova partita lo sostituirà entro un minuto (i posti 1-3 non cambiano). Iniziare comunque?'))return;
+  Music.start();$('story').hidden=true;lastAuto=performance.now();
   Sim.init(7,mode);started=true;if(COARSE)setTimeout(()=>toast('Un dito: sposta la mappa. Due dita: pizzica per zoomare, ruota per girare. Scegli una categoria e uno strumento in basso.'),7000);
   if(treesDirty)rebuildTrees();if(rocksDirty)rebuildRocks();if(sapsDirty)rebuildSaps();groundDirty=true;
   showLevel();
@@ -1581,6 +1688,7 @@ function frame(now){requestAnimationFrame(frame);try{frame2(now);}catch(e){conso
 function frame2(now){
   const dt=Math.min(0.1,(now-last)/1000);last=now;clock+=dt;
   if(started&&speed>0){let rem=dt*speed;while(rem>0){const d=Math.min(0.05,rem);Sim.step(d);rem-=d;}}
+  if(started&&now-lastAuto>60000){lastAuto=now;writeSlot('auto',true);}
   updateCam(dt);
   if(treesDirty)rebuildTrees();if(rocksDirty)rebuildRocks();if(sapsDirty)rebuildSaps();
   if(groundDirty&&now-lastGround>350){drawGround();groundDirty=false;lastGround=now;}

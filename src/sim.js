@@ -2023,7 +2023,66 @@ function stats(){
     avgAttr:houses?asum/houses:0,maxAttr:houses?amax:0,day:S.day,ph:S.ph,f:S.f,herds,crafters,bakers,fishers,hunters,tools,saps,weavers,tailors,clothes,season:S.season,year:S.year,visits:S.visits,settled:S.settled,guests:guests.length,children:kids,schooled,births:S.births,deaths:S.deaths,buried:S.buried,
     sick,plagueN,plague:S.plague.on,avgWell:houses?wsum/houses:0,avgJoy:villagers.length?villagers.reduce((a,v)=>a+v.joy,0)/villagers.length:0,unhappy:villagers.filter(v=>v.joy<35).length,left:S.left,fire,fireNeed,inherits:S.inherits,cured:S.cured,moves:S.moves,deathsBy:S.deathsBy,pupils};
 }
-return {SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
+// ---- v40: salvataggio e caricamento della partita ----
+// exportState() restituisce un oggetto pronto per JSON.stringify (da serializzare subito: contiene riferimenti allo stato vivo).
+// importState(d) ricostruisce la partita: valida e decodifica tutto PRIMA di toccare lo stato, così un salvataggio rovinato non rovina la partita in corso.
+// Compatibilità: SAVE_FMT cambia solo se il formato diventa illeggibile dalle versioni precedenti; i campi nuovi si aggiungono con un valore di riserva in importState.
+const SAVE_FMT=1;
+const SAVE_GRIDS={tree,rock,ore,water,sap,road,dist,occ,field,door,cen,gate,wear,sapT,plev,phit,pexp};
+function b64enc(u8){let s='';for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s);}
+function b64dec(str){const s=atob(str),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u;}
+// griglie: compressione a run (lunghezza,byte) sui byte grezzi, poi base64
+function packGrid(a){const u=new Uint8Array(a.buffer,a.byteOffset,a.byteLength),out=[];let i=0;while(i<u.length){const v=u[i];let r=1;while(r<255&&i+r<u.length&&u[i+r]===v)r++;out.push(r,v);i+=r;}return b64enc(Uint8Array.from(out));}
+function unpackGrid(a,str){const p=b64dec(str),u=new Uint8Array(a.buffer,a.byteOffset,a.byteLength);let o=0;for(let i=0;i+1<p.length;i+=2){const r=p[i];if(r===0||o+r>u.length)throw new Error('griglia rovinata');u.fill(p[i+1],o,o+r);o+=r;}if(o!==u.length)throw new Error('griglia rovinata');}
+function exportState(){
+  const grids={};for(const k in SAVE_GRIDS)grids[k]=packGrid(SAVE_GRIDS[k]);
+  return {fmt:SAVE_FMT,seed,nextId,S,acc,told,gated:[...gatedSet],reg:[...reg.entries()],resv:[...resv.entries()],plantResv:[...plantResv],guests,buildings:[...buildings.values()],villagers,grids};
+}
+function importState(d){
+  const bad=m=>{throw new Error('Salvataggio non valido: '+m);};
+  if(!d||typeof d!=='object')bad('dati assenti');
+  if(d.fmt!==SAVE_FMT)bad(d.fmt>SAVE_FMT?'creato da una versione più recente del gioco':'formato sconosciuto');
+  for(const k of ['buildings','villagers','guests','gated','reg','resv','plantResv'])if(!Array.isArray(d[k]))bad('manca '+k);
+  if(!d.S||typeof d.S!=='object'||!d.acc||!d.told||!d.grids||typeof d.grids!=='object')bad('struttura incompleta');
+  if(!Number.isFinite(d.seed)||!Number.isFinite(d.nextId))bad('numeri non validi');
+  const tmp={};
+  for(const k in SAVE_GRIDS){if(typeof d.grids[k]!=='string')bad('manca la griglia '+k);tmp[k]=new SAVE_GRIDS[k].constructor(N*N);try{unpackGrid(tmp[k],d.grids[k]);}catch(e){bad('griglia '+k+' rovinata');}}
+  const cp=x=>JSON.parse(JSON.stringify(x));
+  const bl=cp(d.buildings),vl=cp(d.villagers),gl=cp(d.guests),Sx=cp(d.S),ac=cp(d.acc),tl=cp(d.told),ga=cp(d.gated),rg=cp(d.reg),rv=cp(d.resv),pr=cp(d.plantResv);
+  const ids=new Set();
+  for(const b of bl){if(!b||!Number.isInteger(b.id)||!BT[b.type]||!Number.isFinite(b.x)||!Number.isFinite(b.y)||ids.has(b.id))bad('edificio non valido');ids.add(b.id);}
+  for(const v of vl){if(!v||!Number.isInteger(v.id)||!Number.isFinite(v.x)||!Number.isFinite(v.z)||ids.has(v.id))bad('abitante non valido');ids.add(v.id);}
+  for(const g of gl){if(!g||!Number.isInteger(g.id)||!Number.isFinite(g.x)||!Number.isFinite(g.z)||ids.has(g.id))bad('viandante non valido');ids.add(g.id);}
+  for(const i of ids)if(i>=d.nextId)bad('numerazione incoerente');
+  if(typeof Sx.stock!=='object'||!Sx.stock||!Number.isFinite(Sx.t))bad('stato del borgo incompleto');
+  // --- da qui lo stato cambia: la grafica viene svuotata e poi ricostruita dagli hook
+  for(const b of buildings.values())hooks.removed(b);
+  for(const v of villagers)hooks.gone(v);
+  for(const g of guests)hooks.gone(g);
+  for(const k in SAVE_GRIDS)SAVE_GRIDS[k].set(tmp[k]);
+  seed=d.seed;for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;jit[i]=hash(x,y+500)*0.15;}
+  for(const k of Object.keys(S))delete S[k];
+  Object.assign(S,Sx);
+  S.edicts=Object.assign(EDICT0(),S.edicts);S.stock=Object.assign({wood:0,stone:0,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0},S.stock);
+  for(const k of ['wh','xf','inflight'])S[k]=Object.assign({wood:0,stone:0,iron:0},S[k]);
+  S.mode=S.mode==='river'?'river':'lake';
+  for(const k of Object.keys(acc))delete acc[k];Object.assign(acc,{a1:0,a05:0,farm:0,attr:99},ac);
+  for(const k of Object.keys(told))delete told[k];Object.assign(told,tl);
+  gatedSet.clear();for(const i of ga)gatedSet.add(i);
+  reg.clear();for(const [k,r] of rg)reg.set(k,r);
+  resv.clear();for(const [k,r] of rv)resv.set(k,r);
+  plantResv.clear();for(const i of pr)plantResv.add(i);
+  buildings.clear();for(const b of bl)buildings.set(b.id,b);
+  villagers=vl;vmap.clear();for(const v of vl)vmap.set(v.id,v);
+  guests.length=0;for(const g of gl)guests.push(g);
+  nextId=d.nextId;stCache=null;connCache.clear();connStamp=-1;occStamp++;
+  computeAttr();
+  for(const b of buildings.values())hooks.building(b);
+  for(const v of villagers)hooks.villager(v);
+  for(const g of guests)hooks.villager(g);
+  hooks.trees();hooks.rocks();hooks.saps();hooks.ground();
+}
+return {SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,
   STORE_KEYS,GRAN_KEYS,GRAN_TOTAL,CENTER_CAP,setPolicy,storeInfo,stockRoom,capRes,

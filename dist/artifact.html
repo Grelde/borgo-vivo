@@ -62,6 +62,19 @@ body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--seri
 .edC.on .btn{background:#8c2f23}
 .edC.lock{opacity:.55;border-style:dashed}
 .edBox .x{display:block;margin:10px auto 0}
+/* salvataggi (v40) */
+#saves{position:absolute;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(12,8,3,.62);padding:12px}
+#saves[hidden]{display:none}
+.svC{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:10px 12px;margin:8px 0;border:1px solid rgba(90,60,25,.45);border-radius:5px;background:rgba(255,246,214,.55)}
+.svC b{display:block;font-family:Georgia,serif;font-size:16px;color:#3a1f0c}
+.svC span.d{display:block;font-size:13px;line-height:1.35;margin-top:2px}
+.svC.empty{opacity:.7;border-style:dashed}
+.svB{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.svC .btn,.svF .btn{background:#5a3c1c;color:#fff0cc;border-color:#3a2410;min-width:70px}
+.svC .btn.danger{background:#8c2f23;color:#fff0cc}
+.svC .btn:disabled{opacity:.45;cursor:default}
+.svF{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+@media (max-width:560px){.svC{grid-template-columns:1fr}.svB{justify-content:flex-start}.svC .btn,.svF .btn{min-height:44px}}
 @media (max-width:560px){.edC{grid-template-columns:44px 1fr}.edC .ic{width:42px;height:42px;font-size:22px}.edC .btn{grid-column:1/-1}}
 #camctl{position:absolute;top:104px;right:16px;display:flex;flex-direction:column;gap:5px}
 #camctl .btn{width:36px;height:36px;padding:0;font-size:18px;line-height:1}
@@ -228,7 +241,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v39.1</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v40</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -256,6 +269,9 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
   <div id="edicts" hidden role="dialog" aria-label="Editti">
     <div class="edBox"><h2>Editti del Borgo</h2><p class="sub">La tua parola è legge: emana un editto, o ritiralo quando vuoi.</p><div id="edList"></div><button class="btn x" id="edClose" type="button">Chiudi</button></div>
   </div>
+  <div id="saves" hidden role="dialog" aria-label="Salvataggi">
+    <div class="edBox"><h2>Salvataggi</h2><p class="sub">Il borgo si salva da solo ogni minuto e quando chiudi la pagina. Qui puoi tenere anche salvataggi tuoi, o portare la partita su un altro dispositivo con un file.</p><div id="svList"></div><div class="svF"><button class="btn" id="svExport" type="button">Esporta in un file</button><button class="btn" id="svImport" type="button">Importa da un file</button></div><button class="btn x" id="svClose" type="button">Chiudi</button></div>
+  </div>
   <div id="card" hidden role="dialog" aria-label="Scheda abitante">
     <div class="cardBox"><div id="cardBody"></div><div class="acts"><button class="btn" id="cardHome" type="button">Vai alla casa</button><button class="btn" id="cardClose" type="button">Chiudi</button></div></div>
   </div>
@@ -269,6 +285,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
     <button class="btn" id="camOut" title="Allontana">−</button>
     <button class="btn" id="rotBtn" title="Ruota l'edificio (R): la freccia gialla indica l'ingresso" style="display:none">⟳</button>
     <button class="btn" id="edictBtn" title="Emana Editto: decreti del borgo">📜</button>
+    <button class="btn" id="saveBtn" title="Salvataggi (Ctrl+S salva nel posto 1)">💾</button>
     <button class="btn on" id="zoneBtn" title="Zone di caccia e pesca (J): icona arco e freccia = caccia, icona pesce = pesca">🏹</button>
     <button class="btn" id="attrBtn" title="Mappa dell'attrattiva (V): verde piacevole, rosso rumoroso">☺</button>
   </div>
@@ -2317,7 +2334,66 @@ function stats(){
     avgAttr:houses?asum/houses:0,maxAttr:houses?amax:0,day:S.day,ph:S.ph,f:S.f,herds,crafters,bakers,fishers,hunters,tools,saps,weavers,tailors,clothes,season:S.season,year:S.year,visits:S.visits,settled:S.settled,guests:guests.length,children:kids,schooled,births:S.births,deaths:S.deaths,buried:S.buried,
     sick,plagueN,plague:S.plague.on,avgWell:houses?wsum/houses:0,avgJoy:villagers.length?villagers.reduce((a,v)=>a+v.joy,0)/villagers.length:0,unhappy:villagers.filter(v=>v.joy<35).length,left:S.left,fire,fireNeed,inherits:S.inherits,cured:S.cured,moves:S.moves,deathsBy:S.deathsBy,pupils};
 }
-return {SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
+// ---- v40: salvataggio e caricamento della partita ----
+// exportState() restituisce un oggetto pronto per JSON.stringify (da serializzare subito: contiene riferimenti allo stato vivo).
+// importState(d) ricostruisce la partita: valida e decodifica tutto PRIMA di toccare lo stato, così un salvataggio rovinato non rovina la partita in corso.
+// Compatibilità: SAVE_FMT cambia solo se il formato diventa illeggibile dalle versioni precedenti; i campi nuovi si aggiungono con un valore di riserva in importState.
+const SAVE_FMT=1;
+const SAVE_GRIDS={tree,rock,ore,water,sap,road,dist,occ,field,door,cen,gate,wear,sapT,plev,phit,pexp};
+function b64enc(u8){let s='';for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s);}
+function b64dec(str){const s=atob(str),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u;}
+// griglie: compressione a run (lunghezza,byte) sui byte grezzi, poi base64
+function packGrid(a){const u=new Uint8Array(a.buffer,a.byteOffset,a.byteLength),out=[];let i=0;while(i<u.length){const v=u[i];let r=1;while(r<255&&i+r<u.length&&u[i+r]===v)r++;out.push(r,v);i+=r;}return b64enc(Uint8Array.from(out));}
+function unpackGrid(a,str){const p=b64dec(str),u=new Uint8Array(a.buffer,a.byteOffset,a.byteLength);let o=0;for(let i=0;i+1<p.length;i+=2){const r=p[i];if(r===0||o+r>u.length)throw new Error('griglia rovinata');u.fill(p[i+1],o,o+r);o+=r;}if(o!==u.length)throw new Error('griglia rovinata');}
+function exportState(){
+  const grids={};for(const k in SAVE_GRIDS)grids[k]=packGrid(SAVE_GRIDS[k]);
+  return {fmt:SAVE_FMT,seed,nextId,S,acc,told,gated:[...gatedSet],reg:[...reg.entries()],resv:[...resv.entries()],plantResv:[...plantResv],guests,buildings:[...buildings.values()],villagers,grids};
+}
+function importState(d){
+  const bad=m=>{throw new Error('Salvataggio non valido: '+m);};
+  if(!d||typeof d!=='object')bad('dati assenti');
+  if(d.fmt!==SAVE_FMT)bad(d.fmt>SAVE_FMT?'creato da una versione più recente del gioco':'formato sconosciuto');
+  for(const k of ['buildings','villagers','guests','gated','reg','resv','plantResv'])if(!Array.isArray(d[k]))bad('manca '+k);
+  if(!d.S||typeof d.S!=='object'||!d.acc||!d.told||!d.grids||typeof d.grids!=='object')bad('struttura incompleta');
+  if(!Number.isFinite(d.seed)||!Number.isFinite(d.nextId))bad('numeri non validi');
+  const tmp={};
+  for(const k in SAVE_GRIDS){if(typeof d.grids[k]!=='string')bad('manca la griglia '+k);tmp[k]=new SAVE_GRIDS[k].constructor(N*N);try{unpackGrid(tmp[k],d.grids[k]);}catch(e){bad('griglia '+k+' rovinata');}}
+  const cp=x=>JSON.parse(JSON.stringify(x));
+  const bl=cp(d.buildings),vl=cp(d.villagers),gl=cp(d.guests),Sx=cp(d.S),ac=cp(d.acc),tl=cp(d.told),ga=cp(d.gated),rg=cp(d.reg),rv=cp(d.resv),pr=cp(d.plantResv);
+  const ids=new Set();
+  for(const b of bl){if(!b||!Number.isInteger(b.id)||!BT[b.type]||!Number.isFinite(b.x)||!Number.isFinite(b.y)||ids.has(b.id))bad('edificio non valido');ids.add(b.id);}
+  for(const v of vl){if(!v||!Number.isInteger(v.id)||!Number.isFinite(v.x)||!Number.isFinite(v.z)||ids.has(v.id))bad('abitante non valido');ids.add(v.id);}
+  for(const g of gl){if(!g||!Number.isInteger(g.id)||!Number.isFinite(g.x)||!Number.isFinite(g.z)||ids.has(g.id))bad('viandante non valido');ids.add(g.id);}
+  for(const i of ids)if(i>=d.nextId)bad('numerazione incoerente');
+  if(typeof Sx.stock!=='object'||!Sx.stock||!Number.isFinite(Sx.t))bad('stato del borgo incompleto');
+  // --- da qui lo stato cambia: la grafica viene svuotata e poi ricostruita dagli hook
+  for(const b of buildings.values())hooks.removed(b);
+  for(const v of villagers)hooks.gone(v);
+  for(const g of guests)hooks.gone(g);
+  for(const k in SAVE_GRIDS)SAVE_GRIDS[k].set(tmp[k]);
+  seed=d.seed;for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;jit[i]=hash(x,y+500)*0.15;}
+  for(const k of Object.keys(S))delete S[k];
+  Object.assign(S,Sx);
+  S.edicts=Object.assign(EDICT0(),S.edicts);S.stock=Object.assign({wood:0,stone:0,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0},S.stock);
+  for(const k of ['wh','xf','inflight'])S[k]=Object.assign({wood:0,stone:0,iron:0},S[k]);
+  S.mode=S.mode==='river'?'river':'lake';
+  for(const k of Object.keys(acc))delete acc[k];Object.assign(acc,{a1:0,a05:0,farm:0,attr:99},ac);
+  for(const k of Object.keys(told))delete told[k];Object.assign(told,tl);
+  gatedSet.clear();for(const i of ga)gatedSet.add(i);
+  reg.clear();for(const [k,r] of rg)reg.set(k,r);
+  resv.clear();for(const [k,r] of rv)resv.set(k,r);
+  plantResv.clear();for(const i of pr)plantResv.add(i);
+  buildings.clear();for(const b of bl)buildings.set(b.id,b);
+  villagers=vl;vmap.clear();for(const v of vl)vmap.set(v.id,v);
+  guests.length=0;for(const g of gl)guests.push(g);
+  nextId=d.nextId;stCache=null;connCache.clear();connStamp=-1;occStamp++;
+  computeAttr();
+  for(const b of buildings.values())hooks.building(b);
+  for(const v of villagers)hooks.villager(v);
+  for(const g of guests)hooks.villager(g);
+  hooks.trees();hooks.rocks();hooks.saps();hooks.ground();
+}
+return {SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,
   STORE_KEYS,GRAN_KEYS,GRAN_TOTAL,CENTER_CAP,setPolicy,storeInfo,stockRoom,capRes,
@@ -3577,7 +3653,9 @@ cv.addEventListener('pointerleave',e=>{if(e.pointerType!=='touch')hover=null;});
 cv.addEventListener('wheel',e=>{e.preventDefault();cam.goal=Math.max(16,Math.min(150,cam.goal*Math.exp(e.deltaY*0.0012)));},{passive:false});
 const TK={};TOOLS.forEach(t=>{if(t.key)TK[t.key]=t.id;});
 addEventListener('keydown',e=>{
-  const k=e.key.toLowerCase();keys[k]=true;
+  const k=e.key.toLowerCase();
+  if((e.ctrlKey||e.metaKey)&&k==='s'){e.preventDefault();quickSave();return;}
+  keys[k]=true;
   if(TK[k])setTool(TK[k]);
   if(k==='r'&&BT[tool]&&!NOGATE[tool]){rotate();}
   if(k==='v')toggleAttr();
@@ -3651,10 +3729,10 @@ const LEVELS=[
     {txt:'Traccia 25 tratti di strada',cur:s=>s.roads,n:25}]}
 ];
 let lvl=0,goalEls=[],cleared=false;
-function showLevel(){
+function showLevel(silent){
   const L0=LEVELS[lvl];$('lvlTitle').textContent=`Livello ${lvl+1} · ${L0.title}`;
   const ul=$('goals');ul.innerHTML='';goalEls=L0.goals.map(gl=>{const li=document.createElement('li');li.innerHTML=`<span>${gl.txt}</span><em></em>`;ul.appendChild(li);return li;});
-  cleared=false;toast(L0.intro);
+  cleared=false;if(!silent)toast(L0.intro);
 }
 function checkGoals(st){
   const L0=LEVELS[lvl];let all=true;
@@ -3889,15 +3967,120 @@ const STORY=[
  {t:'La valle',x:"Dopo undici giorni di strada la nebbia si apre. Boschi fitti, rocce, e qualche vena di ferro che luccica nelle pendici. Il capocarovana, che sei tu, sa che la primavera è appena cominciata: se si danno da fare, il primo raccolto arriverà prima del gelo."},
  {t:'Dove ci fermiamo?',x:"Anselmo ricorda due valli sulla sua mappa. Una ha un lago tranquillo, ricco di pesce. L'altra è attraversata da un fiume che si guada soltanto in due punti. Scegli dove piantare i pali del primo recinto.",choice:true}
 ];
+// ---------- salvataggi (v40) ----------
+// Posti: 'auto' (automatico, ogni minuto e quando la pagina si chiude) e 1-3 (manuali), nella memoria del browser (localStorage).
+// Ogni salvataggio contiene lo stato della simulazione (Sim.exportState) e quello dell'interfaccia (livello, telecamera, velocità).
+// Si può anche esportare in un file .json e importarlo su un altro dispositivo.
+const SAVE_PFX='borgovivo.slot.',SAVE_SLOTS=['auto','1','2','3'],SAVE_APP='borgo-vivo',GAME_VER=($('ver').textContent||'').replace(/^v/,'');
+let lastAuto=performance.now(),saveErrShown=false;
+function makeSave(){
+  return {app:SAVE_APP,ver:GAME_VER,at:Date.now(),
+    meta:{pop:Sim.villagers().length,date:Sim.dateStr(S.t),day:S.day,lvl:lvl+1,mode:S.mode},
+    ui:{lvl,cleared,speed,cam:{x:cam.x,z:cam.z,yaw:cam.yaw,pitch:cam.pitch,dist:cam.dist,goal:cam.goal}},
+    sim:Sim.exportState()};
+}
+function writeSlot(k,quiet){
+  try{localStorage.setItem(SAVE_PFX+k,JSON.stringify(makeSave()));saveErrShown=false;return true;}
+  catch(e){console.error(e);if(!quiet||!saveErrShown){saveErrShown=true;toast('Salvataggio non riuscito: lo spazio del browser è pieno o bloccato. Elimina un salvataggio, oppure usa "Esporta in un file".',true);}return false;}
+}
+function readSlot(k){
+  try{const t=localStorage.getItem(SAVE_PFX+k);if(!t)return null;const w=JSON.parse(t);return w&&w.app===SAVE_APP&&w.sim?w:null;}catch(e){return null;}
+}
+function newestSave(){let best=null;for(const k of SAVE_SLOTS){const w=readSlot(k);if(w&&(!best||w.at>best.at))best=w;}return best;}
+function applySave(w){
+  if(!w||w.app!==SAVE_APP||!w.sim)throw new Error('Questo file non è un salvataggio di Borgo Vivo.');
+  Sim.importState(w.sim); // se il salvataggio è rovinato lancia un errore prima di toccare la partita in corso
+  const u=w.ui||{};
+  started=true;$('story').hidden=true;$('modal').hidden=true;
+  closeCard();closePop();select(null);openEdicts(false);openSaves(false);
+  lvl=Math.max(0,Math.min(LEVELS.length-1,u.lvl|0));showLevel(true);cleared=lvl===LEVELS.length-1&&!!u.cleared;
+  const c=u.cam;if(c&&['x','z','yaw','pitch','dist','goal'].every(k=>Number.isFinite(c[k])))Object.assign(cam,{x:c.x,z:c.z,yaw:c.yaw,pitch:c.pitch,dist:c.dist,goal:c.goal});
+  Music.start();setSpeed(u.speed===0?0:u.speed===3?3:1);
+  if(treesDirty)rebuildTrees();if(rocksDirty)rebuildRocks();if(sapsDirty)rebuildSaps();groundDirty=true;
+  lastAuto=performance.now();
+}
+const askOk=m=>typeof confirm!=='function'||confirm(m);
+function saveInfo(w){
+  const m=w.meta||{},d=new Date(w.at),when=isNaN(d)?'':d.toLocaleString('it-IT',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  return `${esc(m.date||'')} · ${m.pop|0} abitanti · livello ${m.lvl|0}<br>salvato ${esc(when)}`;
+}
+function renderSaves(){
+  $('svList').innerHTML=SAVE_SLOTS.map(k=>{
+    const w=readSlot(k),name=k==='auto'?'Salvataggio automatico':'Posto '+k;
+    const btns=(k==='auto'?'':`<button class="btn" type="button" data-sv="save" data-k="${k}"${started?'':' disabled'}>Salva</button>`)+(w?`<button class="btn" type="button" data-sv="load" data-k="${k}">Carica</button>`:'')+(w&&k!=='auto'?`<button class="btn danger" type="button" data-sv="del" data-k="${k}">Elimina</button>`:'');
+    return `<div class="svC${w?'':' empty'}"><div><b>${name}</b><span class="d">${w?saveInfo(w):'Vuoto'}</span></div><div class="svB">${btns}</div></div>`;
+  }).join('');
+  $('svExport').disabled=!started;
+}
+function openSaves(v){$('saves').hidden=!v;$('saveBtn').classList.toggle('on',!!v);if(v)renderSaves();}
+function saveTo(k){
+  if(!started)return;
+  if(readSlot(k)&&!askOk('Sovrascrivere il salvataggio nel posto '+k+'?'))return;
+  if(writeSlot(k))toast('Partita salvata nel posto '+k+'.');
+  renderSaves();
+}
+function quickSave(){if(started)saveTo('1');}
+function loadFrom(k){
+  const w=readSlot(k);if(!w){toast('Salvataggio non trovato o rovinato.',true);renderSaves();return;}
+  if(started&&!askOk('Caricare questo salvataggio? La partita in corso andrà persa se non l\'hai salvata.'))return;
+  try{applySave(w);toast('Partita caricata.');}catch(e){console.error(e);toast(e.message||'Caricamento non riuscito.',true);}
+}
+function exportFile(){
+  if(!started)return;
+  try{
+    const blob=new Blob([JSON.stringify(makeSave())],{type:'application/json'}),a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download=`borgo-vivo-annata${S.year}-giorno${S.day+1}.json`;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    toast('Salvataggio esportato in un file.');
+  }catch(e){console.error(e);toast('Esportazione non riuscita.',true);}
+}
+function importFile(){
+  const inp=document.createElement('input');inp.type='file';inp.accept='.json,application/json';
+  inp.addEventListener('change',()=>{
+    const f=inp.files&&inp.files[0];if(!f)return;
+    const rd=new FileReader();
+    rd.onload=()=>{
+      let w;try{w=JSON.parse(rd.result);}catch(e){toast('Il file non è un salvataggio valido.',true);return;}
+      if(started&&!askOk('Caricare questo file? La partita in corso andrà persa se non l\'hai salvata.'))return;
+      try{applySave(w);toast('Partita caricata dal file.');}catch(e){console.error(e);toast(e.message||'Caricamento non riuscito.',true);}
+    };
+    rd.onerror=()=>toast('Impossibile leggere il file.',true);
+    rd.readAsText(f);
+  });
+  inp.click();
+}
+$('saveBtn').addEventListener('click',()=>openSaves($('saves').hidden));
+$('svClose').addEventListener('click',()=>openSaves(false));
+$('svExport').addEventListener('click',exportFile);
+$('svImport').addEventListener('click',importFile);
+$('svList').addEventListener('click',e=>{
+  const b=e.target.closest&&e.target.closest('[data-sv]');if(!b||b.disabled)return;
+  const k=b.dataset.k,a=b.dataset.sv;
+  if(a==='save')saveTo(k);else if(a==='load')loadFrom(k);
+  else if(a==='del'&&askOk('Eliminare il salvataggio nel posto '+k+'?')){try{localStorage.removeItem(SAVE_PFX+k);}catch(err){}renderSaves();}
+});
+// salvataggio automatico: ogni minuto, quando la scheda va in secondo piano e quando la pagina si chiude
+function autoSave(){if(started)writeSlot('auto',true);}
+addEventListener('pagehide',autoSave);
+if(document.addEventListener)document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')autoSave();});
 let sIdx=0;
 function showStory(){
   const sc=STORY[sIdx];$('sTitle').textContent=sc.t;$('sText').textContent=sc.x;$('sBtns').innerHTML='';
   if(sc.choice){
     for(const [m,l] of[['lake','Il lago'],['river','Il fiume']]){const b=document.createElement('button');b.className='btn';b.type='button';b.textContent=l;b.addEventListener('click',()=>begin(m));$('sBtns').appendChild(b);}
-  }else{const b=document.createElement('button');b.className='btn';b.type='button';b.textContent=sIdx===0?'Inizia':'Avanti';b.addEventListener('click',()=>{Music.start();sIdx++;showStory();});$('sBtns').appendChild(b);}
+  }else{
+    const mk=(txt,fn)=>{const b=document.createElement('button');b.className='btn';b.type='button';b.textContent=txt;b.addEventListener('click',fn);$('sBtns').appendChild(b);};
+    mk(sIdx===0?'Inizia':'Avanti',()=>{Music.start();sIdx++;showStory();});
+    if(sIdx===0){
+      const best=newestSave();
+      if(best)mk('Continua la partita',()=>{try{applySave(best);}catch(e){console.error(e);toast(e.message||'Caricamento non riuscito.',true);}});
+      mk('Salvataggi',()=>openSaves(true));
+    }
+  }
 }
 function begin(mode){
-  Music.start();$('story').hidden=true;
+  if(readSlot('auto')&&!askOk('Esiste già un salvataggio automatico: una nuova partita lo sostituirà entro un minuto (i posti 1-3 non cambiano). Iniziare comunque?'))return;
+  Music.start();$('story').hidden=true;lastAuto=performance.now();
   Sim.init(7,mode);started=true;if(COARSE)setTimeout(()=>toast('Un dito: sposta la mappa. Due dita: pizzica per zoomare, ruota per girare. Scegli una categoria e uno strumento in basso.'),7000);
   if(treesDirty)rebuildTrees();if(rocksDirty)rebuildRocks();if(sapsDirty)rebuildSaps();groundDirty=true;
   showLevel();
@@ -3908,6 +4091,7 @@ function frame(now){requestAnimationFrame(frame);try{frame2(now);}catch(e){conso
 function frame2(now){
   const dt=Math.min(0.1,(now-last)/1000);last=now;clock+=dt;
   if(started&&speed>0){let rem=dt*speed;while(rem>0){const d=Math.min(0.05,rem);Sim.step(d);rem-=d;}}
+  if(started&&now-lastAuto>60000){lastAuto=now;writeSlot('auto',true);}
   updateCam(dt);
   if(treesDirty)rebuildTrees();if(rocksDirty)rebuildRocks();if(sapsDirty)rebuildSaps();
   if(groundDirty&&now-lastGround>350){drawGround();groundDirty=false;lastGround=now;}

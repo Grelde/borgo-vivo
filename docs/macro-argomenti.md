@@ -1,4 +1,4 @@
-# Borgo Vivo — macro argomenti (stato a v38)
+# Borgo Vivo — macro argomenti (stato a v40)
 
 Prototipo: city builder medievale, un solo file HTML (Three.js). Sorgente di riferimento: il repository GitHub `Grelde/borgo-vivo` (`src/`, build con `./build.sh`, gioco in `index.html`). I documenti `claude/borgo-vivo-v*.html` nel Progetto sono solo istantanee. La v21 unisce la linea "popolazione" (malattie, eredità, editti, scheda, legna per casa) con la linea "giardini puri" (35% di giardini che non diventano mai allevamento/bottega; solo le case col giardino della legna la raccolgono, le altre la comprano al mercato).
 
@@ -41,8 +41,9 @@ Da fare: tratti positivi, effetti di criminalità/liti, feste periodiche (la tav
 ## 5. Interfaccia e grafica
 Stato: pannello di selezione, tooltip, editti a pergamena, scheda abitante a pergamena, pannello Abitanti/Felicità (v28), bandiere caccia/pesca, modelli degli edifici (nuovo: Ospizio con croce rossa), rotazione con freccia d'ingresso; mobile (v18) con gesti a due dita e barra di conferma.
 Corretto in v20: i pannelli dedicati di locanda e scuola non comparivano (il ramo generico "slots" li precedeva).
-Carichi visibili (v34): chi costruisce (magazzinieri, aiutanti, adulti senza lavoro) va a mani vuote al magazzino, prende il materiale e lo porta al cantiere. Il modello è scelto da `loadKind()` in `src/render.js` (carico + stato): assi sulla spalla (legno al cantiere), tronco sulla spalla (legno tagliato), sasso in braccio (cavatore), carretto (solo dei magazzinieri, dalla v39) spinto davanti per pietre, tronchi (3-4 pezzi o trasferimento tra magazzini) e minerale; gli altri portano sasso in braccio o tronco sulla spalla; gli altri carichi restano il blocchetto colorato. Stessi modelli per costruttori e magazzinieri.
-Da fare: verifica su telefono vero, minimappa, grafica degli edifici.
+Carichi visibili (v34): chi costruisce (magazzinieri, aiutanti, adulti senza lavoro) va a mani vuote al magazzino, prende il materiale e lo porta al cantiere. Il modello è scelto da `loadKind()` in `src/render.js` (carico + stato): assi sulla spalla (legno al cantiere), tronco sulla spalla (legno tagliato), sasso in braccio (cavatore), carretto spinto davanti per pietre, tronchi (3-4 pezzi o trasferimento tra magazzini) e minerale; gli altri carichi restano il blocchetto colorato. Stessi modelli per costruttori e magazzinieri.
+Salvataggio (v40): `Sim.exportState()` / `Sim.importState(d)` (`src/sim.js`) più il blocco "salvataggi" in `src/render.js`. Posti `auto`, `1`, `2`, `3` in `localStorage` (chiavi `borgovivo.slot.*`), esporta/importa `.json`, Ctrl+S = posto 1, automatico ogni 60 s / a scheda nascosta / alla chiusura. Il file contiene `fmt`, versione del gioco, `meta` (per l'elenco), `ui` (livello, telecamera, velocità) e `sim`. Regola per chi aggiunge stato: ogni campo nuovo di `S`, degli edifici o degli abitanti viaggia da solo (sono salvati per intero), ma deve avere un valore di riserva in `importState` per i salvataggi vecchi; se si aggiunge una variabile a livello di modulo in `sim.js` va aggiunta a `exportState`/`importState`; se si cambia il formato in modo incompatibile si incrementa `SAVE_FMT`.
+Da fare: salvataggio con seme casuale per riprodurre le partite, verifica su telefono vero, minimappa, grafica degli edifici.
 
 ## 6. Pubblicazione e infrastruttura
 Stato: pagina privata su claude.ai (ancora v17). Repository GitHub non creato. Per l'indirizzo pubblico: creare `borgo-vivo` su GitHub, attivare Pages, caricare `index.html`.

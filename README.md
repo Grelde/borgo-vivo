@@ -20,6 +20,8 @@ City builder medievale in un unico file HTML (Three.js). Disegni i quartieri e g
 node tests/smoke-render.js       # il rendering parte senza errori (usa dist/all.js)
 node tests/life-school-edicts.js # nascite, scuola, cimitero, editti (lento)
 node tests/specialization.js     # specializzazioni delle case
+node tests/save.js               # salvataggio: ciclo esporta/importa e salvataggi rovinati (lento)
+node tests/save-render.js        # salvataggio lato interfaccia (richiede ./build.sh)
 node tests/population.js         # malattie, eredità, editti (lento)
 node tests/legna.js              # legna e giardini puri (lento)
 ```
