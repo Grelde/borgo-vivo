@@ -1,5 +1,16 @@
 # Changelog
 
+## v23 – 2026-11-27
+Funzione nuova: la legna da ardere è una specializzazione del giardino. Sostituisce la "legnaia in giardino" della v22.1.
+- Ogni giardino ha **una sola coltura**: orto, galline, allevamento oppure **legna da ardere**. Il giardino della legna non produce ortaggi né uova, e non diventa mai allevamento né bottega.
+- Circa il 12% delle case (una ogni 8) ha il giardino della legna. Compare solo se esiste una zona mercato, dopo le prime due case, che coltivano cibo: la famiglia vive di baratto e parte con una piccola scorta di ortaggi. Prima era circa il 30%, ma con una sola merce che serve poco i giardini della legna restavano senza cibo.
+- La legna la produce il giardino (come le altre colture): non c'è più la commissione verso gli alberi. Chi non ha il giardino della legna la compra al mercato. Pesca e caccia restano attività secondarie, indipendenti dal giardino, e la casa senza specializzazione ha attività secondaria "nessuna".
+- **Cucina tutto l'anno**: fuori dall'inverno ogni casa brucia 1 legna ogni 2 giorni (d'inverno 1 al giorno come prima, per il caldo). Le case comprano legna al mercato in tutte le stagioni. Serve a dare ai giardini della legna una domanda che li sfami.
+- Editto "obbligo di legna": ora raddoppia la scorta di legna voluta da ogni famiglia (che la compra al mercato); i giardini della legna ne accumulano fino a 20. Non fa più raccogliere nessuno.
+- Grafica: il giardino della legna ha catasta con tettoia, ceppo con ascia, tronchi sparsi e alberelli al posto di orto o galline (anche nelle celle di ampliamento); il pannello casa riporta "legna da ardere" come giardino. Tolta la legnaia aggiunta in v22.1.
+- Misura (`tests/legna.js`, mappa lago, seme 7, 3 annate): 4 case su 27 con il giardino della legna, di cui al massimo 1 affamata; felicità media 88-89 (prima della modifica 94-95); legna totale 50-117 (prima circa 270-312); nessuna casa al freddo. Parte grafica/UI verificata solo con DOM finto, non in un browser WebGL.
+- Note: nella prima annata molte case sono sotto la scorta di legna voluta (la flag "Legna" è spesso spenta); la felicità media resta qualche punto sotto la v22.1.
+
 ## v22.1 – 2026-11-27
 Ritocco grafico (nessuna regola di gioco cambia).
 - **Giardino fisso** (il ~35% di giardini che non diventano allevamento né bottega): staccionata chiara, bordo di fiori e un alberello da frutta, così si riconosce dall'alto. Il pannello casa dice "giardino fisso".

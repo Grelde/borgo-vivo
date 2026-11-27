@@ -292,7 +292,7 @@ function houseLevel(g,b){
       cyl(g,.18,.22,.2,8,MAT.stoneD,0,.2,0);cyl(g,.12,.12,.04,8,MAT.fount,0,.31,0);chim(g,-.7,1.95,-.4,.6);cyl(g,.02,.02,.9,4,MAT.timber,0,2.2,-.6);bx(g,.34,.2,.03,MAT.gold,.17,2.5,-.6);}
   }
 }
-// v23: giardino fisso (b.pure) = staccionata chiara, bordo fiorito e alberello da frutta; casa col giardino della legna (b.side==='wood') = legnaia con tettoia e ceppo con ascia
+// v23: giardino fisso (b.pure) = staccionata chiara, bordo fiorito e alberello da frutta; giardino della legna (b.crop==='wood') = coltura al posto di orto, galline o allevamento: catasta con tettoia, ceppo con ascia, tronchi sparsi e alberelli da ceduo
 function woodPile(g,x,z){
   for(let L=0;L<3;L++)for(let k=0;k<4-L;k++)cyl(g,.095,.095,.9,7,(k+L)%2?MAT.logD:MAT.log,x+(k-(3-L)/2)*.21,.11+L*.17,z,0,Math.PI/2);
   for(const sx of[-.5,.5])bx(g,.06,.7,.06,MAT.timber,x+sx,.35,z-.17);
@@ -301,7 +301,7 @@ function woodPile(g,x,z){
   bx(g,.04,.32,.04,MAT.timber,x+.95,.42,z+.05).rotation.z=.9;bx(g,.11,.07,.03,MAT.iron,x+1.04,.5,z+.05);
 }
 function garden(g,b){
-  const fm=b.pure?MAT.cream:MAT.timber,wood=b.side==='wood';
+  const fm=b.pure?MAT.cream:MAT.timber;
   for(const s of[-1,1]){bx(g,1.8,.05,.05,fm,0,.28,s*.9);bx(g,.05,.05,1.8,fm,s*.9,.28,0);}
   for(const sx of[-1,1])for(const sz of[-1,1])bx(g,.08,.4,.08,fm,sx*.9,.2,sz*.9);
   if(b.pure){
@@ -314,13 +314,16 @@ function garden(g,b){
     for(const [px,pz] of[[-.45,-.4],[.2,.4],[.45,-.35]]){bx(g,.45,.28,.28,MAT.wool,px,.3,pz,(px+pz)*2);sph(g,.12,MAT.timber,px+.26,.34,pz);}
     bx(g,.7,.5,.6,MAT.log,.5,.25,-.5);bx(g,.9,.07,.8,MAT.thatch,.5,.58,-.5).rotation.z=.15;
   }else if(b.crop==='veg'){
-    for(let r=-1;r<=(wood?0:1);r++){bx(g,1.5,.1,.22,MAT.soil,0,.05,r*.5);
+    for(let r=-1;r<=1;r++){bx(g,1.5,.1,.22,MAT.soil,0,.05,r*.5);
       for(let k=-2;k<=2;k++){const m=(k+r+b.id)%3===0?MAT.carrot:(k%2?MAT.leaf:MAT.leaf2);sph(g,.11,m,k*.3,.2,r*.5,1,1.1,1);}}
+  }else if(b.crop==='wood'){
+    woodPile(g,-.3,-.45);
+    for(const [px,pz,rx,rz] of[[-.4,.3,0,Math.PI/2],[.05,.55,Math.PI/2,0],[.45,.2,0,Math.PI/2]])cyl(g,.08,.08,.55,7,MAT.logD,px,.09,pz,rx,rz);
+    for(const [px,pz] of[[.62,.55],[-.68,.58]]){cyl(g,.04,.06,.5,6,MAT.timber,px,.25,pz);sph(g,.22,MAT.leaf2,px,.62,pz,1,.9,1);}
   }else{
     bx(g,.7,.5,.6,MAT.log,.45,.25,-.45);bx(g,.9,.07,.8,MAT.thatch,.45,.58,-.45).rotation.z=.15;bx(g,.2,.25,.04,MAT.door,.45,.18,-.14);
     for(let k=0;k<4;k++){const hx=-.5+((b.id*7+k*5)%9)*.1,hz=.1+((b.id*3+k*7)%8)*.08-.1*k*.2;sph(g,.12,MAT.hen,hx,.18,hz+k*.12-.1,1,.9,1.3);sph(g,.06,MAT.henR,hx,.32,hz+k*.12-.02);}
   }
-  if(wood)woodPile(g,-.45,.58);
 }
 const BUILD={
   house(b){
@@ -332,7 +335,7 @@ const BUILD={
     if(b.bake){const o=new THREE.Mesh(new THREE.SphereGeometry(.42,10,8,0,6.3,0,1.6),MAT.stone);o.position.set(-.45,.1,.5);o.castShadow=true;gg.add(o);bx(gg,.2,.16,.06,MAT.fire,-.45,.22,.9);cyl(gg,.06,.06,.5,6,MAT.stoneD,-.45,.7,.5);}
     if(b.weave){bx(gg,.9,.7,.15,MAT.timber,-.35,.55,.7);bx(gg,.9,.1,.05,MAT.cloth,-.35,.55,.62);for(let k=0;k<4;k++)bx(gg,.02,.5,.02,MAT.cream,-.7+k*.22,.55,.64);bx(gg,.3,.3,.3,MAT.wool,.3,.15,.7);}
     if(b.tailor){cyl(gg,.05,.05,.9,6,MAT.timber,.3,.45,.6);cone(gg,.28,.7,8,MAT.cloth,.3,.55,.6,0);sph(gg,.1,MAT.cream,.3,1.0,.6);bx(gg,.5,.12,.3,MAT.timber,-.4,.4,.7);}
-    for(const c of (b.ext||[])){const e2=new THREE.Group();e2.position.set(Sim.cx2w(c%N)-fx,0,Sim.cy2w((c/N)|0)-fz);bx(e2,.64,.07,.64,MAT.soil,0,.035,0);if(b.crop==='herd'){sph(e2,.12,MAT.wool,0,.2,0,1.2,.9,1);}else if(b.crop==='eggs'){sph(e2,.12,MAT.hen,0,.18,0,1,.9,1.3);sph(e2,.06,MAT.henR,0,.3,.08);}else{sph(e2,.11,(c+b.id)%3?MAT.leaf:MAT.carrot,0,.17,0,1,1.1,1);sph(e2,.08,MAT.leaf2,.18,.14,.15);}g.add(e2);}
+    for(const c of (b.ext||[])){const e2=new THREE.Group();e2.position.set(Sim.cx2w(c%N)-fx,0,Sim.cy2w((c/N)|0)-fz);bx(e2,.64,.07,.64,MAT.soil,0,.035,0);if(b.crop==='herd'){sph(e2,.12,MAT.wool,0,.2,0,1.2,.9,1);}else if(b.crop==='eggs'){sph(e2,.12,MAT.hen,0,.18,0,1,.9,1.3);sph(e2,.06,MAT.henR,0,.3,.08);}else if(b.crop==='wood'){cyl(e2,.09,.09,.5,7,MAT.log,-.1,.1,0,0,Math.PI/2);cyl(e2,.09,.09,.5,7,MAT.logD,.1,.1,.05,0,Math.PI/2);cyl(e2,.09,.09,.5,7,MAT.log,0,.26,.02,0,Math.PI/2);}else{sph(e2,.11,(c+b.id)%3?MAT.leaf:MAT.carrot,0,.17,0,1,1.1,1);sph(e2,.08,MAT.leaf2,.18,.14,.15);}g.add(e2);}
     g.add(gg);return g;},
   wood(b){const g=new THREE.Group();
     bx(g,3,1.3,2.6,MAT.log,-.2,.65,-.2);gable(g,3.2,2.6,1.0,MAT.thatch,1.3);g.children[g.children.length-1].position.x+=-.2;g.children[g.children.length-2].position.x+=-.2;
@@ -638,10 +641,10 @@ function refreshSel(){
   else if(b.type==='house'){
     name=Sim.LVNAME[b.level-1];const cap=Sim.CAPS[b.level-1],fl=b.flags,gd=b.goods,fn=Sim.fuelNeed();
     const hd=b.head&&VM(b.head);
-    info=`Famiglia ${hd?esc(hd.fam):''}: ${b.members.length}/${cap} · giardino: ${b.crop==='veg'?'orto':b.crop==='eggs'?'galline':'allevamento'}${b.pure?' (giardino fisso: staccionata chiara e fiori, resta sempre così)':''}${b.side==='wood'?' · legnaia in giardino':''}${b.craft?' · bottega':''}${b.bake?' · panificio':''}${b.weave?' · tessitore':''}${b.tailor?' · sarto':''}`;
+    info=`Famiglia ${hd?esc(hd.fam):''}: ${b.members.length}/${cap} · giardino: ${b.crop==='veg'?'orto':b.crop==='eggs'?'galline':b.crop==='wood'?'legna da ardere (catasta, ceppo e alberelli)':'allevamento'}${b.pure?' (giardino fisso: staccionata chiara e fiori, resta sempre così)':''}${b.crop==='wood'?' (specializzazione fissa)':''}${b.craft?' · bottega':''}${b.bake?' · panificio':''}${b.weave?' · tessitore':''}${b.tailor?' · sarto':''}`;
     const rows=b.members.map(id=>{const v=VM(id);return v?`<div><span class="lk" data-v="${v.id}">${esc(v.name)}</span>${v.id===b.head?' ★':''} (${v.age|0} anni${v.schooled?', istruito':''}${v.ill?', malato':''}): ${esc(Sim.roleText(v))}</div>`:'';}).join('');
     const need=b.level>=Sim.MAXLV?'':('Per migliorare: cibo'+(b.level>=2?', acqua':'')+(b.level>=3?', chiesa':'')+(b.level>=2?', quiete, legna':'')+(()=>{const u=Sim.UPC[b.level+1];return u?`, materiali (legno ${u.wood}${u.stone?`, pietra ${u.stone}`:''})`:'';})()+` (${Math.min(25,b.up)}/25)`);
-    list=rows+`<div>Felicità <b>${b.well}</b>/100</div><div class="wbar"><i style="width:${b.well}%"></i></div>${needsHtml(b)}<div>Legna da ardere: ${gd.firewood}/${fn} ${gd.firewood>=fn?'(scorta sufficiente)':'(scorta scarsa)'}</div>`+(S.edicts&&S.edicts.noUpgrade?'<div>Editto in vigore: le case non migliorano.</div>':'')+`${b.ext&&b.ext.length?`<div>Giardino ampliato di ${b.ext.length} celle, verso la strada.</div>`:''}<div>Attività secondaria: ${b.side==='fish'?'pesca (casa vicino all\'acqua)':b.side==='hunt'?'caccia (casa vicino a un bosco tranquillo)':'legna da ardere'}. ${b.side==='wood'?'Quella in più la vende al mercato.':(S.edicts.woodDuty?'Per editto la raccoglie anche lei.':'Non raccoglie legna: la compra al mercato.')}</div><div>Attrattiva della zona: ${Sim.attrLabel(b.attr)} (${b.attr.toFixed(1)})</div>`+
+    list=rows+`<div>Felicità <b>${b.well}</b>/100</div><div class="wbar"><i style="width:${b.well}%"></i></div>${needsHtml(b)}<div>Legna da ardere: ${gd.firewood}/${fn} ${gd.firewood>=fn?'(scorta sufficiente)':'(scorta scarsa)'}</div>`+(S.edicts&&S.edicts.noUpgrade?'<div>Editto in vigore: le case non migliorano.</div>':'')+`${b.ext&&b.ext.length?`<div>Giardino ampliato di ${b.ext.length} celle, verso la strada.</div>`:''}<div>Attività secondaria: ${b.side==='fish'?'pesca (casa vicino all\'acqua)':b.side==='hunt'?'caccia (casa vicino a un bosco tranquillo)':'nessuna'}. ${b.crop==='wood'?'Il giardino produce solo legna: la scorta in più la baratta al mercato con il cibo.':'Non produce legna: la compra al mercato.'}</div><div>Attrattiva della zona: ${Sim.attrLabel(b.attr)} (${b.attr.toFixed(1)})</div>`+
       `<div class="flags"><span class="${fl.food?'ok':'no'}">Cibo</span><span class="${fl.water?'ok':'no'}">Acqua</span><span class="${fl.church?'ok':'no'}">Chiesa</span><span class="${fl.attr?'ok':'no'}">Quiete</span><span class="${fl.heat?'ok':'no'}">Caldo</span><span class="${fl.fuel?'ok':'warn'}">Legna</span><span class="${fl.mat?'ok':'no'}">Materiali</span></div>`+
       `<div>Scorte: ortaggi ${gd.veg} · uova ${gd.eggs} · grano ${gd.grain} · pesce ${gd.fish} · carne ${gd.meat} · pane ${gd.bread}</div><div>Legna ${gd.firewood} · ferro ${gd.iron} · farina ${gd.flour} · attrezzi ${gd.tools}</div><div>Lana ${gd.wool} · tessuto ${gd.cloth} · abiti ${gd.clothes}</div>`+(b.level>=3&&!fl.tools?'<div>Per salire a livello 4 serve un attrezzo di ferro.</div>':'')+(need?`<div>${need}</div>`:'<div>Livello massimo raggiunto.</div>');
   }
@@ -690,7 +693,7 @@ const EDICTS=[
   {k:'birthBonus',ic:'👶',t:'Incentivo alle nascite',d:'Le famiglie con una coppia in salute hanno figli più spesso: la comunità promette doni e aiuto ai genitori.',fx:'Più bambini = più bocche da sfamare e più legna da scaldare.'},
   {k:'schoolMandatory',ic:'📖',t:'Istruzione obbligatoria',d:'I bambini dai 6 anni frequentano la scuola anche il pomeriggio e imparano più in fretta.',fx:'Meno aiuto in giardino, ma più persone istruite. Serve una scuola con maestro.'},
   {k:'quarantine',ic:'🚷',t:'Quarantena',d:'Si chiudono porte e mercati: niente viandanti né nuovi arrivi, niente banchi e baratti. Il contagio rallenta molto.',fx:'Il commercio si ferma finché resta in vigore.'},
-  {k:'woodDuty',ic:'🪵',t:'Obbligo di legna da ardere',d:'Ogni famiglia deve fare scorta di legna anche d\'estate e tenerne di più in casa (fino a 20).',fx:'Case più calde e sane, ma i giardini rendono un po\' meno.'}];
+  {k:'woodDuty',ic:'🪵',t:'Obbligo di legna da ardere',d:'Ogni famiglia deve tenere in casa il doppio della scorta di legna e comprarla al mercato in ogni stagione; i giardini della legna ne accumulano fino a 20.',fx:'Case più calde e sane, ma i giardini rendono un po\' meno.'}];
 function renderEdicts(){
   const E=S.edicts||{};
   $('edList').innerHTML=EDICTS.map(e=>`<div class="edC${E[e.k]?' on':''}"><div class="ic">${e.ic}</div><div><b>${e.t}</b><span class="d">${e.d}</span><span class="fx">${E[e.k]?'In vigore · ':''}${e.fx}</span></div><button class="btn" type="button" data-ed="${e.k}">${E[e.k]?'Ritira':'Emana'}</button><div class="seal">✠</div></div>`).join('')+

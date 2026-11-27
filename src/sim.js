@@ -80,6 +80,11 @@ const ERRKEY={wool:'wool',cloth:'cloth',iron:'iron',flour:'flour',wood:'firewood
 // fabbisogno di legna da ardere per casa: scorta minima per stare tranquilli (più alta d'autunno e d'inverno)
 const fuelNeed=()=>S.season>=2?4:2;
 const fuelCap=()=>S.edicts.woodDuty?20:12;
+// scorta che la famiglia vuole avere: il fabbisogno, doppio con l'editto del dovere di legna
+const fuelTarget=()=>S.edicts.woodDuty?fuelNeed()*2:fuelNeed();
+// v23: la coltura del giardino è una sola: 'veg' (orto), 'eggs' (galline), 'herd' (allevamento) o 'wood' (legna da ardere). Il bene prodotto dal giardino:
+const gardenGood=c=>c==='herd'?'meat':c==='wood'?'firewood':c;
+const gardenCap=c=>c==='wood'?fuelCap():12;
 
 function hash(x,y){let h=(Math.imul(x|0,374761393)+Math.imul(y|0,668265263)+seed)|0;h=Math.imul(h^(h>>>13),1274126177);h^=h>>>16;return (h>>>0)/4294967296;}
 function vnoise(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;const u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
@@ -156,9 +161,12 @@ function addBuilding(type,x,y,done,o){
     cell:(y+(h>>1))*N+(x+(w>>1)),entrance:-1,zone:null};
   if(type==='house'){
     const goods={};for(const g of GOODS)goods[g]=0;const ate={};for(const g of TYPES)ate[g]=-999;
-    Object.assign(b,{hx:o.hx,hy:o.hy,gx:o.gx,gy:o.gy,door:o.door,cell:(o.hy+1)*N+o.hx+1,gc:(o.gy+1)*N+o.gx+1,variant:o.variant|0,level:1,up:0,crop:o.crop,side:o.side||'wood',pure:!!o.pure,craft:false,bake:false,weave:false,tailor:false,ovile:null,warm:true,heatDay:-1,ext:[],members:[],pa:{g:0,c:0,b:0,w:0,t:0},hungry:0,tradeCool:0,stall:null,farm:null,attr:0,
+    Object.assign(b,{hx:o.hx,hy:o.hy,gx:o.gx,gy:o.gy,door:o.door,cell:(o.hy+1)*N+o.hx+1,gc:(o.gy+1)*N+o.gx+1,variant:o.variant|0,level:1,up:0,crop:o.crop,side:o.side||'none',pure:!!o.pure,craft:false,bake:false,weave:false,tailor:false,ovile:null,warm:true,heatDay:-1,ext:[],members:[],pa:{g:0,c:0,b:0,w:0,t:0},hungry:0,tradeCool:0,stall:null,farm:null,attr:0,
       birthT:S.t+DAY*2,goods,ate,head:null,legacy:null,well:50,flags:{food:false,water:false,church:false,attr:true,tools:true,heat:true,mat:true,fuel:true}});
-    b.goods[b.crop==='herd'?'meat':b.crop]=3;door[o.door]=1;gate[o.door]=b.id;gatedSet.add(b.id);b.entrance=o.door;
+    b.goods[gardenGood(b.crop)]=3;
+    // la famiglia del giardino della legna non ha orto né galline: arriva con una piccola scorta di ortaggi, poi mangia solo ciò che baratta al mercato (o che pesca/caccia)
+    if(b.crop==='wood')b.goods.veg=3;
+    door[o.door]=1;gate[o.door]=b.id;gatedSet.add(b.id);b.entrance=o.door;
   }
   if(type==='stall')Object.assign(b,{owner:o.owner,open:false,keeper:null});
   if(type==='farm')Object.assign(b,{owner:o.owner||null,fields:[]});
@@ -645,12 +653,10 @@ function startErrand(v,h){
   if(!kind&&h.bake&&h.goods.flour<1&&S.stock.flour>0){const m=nearestOf('mill',v.cell,240);if(m){kind='flour';tgt=m.cell;tocc=m.id;}}
   if(!kind&&h.weave&&h.goods.wool<1){let ov=null;for(const o of buildings.values())if(o.type==='sheepfold'&&o.state==='done'&&o.buf>=1&&(!ov||o.buf>ov.buf))ov=o;if(ov){kind='wool';tgt=ov.cell;tocc=ov.id;src=ov.id;}}
   if(!kind&&h.tailor&&h.goods.cloth<1){for(const o of buildings.values())if(o.type==='house'&&o!==h&&o.state==='done'&&o.weave&&o.goods.cloth>=2&&Math.hypot(o.cell%N-h.cell%N,(o.cell/N|0)-(h.cell/N|0))<135){kind='cloth';tgt=o.cell;tocc=o.id;src=o.id;break;}}
-  // v21: la legna la raccolgono le case col giardino della legna (e tutte, con l'editto del dovere di legna); le altre la comprano al mercato
-  if(!kind&&(h.side==='wood'||S.edicts.woodDuty)&&h.goods.firewood<fuelNeed()&&(S.season>=2||S.edicts.woodDuty)&&Math.random()<(S.edicts.woodDuty?0.9:0.6)){tgt=treeTarget(h.cell,48,false);if(tgt>=0)kind='wood';}
-  if(!kind&&Math.random()<(h.side==='wood'?0.8:0.3)){
+  // v23: la legna da ardere non si raccoglie più con una commissione: la produce il giardino delle case con la coltura 'wood' (vedi la produzione dei giardini). Qui restano solo pesca e caccia.
+  if(!kind&&Math.random()<0.3){
     if(h.side==='fish'&&h.goods.fish<8&&!S.frozen&&fishOK(h.hx,h.hy)){tgt=shoreTarget(h.cell,66);if(tgt>=0)kind='fish';}
     else if(h.side==='hunt'&&h.goods.meat<8&&huntOK(h.hx,h.hy)){tgt=treeTarget(h.cell,48,true);if(tgt>=0)kind='hunt';}
-    else if(h.side==='wood'&&h.goods.firewood<fuelCap()){tgt=treeTarget(h.cell,42,false);if(tgt>=0)kind='wood';}
   }
   if(!kind||!route(v,tgt,tocc))return false;
   v.err={kind,q:0,src};v.state='toErr';return true;
@@ -872,7 +878,7 @@ function updV(v,dt){
     case 'learn':{v.moving=false;const sc=v.sch&&buildings.get(v.sch);v.edu+=dt*(S.edicts.schoolMandatory?1.6:1);if(!inClass()||!sc||sc.state!=='done'||!sc.workers.length){v.inside=false;v.sd=!(S.edicts.schoolMandatory&&S.ph==='meal');v.sch=null;v.state='idle';}break;}
     case 'draw':v.timer-=dt;if(v.timer<=0){v.drew=true;v.carry='water';goHomeAfter(v);}break;
     case 'pray':v.timer-=dt;if(v.timer<=0){v.prayed=true;goHomeAfter(v);}break;
-    case 'helpTend':v.timer-=dt;if(v.timer<=0){const h=buildings.get(v.helpH);if(h){const k=h.crop==='herd'?'meat':h.crop;h.goods[k]=Math.min(12,h.goods[k]+2);S.helps++;}v.state='idle';}break;
+    case 'helpTend':v.timer-=dt;if(v.timer<=0){const h=buildings.get(v.helpH);if(h){const k=gardenGood(h.crop);h.goods[k]=Math.min(gardenCap(h.crop),h.goods[k]+2);S.helps++;}v.state='idle';}break;
     case 'eat':v.timer-=dt;if(v.timer<=0){v.inside=false;v.state='idle';}break;
     case 'sleep':if(S.ph!==v.sleepPh){v.inside=false;v.state='idle';}break;
     case 'keep':{
@@ -960,11 +966,11 @@ function expandGarden(b){
 }
 function trySpawnHouse(){
   const t=BT.house;if(uncommitted('wood')<t.cost.wood||uncommitted('stone')<t.cost.stone)return;
-  let sx=0,sy=0,n=0;for(let i=0;i<N*N;i++)if(dist[i]===1){sx+=i%N;sy+=(i/N)|0;n++;}
+  let sx=0,sy=0,n=0,mk=0;for(let i=0;i<N*N;i++){if(dist[i]===3)mk++;if(dist[i]===1){sx+=i%N;sy+=(i/N)|0;n++;}}
   if(!n)return;sx/=n;sy/=n;
   let veg=0,eggs=0;
   let nh=0,nw=0,np=0;
-  for(const b of buildings.values())if(b.type==='house'){nh++;if(b.crop==='eggs')eggs++;else veg++;if(b.side==='wood')nw++;if(b.pure)np++;}
+  for(const b of buildings.values())if(b.type==='house'){nh++;if(b.crop==='eggs')eggs++;else if(b.crop!=='wood')veg++;if(b.crop==='wood')nw++;if(b.pure)np++;}
   const blk=buildSAT(i=>cellFree(i,1)?0:1),oc=buildSAT(i=>occ[i]>0?1:0),pp=buildSAT(i=>(road[i]||plev[i]>=PATH)?1:0);
   const picky=-1-hash(S.t|0,7)*5;
   const rnd=hash(S.t|0,11)*3;
@@ -998,16 +1004,17 @@ function trySpawnHouse(){
       const marks=[];for(let yy=cd.ly;yy<cd.ly+cd.lh;yy++)for(let xx=cd.lx;xx<cd.lx+cd.lw;xx++)marks.push(yy*N+xx);
       if(!flood(marks))continue;
       if(rs[cd.dr]!==rstamp||!doorsAfterFlood(cd.lx,cd.ly,cd.lx+cd.lw-1,cd.ly+cd.lh-1,marks))continue;
-      const crop=veg<eggs?'veg':eggs<veg?'eggs':(hash(cd.x,cd.y)<.5?'veg':'eggs');
-      const r=hash(cd.x*5,cd.y*3);let side='wood';
-      // almeno circa il 30% delle case ha il giardino della legna: sono le uniche che la raccolgono e la vendono al mercato
-      const needWood=nw<Math.ceil((nh+1)*0.3);
-      if(needWood)side='wood';
-      else if(fishOK(cd.x,cd.y)&&r<0.5)side='fish';
+      // v23: circa il 12% delle case (una ogni 8) ha il giardino della legna: la sua coltura è la legna da ardere, al posto di ortaggi, uova o allevamento. La domanda di legna è piccola (1 al giorno per casa, solo d'inverno): con più giardini della legna non troverebbero chi baratta il cibo.
+      // Serve una zona mercato (la famiglia baratta la legna con il cibo) e le prime due case coltivano cibo.
+      const wood=mk>0&&nh>=2&&nw<Math.ceil((nh+1)*0.12);
+      const crop=wood?'wood':veg<eggs?'veg':eggs<veg?'eggs':(hash(cd.x,cd.y)<.5?'veg':'eggs');
+      // attività secondaria (indipendente dal giardino): pesca vicino all'acqua, caccia vicino a un bosco tranquillo; altrimenti nessuna
+      const r=hash(cd.x*5,cd.y*3);let side='none';
+      if(fishOK(cd.x,cd.y)&&r<0.5)side='fish';
       else if(huntOK(cd.x,cd.y)&&r<0.7)side='hunt';
-      // circa il 35% delle case ha un giardino "puro": non diventa mai allevamento né bottega
-      const pt=(nh+1)*0.35;
-      const pure=np<pt-0.5||(np<pt+0.5&&hash(cd.x*3,cd.y*7)<0.5);
+      // circa il 35% dei giardini di cibo è "puro": non diventa mai allevamento né bottega (il giardino della legna è già fisso)
+      const pt=(nh-nw+1)*0.35;
+      const pure=!wood&&(np<pt-0.5||(np<pt+0.5&&hash(cd.x*3,cd.y*7)<0.5));
       addBuilding('house',cd.lx,cd.ly,false,{w:cd.lw,h:cd.lh,hx:cd.x,hy:cd.y,gx:cd.gx,gy:cd.gy,door:cd.dr,crop,side,pure,variant:(hash(cd.x*11,cd.y*7)*4)|0});
       return;
     }
@@ -1020,7 +1027,7 @@ function nearDone(type,cell,r){
 }
 function chooseTier(b){
   // v21: i giardini "puri" restano sempre orto o galline: niente allevamento e niente bottega
-  if(b.pure)return;
+  if(b.pure||b.crop==='wood')return;
   const hs=[...buildings.values()].filter(h=>h.type==='house'&&h.state==='done'&&h!==b);
   const n=hs.length+1;
   const cnt=k=>hs.filter(h=>k==='herd'?h.crop==='herd':h[k]).length;
@@ -1298,8 +1305,8 @@ function houseTick(b){
     const share=tenders/(1+(canCraft?1:0)+(canBake?1:0)+(canWeave?1:0)+(canTail?1:0))*(S.edicts.woodDuty?0.85:1);
     const sf=S.season===3?(b.crop==='veg'?0.35:b.crop==='eggs'?0.6:0.8):S.season===2?1.25:1;
     b.pa.g+=share/(b.crop==='herd'?26:16)*(b.level>=3?1.5:1)*sf*(1+0.25*b.ext.length);
-    const gk=b.crop==='herd'?'meat':b.crop;
-    while(b.pa.g>=1){b.pa.g-=1;if(b.goods[gk]<12)b.goods[gk]++;}
+    const gk=gardenGood(b.crop),gcap=gardenCap(b.crop);
+    while(b.pa.g>=1){b.pa.g-=1;if(b.goods[gk]<gcap)b.goods[gk]++;}
     if(canCraft){b.pa.c+=share/20;while(b.pa.c>=1&&b.goods.iron>=1&&b.goods.firewood>=1){b.pa.c-=1;b.goods.iron--;b.goods.firewood--;b.goods.tools=Math.min(12,b.goods.tools+1);}}
     if(canWeave){b.pa.w+=share/18;while(b.pa.w>=1&&b.goods.wool>=1){b.pa.w-=1;b.goods.wool--;b.goods.cloth=Math.min(12,b.goods.cloth+1);}}
     if(canTail){b.pa.t+=share/22;while(b.pa.t>=1&&b.goods.cloth>=1){b.pa.t-=1;b.goods.cloth--;b.goods.clothes=Math.min(12,b.goods.clothes+1);}}
@@ -1307,7 +1314,7 @@ function houseTick(b){
     tryMoveOut(b,m);
   }
   if(b.heatDay!==S.day){b.heatDay=S.day;
-    if(S.season===3){if(b.goods.firewood>=1){b.goods.firewood--;b.warm=true;}else{b.warm=false;if(b.side!=='wood')tell('cold','Una casa è rimasta senza legna da ardere: solo le famiglie con il giardino della legna possono raccoglierla, le altre la comprano al banco del mercato. Disegna una zona mercato.');}}else b.warm=true;}
+    if(S.season===3){if(b.goods.firewood>=1){b.goods.firewood--;b.warm=true;}else{b.warm=false;if(b.crop!=='wood')tell('cold','Una casa è rimasta senza legna da ardere: solo le famiglie con il giardino della legna la producono, le altre la comprano al banco del mercato. Disegna una zona mercato.');}}else{b.warm=true;if(S.day%2===0&&b.goods.firewood>=1)b.goods.firewood--;}}  // v23: cucina tutto l'anno: fuori dall'inverno 1 legna ogni 2 giorni
   b.attr=attr[b.cell];
   birthTick(b);
   const f=b.flags;f.heat=b.warm;
@@ -1381,7 +1388,7 @@ function marketTick(){
     const wants=TYPES.filter(tp=>h.goods[tp]<2&&S.t-h.ate[tp]>40).sort((a,b)=>h.ate[a]-h.ate[b]);
     if((h.craft||h.bake)&&h.goods.firewood<2)wants.unshift('firewood');
     if(h.level>=3&&h.goods.tools<1)wants.unshift('tools');
-    if(h.goods.firewood<fuelNeed()&&(S.season>=2||S.edicts.woodDuty)&&!wants.includes('firewood'))wants.unshift('firewood');
+    if(h.goods.firewood<fuelTarget()&&!wants.includes('firewood'))wants.unshift('firewood');
     if(h.tailor&&h.goods.cloth<2)wants.unshift('cloth');
     else if(h.level>=4&&!h.tailor&&h.goods.clothes<1)wants.unshift('clothes');
     if(!wants.length)continue;
@@ -1608,7 +1615,7 @@ function roleText(v){
   const b=v.job&&buildings.get(v.job);
   if(b){const R={school:'Maestro',inn:'Oste',sheepfold:'Pastore',wood:'Taglialegna',quarry:'Cavatore',mine:'Minatore',forester:'Guardaboschi',mill:'Mugnaio',farm:'Contadino',store:'Magazziniere',infirmary:'Erborista'};if(R[b.type])return R[b.type];}
   const h=v.home&&buildings.get(v.home);
-  if(h){if(h.tailor)return 'Sarto';if(h.weave)return 'Tessitore';if(h.bake)return 'Panettiere';if(h.craft)return 'Artigiano';return h.crop==='veg'?"Cura l'orto":h.crop==='eggs'?'Alleva galline':'Alleva maiali e pecore';}
+  if(h){if(h.tailor)return 'Sarto';if(h.weave)return 'Tessitore';if(h.bake)return 'Panettiere';if(h.craft)return 'Artigiano';return h.crop==='veg'?"Cura l'orto":h.crop==='eggs'?'Alleva galline':h.crop==='wood'?'Raccoglie legna da ardere':'Alleva maiali e pecore';}
   return 'In cerca di una casa';
 }
 function stats(){

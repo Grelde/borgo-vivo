@@ -9,12 +9,12 @@ Stato: zone Residenziale/Agricolo/Mercato/Forestale/Pascolo; sentieri a 4 livell
 Da fare: mappe/terreni nuovi, ponti, colline, selciato, pendolarismo.
 
 ## 2. Case, giardini e specializzazioni
-Stato: lotto casa+giardino, 4 livelli, 16 varianti, giardino che si espande, allevamento o bottega a ogni salita di livello. Dalla v20 il passaggio al livello 2+ richiede anche una scorta di legna da ardere (4 in autunno-inverno, 2 altrimenti).
+Stato: lotto casa+giardino, 4 livelli, 16 varianti, giardino che si espande, allevamento o bottega a ogni salita di livello. Dalla v20 il passaggio al livello 2+ richiede anche una scorta di legna da ardere (4 in autunno-inverno, 2 altrimenti). Dalla v23 ogni giardino ha una sola coltura: orto, galline, allevamento oppure legna da ardere (~12% delle case; giardino che non cambia e non apre botteghe).
 Da fare: bilanciamento dei limiti per ruolo, specializzazioni nuove.
 
 ## 3. Economia, risorse e lavoro
 Stato: trasporto fisico dei materiali, magazzini/centro, taglialegna, cava, miniera, guardaboschi, fattoria, ovile, mulino, granaio, mercato con baratto, stagioni, giorno/notte.
-Da fare: bilanciamento (oggi la legna nelle case è abbondante: 270+ su fabbisogno 50), catene produttive nuove, tasse/monete.
+Legna da ardere (v23): è una coltura del giardino (alternativa a orto, galline, allevamento): il ~12% delle case ha il giardino della legna, che non produce cibo e vive di baratto; serve una zona mercato. Tutte le case consumano legna anche per cucinare (1 ogni 2 giorni fuori dall'inverno, 1 al giorno d'inverno) e la comprano al mercato in ogni stagione; l'editto di obbligo di legna raddoppia la scorta voluta. Da fare: bilanciamento fine (la felicità media è qualche punto sotto la v22.1, la flag Legna è spesso spenta nella prima annata), catene produttive nuove, tasse/monete (con una moneta la legna potrebbe valere di più).
 
 ## 4. Popolazione, famiglie e istruzione (v20)
 Tempo: 1 anno di vita = 240 s; un'annata (4 stagioni) = 2400 s = 10 anni di vita. L'HUD dice "annata" per non confonderle.
@@ -36,7 +36,7 @@ Da fare: verifica su telefono vero, minimappa, grafica degli edifici.
 
 ## 6. Pubblicazione e infrastruttura
 Stato: pagina privata su claude.ai (ancora v17). Repository GitHub non creato. Per l'indirizzo pubblico: creare `borgo-vivo` su GitHub, attivare Pages, caricare `index.html`.
-Da fare: dominio/indirizzo pubblico; bilanciare la legna (scorta ~500 contro fabbisogno ~55) e il numero di bambini.
+Da fare: dominio/indirizzo pubblico; controllare la scorta di legna (oggi ~50-120 su fabbisogno ~55) e il numero di bambini.
 
 ## Limiti noti
 - v20: la simulazione è stata provata in headless (4 annate, epidemia forzata, edicts) ma la parte grafica/UI (scheda, ospizio, pannelli) non è stata eseguita in un browser con WebGL: va provata aprendo il file.
