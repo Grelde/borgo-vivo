@@ -10,6 +10,9 @@ City builder medievale in un unico file HTML (Three.js). Disegni i quartieri e g
 - `tests/` – test di simulazione e smoke test del rendering
 - `docs/macro-argomenti.md` – mappa del progetto per argomenti
 - `CHANGELOG.md` – cosa cambia a ogni versione
+- `VERSION` – numero della versione corrente
+- `scripts/stato.sh` – controllo dello stato Git da fare all'inizio di ogni sessione
+- `CLAUDE.md` – regole di lavoro e procedura di consegna
 
 ## Sviluppo
 ```
@@ -17,6 +20,8 @@ City builder medievale in un unico file HTML (Three.js). Disegni i quartieri e g
 node tests/smoke-render.js       # il rendering parte senza errori (usa dist/all.js)
 node tests/life-school-edicts.js # nascite, scuola, cimitero, editti (lento)
 node tests/specialization.js     # specializzazioni delle case
+node tests/population.js         # malattie, eredità, editti (lento)
+node tests/legna.js              # legna e giardini puri (lento)
 ```
 Dopo ogni modifica: `./build.sh`, aggiornare `CHANGELOG.md`, commit.
 

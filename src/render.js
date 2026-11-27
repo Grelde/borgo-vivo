@@ -2,14 +2,16 @@
 'use strict';
 const {N,CS,W,BT,PATH,S,SC}=Sim;
 const NOGATE={house:1,stall:1,flowers:1,statue:1,plaza:1,well:1,cemetery:1};
-const {tree,rock,ore,water,sap,road,dist,occ,wear,field,door,attr}=Sim.grids;
+const {tree,rock,ore,water,sap,road,dist,occ,wear,plev,field,door,attr}=Sim.grids;
 let attrOn=false,capNow=80;
+const COARSE=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
+if(COARSE)document.body.classList.add('touch');
 const $=id=>document.getElementById(id);
 const cv=$('cv');
 let renderer;
 try{renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true});}
 catch(e){const d=document.createElement('div');d.id='nogl';d.className='panel';d.textContent='Il tuo browser non supporta WebGL: il gioco 3D non può partire.';$('app').appendChild(d);return;}
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,COARSE?1.5:2));
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 const SKY=0xbcd0de;
 const scene=new THREE.Scene();scene.background=new THREE.Color(SKY);scene.fog=new THREE.Fog(SKY,170,420);
@@ -17,7 +19,7 @@ const camera=new THREE.PerspectiveCamera(46,1,1,800);
 const hemi=new THREE.HemisphereLight(0xdfeaff,0x6f5d3d,0.85);scene.add(hemi);
 const NIGHT=new THREE.Color(0x1a2338),DAYC=new THREE.Color(SKY),skyC=new THREE.Color();
 const sun=new THREE.DirectionalLight(0xfff1d2,0.85);sun.position.set(-50,90,35);sun.castShadow=true;
-sun.shadow.mapSize.set(2048,2048);const sc=sun.shadow.camera;sc.left=-82;sc.right=82;sc.top=82;sc.bottom=-82;sc.near=10;sc.far=260;sun.shadow.bias=-0.0006;scene.add(sun);
+sun.shadow.mapSize.set(COARSE?1024:2048,COARSE?1024:2048);const sc=sun.shadow.camera;sc.left=-82;sc.right=82;sc.top=82;sc.bottom=-82;sc.near=10;sc.far=260;sun.shadow.bias=-0.0006;scene.add(sun);
 
 // ---------- neve ----------
 const SNOWN=700,snowP=new Float32Array(SNOWN*3);
@@ -34,6 +36,8 @@ const base=document.createElement('canvas');base.width=base.height=TEX;
   for(let k=0;k<14000;k++){g.fillStyle=r()<.5?'rgba(190,210,120,.25)':'rgba(40,70,30,.25)';g.fillRect(r()*TEX,r()*TEX,2*TK2,3*TK2);}
 })();
 const gc=document.createElement('canvas');gc.width=gc.height=TEX;const g=gc.getContext('2d');
+// strato di lavoro per i sentieri: ogni livello si disegna opaco qui e poi si sovrappone al terreno con la sua trasparenza, così gli incroci non si scuriscono
+const plc=document.createElement('canvas');plc.width=plc.height=TEX;const pg=plc.getContext('2d');
 const gtex=new THREE.CanvasTexture(gc);gtex.anisotropy=8;
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(W,W),new THREE.MeshLambertMaterial({map:gtex}));
 ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
@@ -43,6 +47,8 @@ let groundDirty=true,lastGround=0;
 const SKYS=[0xbcd0de,0xa9cde8,0xd2c4a8,0xcfd8e0],OUTS=[0x56743a,0x66833a,0x7d6a35,0xdfe7ec];
 const DFILL=[null,'rgba(222,176,70,0.20)','rgba(150,196,70,0.22)','rgba(214,106,58,0.24)','rgba(40,120,70,0.28)','rgba(236,232,214,0.34)'];
 const DLINE=[null,'rgba(240,200,100,0.95)','rgba(170,220,90,0.95)','rgba(238,130,80,0.95)','rgba(90,190,120,0.95)','rgba(246,244,230,0.98)'];
+// livelli dei sentieri: 1-3 il terreno si scolorisce verso il giallino, 4 è il sentiero vero (terra battuta)
+const PLC=[null,'rgb(176,192,100)','rgb(196,188,92)','rgb(208,178,96)','rgb(122,92,56)'],PLA=[0,0.40,0.58,0.76,0.9],PLW=[0,0.55,0.65,0.75,0.82];
 let zonesOn=true;
 const flagGeo=(()=>{const a=new THREE.CylinderGeometry(.04,.04,1.8,5);a.translate(0,.9,0);const b=new THREE.ConeGeometry(.28,.8,3);b.rotateZ(-Math.PI/2);b.translate(.4,1.45,0);return [a,b];})();
 const poleM=new THREE.InstancedMesh(flagGeo[0],new THREE.MeshLambertMaterial({color:0x4a3520}),600);
@@ -70,6 +76,18 @@ function drawZones(){
     }
   }
   poleM.count=n;pennM.count=nh;pennF.count=nf;poleM.instanceMatrix.needsUpdate=pennM.instanceMatrix.needsUpdate=pennF.instanceMatrix.needsUpdate=true;
+}
+// strisce che seguono le celle collegate: cerchio per cella e segmento verso i vicini
+const NB=[[1,0],[0,1],[1,1],[-1,1]];
+function stripOn(c,test,w,style){
+  c.lineCap='round';c.lineJoin='round';
+  c.strokeStyle=style;c.fillStyle=style;c.lineWidth=w;
+  for(let i=0;i<N*N;i++){
+    if(!test(i))continue;const x=i%N,y=(i/N)|0,cx=(x+.5)*PX,cy=(y+.5)*PX;
+    c.beginPath();c.arc(cx,cy,w/2,0,7);c.fill();
+    for(const [dx,dy] of NB){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=N||ny>=N)continue;if(!test(ny*N+nx))continue;
+      c.beginPath();c.moveTo(cx,cy);c.lineTo((nx+.5)*PX,(ny+.5)*PX);c.stroke();}
+  }
 }
 function drawGround(){
   if(!zonesOn){poleM.count=pennM.count=pennF.count=0;}
@@ -108,21 +126,18 @@ function drawGround(){
   if(zonesOn)drawZones();
   g.fillStyle='rgba(88,66,40,0.5)';
   for(let i=0;i<N*N;i++)if(occ[i])g.fillRect((i%N)*PX-1,((i/N)|0)*PX-1,PX+2,PX+2);
-  // sentieri: strisce strette (circa mezzo tile), strade consolidate: tre quarti di tile
-  const isPath=i=>wear[i]>=0.5&&!road[i]&&!occ[i];
+  // sentieri a quattro livelli: dal terreno appena calpestato (livello 1) al sentiero di terra battuta (livello 4); i livelli bassi si disegnano per primi e più larghi sotto quelli alti
+  const lc=[0,0,0,0,0];
+  for(let i=0;i<N*N;i++){const L=plev[i];if(L>0&&!road[i]&&!occ[i])lc[L]++;}
+  for(let L=1;L<=4;L++){
+    if(!lc[L]&&!lc.slice(L).some(n=>n>0))continue;
+    pg.clearRect(0,0,TEX,TEX);
+    stripOn(pg,i=>plev[i]>=L&&!road[i]&&!occ[i],PX*PLW[L],PLC[L]);
+    g.globalAlpha=PLA[L];g.drawImage(plc,0,0);g.globalAlpha=1;
+  }
   g.lineCap='round';g.lineJoin='round';
-  const NB=[[1,0],[0,1],[1,1],[-1,1]];
-  const strip=(test,w,style)=>{
-    g.strokeStyle=style;g.fillStyle=style;g.lineWidth=w;
-    for(let i=0;i<N*N;i++){
-      if(!test(i))continue;const x=i%N,y=(i/N)|0,cx=(x+.5)*PX,cy=(y+.5)*PX;
-      g.beginPath();g.arc(cx,cy,w/2,0,7);g.fill();
-      for(const [dx,dy] of NB){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=N||ny>=N)continue;if(!test(ny*N+nx))continue;
-        g.beginPath();g.moveTo(cx,cy);g.lineTo((nx+.5)*PX,(ny+.5)*PX);g.stroke();}
-    }
-  };
-  strip(isPath,PX*0.8,'rgba(120,90,56,0.88)');
-  strip(i=>road[i]===1,PX*1.15,'rgb(141,128,108)');
+  // strade tracciate dal giocatore: tre quarti di tile
+  stripOn(g,i=>road[i]===1,PX*1.15,'rgb(141,128,108)');
   for(let i=0;i<N*N;i++){
     if(!road[i])continue;const x0=(i%N)*PX,y0=((i/N)|0)*PX;
     for(let k=0;k<2;k++){g.fillStyle=Sim.hash(i,k+10)<.5?'rgba(180,168,146,.8)':'rgba(96,86,70,.7)';g.fillRect(x0+Sim.hash(i,k+20)*PX*.8,y0+Sim.hash(i,k+30)*PX*.8,2,2);}
@@ -199,7 +214,7 @@ function rebuildRocks(){
 const L=c=>new THREE.MeshLambertMaterial({color:c});
 const MAT={plaster:L(0xd9c9a2),wattle:L(0xb99a68),timber:L(0x5b3f26),thatch:L(0xb9924b),tile:L(0xa8492e),slate:L(0x4b5560),stone:L(0xa3a39b),stoneD:L(0x77776f),
   log:L(0x8d5d32),logD:L(0x6a4524),gold:L(0xd6ad4e),door:L(0x35230f),glass:L(0x2c3a46),soil:L(0x5d4128),leaf:L(0x4f8a3a),leaf2:L(0x6ea04a),carrot:L(0xd9822b),
-  hen:L(0xf2ede0),henR:L(0xb5472e),hay:L(0xd2b45a),water:L(0x35566e),veg:L(0x6ea04a),egg:L(0xf3ead2),grain:L(0xd6b24e),red:L(0xa8362a),cream:L(0xe8dcb8),blue:L(0x3a5f8a),iron:L(0x55575c),rust:L(0x8a4a2c),fire:L(0xe0732a),flour:L(0xf0ead8),fishM:L(0x9fb7c4),meatM:L(0xb04a3e),fw:L(0xa8793f),wool:L(0xe9e4d4),cloth:L(0xb8434a),sand:L(0xcfc3a2),fount:L(0x5d93b5),flower1:L(0xd94f6a),flower2:L(0xf0c040),flower3:L(0x9a6ad0),horse:L(0x6b4426)};
+  hen:L(0xf2ede0),henR:L(0xb5472e),hay:L(0xd2b45a),water:L(0x35566e),veg:L(0x6ea04a),egg:L(0xf3ead2),grain:L(0xd6b24e),red:L(0xa8362a),cream:L(0xe8dcb8),blue:L(0x3a5f8a),iron:L(0x55575c),rust:L(0x8a4a2c),fire:L(0xe0732a),flour:L(0xf0ead8),fishM:L(0x9fb7c4),meatM:L(0xb04a3e),fw:L(0xa8793f),wool:L(0xe9e4d4),cloth:L(0xb8434a),sand:L(0xcfc3a2),fount:L(0x5d93b5),flower1:L(0xd94f6a),flower2:L(0xf0c040),flower3:L(0x9a6ad0),horse:L(0x6b4426),sick:L(0x8fb06a)};
 function bx(grp,w,h,d,mat,x,y,z,ry){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);if(ry)m.rotation.y=ry;m.castShadow=m.receiveShadow=true;grp.add(m);return m;}
 function cone(grp,r,h,seg,mat,x,y,z,ry){const m=new THREE.Mesh(new THREE.ConeGeometry(r,h,seg),mat);m.position.set(x,y,z);m.rotation.y=ry||0;m.castShadow=true;grp.add(m);return m;}
 function cyl(grp,rt,rb,h,seg,mat,x,y,z,rx,rz){const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg),mat);m.position.set(x,y,z);m.rotation.x=rx||0;m.rotation.z=rz||0;m.castShadow=true;grp.add(m);return m;}
@@ -351,6 +366,15 @@ const BUILD={
     for(const sx of[-.9,.9]){bx(g,.9,.07,.3,MAT.timber,sx,.3,1.85);bx(g,.07,.3,.07,MAT.timber,sx-.4,.15,1.85);bx(g,.07,.3,.07,MAT.timber,sx+.4,.15,1.85);}
     bx(g,.06,.7,.06,MAT.timber,1.5,.35,1.7);bx(g,.5,.3,.05,MAT.cloth,1.5,.8,1.7);
     return g;},
+  infirmary(b){const g=new THREE.Group();
+    bx(g,3.2,1.4,2.4,MAT.plaster,0,.7,.2);bx(g,3.3,.2,2.5,MAT.stoneD,0,.1,.2);
+    gable(g,3.4,2.5,1.0,MAT.slate,1.4);g.children[g.children.length-1].position.z+=.2;g.children[g.children.length-2].position.z+=.2;
+    bx(g,.55,1.0,.06,MAT.door,0,.5,1.43);bx(g,.16,.7,.05,MAT.red,0,1.7,1.45);bx(g,.6,.16,.05,MAT.red,0,1.7,1.45);
+    for(const sx of[-1,1])bx(g,.4,.45,.06,MAT.glass,sx*1.0,.95,1.43);
+    chim(g,1.1,2.1,-.5,.6);
+    for(const sx of[-1,0,1]){bx(g,.7,.12,.5,MAT.soil,sx*.9,.08,1.95);for(let k=0;k<3;k++)sph(g,.11,k%2?MAT.leaf2:MAT.leaf,sx*.9-.22+k*.22,.24,1.95,1,1.1,1);}
+    bx(g,.06,.7,.06,MAT.timber,1.7,.35,1.9);bx(g,.5,.3,.05,MAT.white||MAT.cream,1.7,.8,1.9);bx(g,.1,.22,.06,MAT.red,1.7,.8,1.93);bx(g,.22,.08,.06,MAT.red,1.7,.8,1.93);
+    return g;},
   cemetery(b){const g=new THREE.Group();
     const dw=b.w*CS,dh=b.h*CS,hw=dw/2-.1,hh=dh/2-.1;
     for(let x=-hw;x<=hw+.01;x+=.7){bx(g,.08,.5,.08,MAT.timber,x,.25,-hh);bx(g,.08,.5,.08,MAT.timber,x,.25,hh);}
@@ -470,8 +494,8 @@ Sim.hooks.toast=m=>toast(m);
 const TUN=[0x8c2f23,0x2f5d73,0x6a7a3b,0x7c5a2c,0x6b4a7a,0x5d5d5d,0xb0802e],tunMats={};
 const skin=L(0xe0b48c);
 const CARRY={wood:MAT.log,stone:MAT.stoneD,veg:MAT.veg,eggs:MAT.egg,grain:MAT.grain,water:MAT.water,iron:MAT.iron,flour:MAT.flour,fish:MAT.fishM,meat:MAT.meatM,firewood:MAT.fw,bread:MAT.hay,tools:MAT.iron,wool:MAT.wool,cloth:MAT.cloth,clothes:MAT.cloth};
-const vms=new Map();
-Sim.hooks.gone=function(v){const m=vms.get(v.id);if(m){scene.remove(m.gp);vms.delete(v.id);}};
+const vms=new Map(),vpick=[];
+Sim.hooks.gone=function(v){const m=vms.get(v.id);if(m){scene.remove(m.gp);vms.delete(v.id);}const i=vpick.findIndex(o=>o.userData.vid===v.id);if(i>=0)vpick.splice(i,1);if(typeof cardId!=='undefined'&&cardId===v.id)setTimeout(renderCard,0);};
 Sim.hooks.villager=function(v){
   const c=TUN[v.id%TUN.length];const mat=tunMats[c]||(tunMats[c]=L(c));
   const gp=new THREE.Group();
@@ -482,7 +506,8 @@ Sim.hooks.villager=function(v){
   gp.scale.setScalar(0.8);gp.position.set(v.x,0,v.z);
   if(v.guest){hood.material=L(v.kind==='merchant'?0x2f5a3c:v.kind==='pilgrim'?0x6b5a3a:0x4a4a68);
     if(v.horse){const hs=new THREE.Group();bx(hs,.5,.5,1.1,MAT.horse,0,.55,-.2);bx(hs,.22,.5,.25,MAT.horse,0,.95,.45);for(const sx of[-.16,.16])for(const sz of[-.55,.15])bx(hs,.1,.35,.1,MAT.horse,sx,.18,sz);bx(hs,.55,.1,.5,MAT.cloth,0,.82,-.2);gp.add(hs);gp.userData.horse=hs;}}
-  scene.add(gp);vms.set(v.id,{gp,load,carry:null});
+  if(!v.guest){const vh=new THREE.Mesh(new THREE.SphereGeometry(.6,6,5),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));vh.position.y=.55;vh.userData.vid=v.id;gp.add(vh);vpick.push(vh);}
+  scene.add(gp);vms.set(v.id,{gp,load,carry:null,body,mat,ill:false});
 };
 
 // ---------- ghost e selezione ----------
@@ -535,7 +560,7 @@ const TOOLS=[
   {id:'d4',label:'Forestale',key:'f',dt:4,col:0x3f9a5d,hint:'Trascina: i guardaboschi pianteranno qui alberi che crescono e si possono tagliare di nuovo.'},
   {id:'d5',label:'Pascolo',key:'p',dt:5,col:0xe8e4d0,hint:'Trascina: le famiglie fonderanno ovili per la lana, che serve ai tessitori (case di livello 3).'},
   {id:'undistrict',label:'Togli zona',key:'5',dt:0,col:0xd9553f,hint:'Trascina per cancellare un quartiere.'},
-  {id:'road',label:'Strada',key:'6',hint:'Trascina per tracciare una strada consolidata: resta a lungo anche senza passaggi, poi torna sentiero e sparisce. Puoi demolirla.'},
+  {id:'road',label:'Strada',key:'6',hint:'Trascina per tracciare una strada: resta a lungo anche senza passaggi, poi torna sentiero e sparisce. Puoi demolirla.'},
   {id:'wood',label:'Taglialegna',key:'7',hint:'Vicino a un bosco. Rumoroso: le case vicine perdono attrattiva.'},
   {id:'quarry',label:'Cava',key:'8',hint:'Vicino alle rocce. Molto rumorosa: tienila lontana dalle case.'},
   {id:'forester',label:'Guardaboschi',key:'g',hint:'Pianta alberi nelle zone forestali. Servono circa 2 minuti perché crescano.'},
@@ -549,6 +574,7 @@ const TOOLS=[
   {id:'store',label:'Magazzino',key:'9',hint:'Secondo deposito con 3 addetti e scorte fino a 80. Un po\' rumoroso.'},
   {id:'well',label:'Pozzo',key:'0',hint:'Dà acqua alle case entro 30 celle e rende la zona più piacevole.'},
   {id:'school',label:'Scuola',key:'k',hint:'I bambini dai 6 anni vengono qui al mattino (serve un maestro). Chi sa leggere e scrivere fa migliorare la casa più in fretta.'},
+  {id:'infirmary',label:'Ospizio',key:'o',hint:'Un erborista cura i malati delle case entro 45 celle: guariscono prima e rischiano meno. Frena le epidemie.'},
   {id:'church',label:'Chiesa',key:'c',hint:'Le case entro 54 celle possono raggiungere il livello più alto. Molto attraente.'},
   {id:'demolish',label:'Demolisci',key:'x',hint:'Clicca un edificio, una casa, una strada o un sentiero.'},
   {id:'pan',label:'Muovi',key:'h',hint:'Trascina per spostare la mappa.'}
@@ -558,32 +584,32 @@ const CATS=[
   {id:'tools',label:'Strumenti',ids:['select','pan','demolish']},
   {id:'zone',label:'Zone e strade',ids:['d1','d2','d3','d4','d5','undistrict','road']},
   {id:'prod',label:'Produzione',ids:['wood','quarry','mine','forester','granary','mill']},
-  {id:'serv',label:'Servizi',ids:['store','well','school','church','inn']},
+  {id:'serv',label:'Servizi',ids:['store','well','school','infirmary','church','inn']},
   {id:'deco',label:'Decorazioni',ids:['plaza','flowers','statue']}];
 const CATOF={};CATS.forEach(c=>c.ids.forEach(i=>{CATOF[i]=c.id;}));
 const catBtns={};
 let curCat='tools';
 function setCat(c){curCat=c;for(const k in toolBtns)toolBtns[k].style.display=CATOF[k]===c?'':'none';for(const k in catBtns)catBtns[k].classList.toggle('on',k===c);}
 for(const c of CATS){const b=document.createElement('button');b.className='btn sm';b.type='button';b.textContent=c.label;b.addEventListener('click',()=>setCat(c.id));$('cats').appendChild(b);catBtns[c.id]=b;}
-let tool='select';const toolBtns={};
+let tool='select';const toolBtns={};let drag=null,hover=null,pend=false;
 const costHTML=c=>(c.wood?`<span><i class="sw w"></i>${c.wood}</span>`:'')+(c.stone?`<span><i class="sw s"></i>${c.stone}</span>`:'');
 for(const t of TOOLS){
   const b=document.createElement('button');b.className='btn';b.type='button';
   b.innerHTML=`<span class="nm">${t.label}<kbd>${t.key.toUpperCase()}</kbd></span><span class="cs">${BT[t.id]?costHTML(BT[t.id].cost):''}</span>`;
   b.addEventListener('click',()=>setTool(t.id));$('tools').appendChild(b);toolBtns[t.id]=b;
 }
-function setTool(id){if(CATOF[id]&&CATOF[id]!==curCat)setCat(CATOF[id]);tool=id;ghost.visible=false;arrow.visible=false;$('rotBtn').style.display=(BT[id]&&!NOGATE[id])?'':'none';for(const k in toolBtns)toolBtns[k].classList.toggle('on',k===id);$('hint').textContent=(TOOL[id].hint||'')+((BT[id]&&!NOGATE[id])?' R = ruota: la freccia gialla è l\'ingresso.':'');if(id!=='select')select(null);}
+function setTool(id){pend=false;hover=null;$('pbar').hidden=true;if(CATOF[id]&&CATOF[id]!==curCat)setCat(CATOF[id]);tool=id;ghost.visible=false;arrow.visible=false;$('rotBtn').style.display=(BT[id]&&!NOGATE[id])?'':'none';for(const k in toolBtns)toolBtns[k].classList.toggle('on',k===id);$('hint').textContent=(TOOL[id].hint||'')+((BT[id]&&!NOGATE[id])?' R = ruota: la freccia gialla è l\'ingresso.':'');if(id!=='select')select(null);if(document.body.classList.contains('touch')&&id!=='select')toast(TOOL[id].hint+(BT[id]?' Tocca o trascina sulla mappa, poi conferma con ✓.':''));}
 setCat('tools');setTool('select');
 let toastT=0;
 function toast(msg,bad){const t=$('toast');t.textContent=msg;t.classList.toggle('bad',!!bad);t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),5600);}
 
 // ---------- selezione ----------
-let sel=null,zoneEdit=null;
+let sel=null,zoneEdit=null,selCacheList=null;
 const zoneRing=new THREE.Mesh(new THREE.RingGeometry(.975,1,72),new THREE.MeshBasicMaterial({color:0xff9a3c,side:THREE.DoubleSide,transparent:true,opacity:.9}));
 zoneRing.rotation.x=-Math.PI/2;zoneRing.position.y=.14;zoneRing.visible=false;scene.add(zoneRing);
 const zoneDot=new THREE.Mesh(new THREE.CylinderGeometry(.35,.35,1.2,10),new THREE.MeshBasicMaterial({color:0xff9a3c}));zoneDot.visible=false;scene.add(zoneDot);
 const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-function select(id){sel=id;zoneEdit=null;const b=id&&Sim.buildings().get(id);
+function select(id){sel=id;zoneEdit=null;selCacheList=null;const b=id&&Sim.buildings().get(id);
   if(!b){zoneRing.visible=false;zoneDot.visible=false;$('sel').hidden=true;ring.visible=false;return;}
   $('sel').hidden=false;ring.visible=true;const [cx,cz]=footCenter(b);ring.position.set(cx,.12,cz);const r=Math.max(b.w,b.h)*CS*.78;ring.scale.set(r,r,1);
   refreshSel();}
@@ -594,12 +620,13 @@ function refreshSel(){
   const stt=Sim.stats();
   if(b.state==='site'){const need=t.cost.wood+t.cost.stone,got=b.got.wood+b.got.stone;info=(b.prog>0?`In costruzione: ${Math.round(b.prog*100)}%`:`Cantiere: materiali portati ${got}/${need}`)+(()=>{const nb=Sim.villagers().filter(v=>v.state==='build'&&v.target===b.id).length;const full=b.got.wood>=t.cost.wood&&b.got.stone>=t.cost.stone;return full?` · operai al lavoro: ${nb}${nb?'':' (servono operai)'}`:'';})()+(S.ph==='work'?'':' · i lavori riprendono al mattino');}
   else if(b.type==='house'){
-    name=Sim.LVNAME[b.level-1];const cap=Sim.CAPS[b.level-1],fl=b.flags,gd=b.goods;
-    info=`Famiglia: ${b.members.length}/${cap} · giardino: ${b.crop==='veg'?'orto':b.crop==='eggs'?'galline':'allevamento'}${b.craft?' · bottega':''}${b.bake?' · panificio':''}${b.weave?' · tessitore':''}${b.tailor?' · sarto':''}`;
-    const rows=b.members.map((id,i)=>{const v=VM(id);return v?`<div>${v.child?'Figlio':'Abitante'} (${v.age|0} anni${v.schooled?', istruito':''}): ${esc(Sim.roleText(v))}</div>`:'';}).join('');
-    const need=b.level>=Sim.MAXLV?'':('Per migliorare: cibo'+(b.level>=2?', acqua':'')+(b.level>=3?', chiesa':'')+(b.level>=2?', quiete':'')+(()=>{const u=Sim.UPC[b.level+1];return u?`, materiali (legno ${u.wood}${u.stone?`, pietra ${u.stone}`:''})`:'';})()+` (${Math.min(25,b.up)}/25)`);
-    list=rows+(S.edicts&&S.edicts.noUpgrade?'<div>Editto in vigore: le case non migliorano.</div>':'')+`${b.ext&&b.ext.length?`<div>Giardino ampliato di ${b.ext.length} celle, verso la strada.</div>`:''}<div>Attività secondaria: ${b.side==='fish'?'pesca (casa vicino all\'acqua)':b.side==='hunt'?'caccia (casa vicino a un bosco tranquillo)':'legna da ardere'}</div><div>Attrattiva della zona: ${Sim.attrLabel(b.attr)} (${b.attr.toFixed(1)})</div>`+
-      `<div class="flags"><span class="${fl.food?'ok':'no'}">Cibo</span><span class="${fl.water?'ok':'no'}">Acqua</span><span class="${fl.church?'ok':'no'}">Chiesa</span><span class="${fl.attr?'ok':'no'}">Quiete</span><span class="${fl.heat?'ok':'no'}">Caldo</span><span class="${fl.mat?'ok':'no'}">Materiali</span></div>`+
+    name=Sim.LVNAME[b.level-1];const cap=Sim.CAPS[b.level-1],fl=b.flags,gd=b.goods,fn=Sim.fuelNeed();
+    const hd=b.head&&VM(b.head);
+    info=`Famiglia ${hd?esc(hd.fam):''}: ${b.members.length}/${cap} · giardino: ${b.crop==='veg'?'orto':b.crop==='eggs'?'galline':'allevamento'}${b.pure?' (resta giardino)':''}${b.craft?' · bottega':''}${b.bake?' · panificio':''}${b.weave?' · tessitore':''}${b.tailor?' · sarto':''}`;
+    const rows=b.members.map(id=>{const v=VM(id);return v?`<div><span class="lk" data-v="${v.id}">${esc(v.name)}</span>${v.id===b.head?' ★':''} (${v.age|0} anni${v.schooled?', istruito':''}${v.ill?', malato':''}): ${esc(Sim.roleText(v))}</div>`:'';}).join('');
+    const need=b.level>=Sim.MAXLV?'':('Per migliorare: cibo'+(b.level>=2?', acqua':'')+(b.level>=3?', chiesa':'')+(b.level>=2?', quiete, legna':'')+(()=>{const u=Sim.UPC[b.level+1];return u?`, materiali (legno ${u.wood}${u.stone?`, pietra ${u.stone}`:''})`:'';})()+` (${Math.min(25,b.up)}/25)`);
+    list=rows+`<div>Benessere <b>${b.well}</b>/100</div><div class="wbar"><i style="width:${b.well}%"></i></div><div>Legna da ardere: ${gd.firewood}/${fn} ${gd.firewood>=fn?'(scorta sufficiente)':'(scorta scarsa)'}</div>`+(S.edicts&&S.edicts.noUpgrade?'<div>Editto in vigore: le case non migliorano.</div>':'')+`${b.ext&&b.ext.length?`<div>Giardino ampliato di ${b.ext.length} celle, verso la strada.</div>`:''}<div>Attività secondaria: ${b.side==='fish'?'pesca (casa vicino all\'acqua)':b.side==='hunt'?'caccia (casa vicino a un bosco tranquillo)':'legna da ardere'}. ${b.side==='wood'?'Quella in più la vende al mercato.':(S.edicts.woodDuty?'Per editto la raccoglie anche lei.':'Non raccoglie legna: la compra al mercato.')}</div><div>Attrattiva della zona: ${Sim.attrLabel(b.attr)} (${b.attr.toFixed(1)})</div>`+
+      `<div class="flags"><span class="${fl.food?'ok':'no'}">Cibo</span><span class="${fl.water?'ok':'no'}">Acqua</span><span class="${fl.church?'ok':'no'}">Chiesa</span><span class="${fl.attr?'ok':'no'}">Quiete</span><span class="${fl.heat?'ok':'no'}">Caldo</span><span class="${fl.fuel?'ok':'warn'}">Legna</span><span class="${fl.mat?'ok':'no'}">Materiali</span></div>`+
       `<div>Scorte: ortaggi ${gd.veg} · uova ${gd.eggs} · grano ${gd.grain} · pesce ${gd.fish} · carne ${gd.meat} · pane ${gd.bread}</div><div>Legna ${gd.firewood} · ferro ${gd.iron} · farina ${gd.flour} · attrezzi ${gd.tools}</div><div>Lana ${gd.wool} · tessuto ${gd.cloth} · abiti ${gd.clothes}</div>`+(b.level>=3&&!fl.tools?'<div>Per salire a livello 4 serve un attrezzo di ferro.</div>':'')+(need?`<div>${need}</div>`:'<div>Livello massimo raggiunto.</div>');
   }
   else if(b.type==='stall'){const o=Sim.buildings().get(b.owner);info=b.open?'Banco aperto: si accettano baratti.':'Banco chiuso.';
@@ -612,7 +639,7 @@ function refreshSel(){
     info=`Addetti: ${w.length}/${b.want} · scorte: legno ${S.stock.wood}/${capNow}, pietra ${S.stock.stone}/${capNow}, ferro ${S.stock.iron}/${capNow}`;
     list=w.map((v,i)=>`<div>Addetto ${i+1}: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>Portano i materiali ai cantieri e ritirano quanto prodotto da taglialegna e cave.</div>'+(b.center?'':`<div>Se il centro contiene materiali, gli addetti li portano qui: legno ${S.wh.wood}, pietra ${S.wh.stone}, ferro ${S.wh.iron}.</div>`)+(b.center?`<div>Il centro cresce con il numero di case. Si può demolire solo quando è vuoto.</div>`:'');
   }
-  else if(t.slots){
+  else if(t.slots&&b.type!=='inn'&&b.type!=='school'&&b.type!=='infirmary'){
     const res=b.type==='wood'?'wood':b.type==='mine'?'iron':'stone';
     const prod=b.buf!==undefined;
     const full=prod&&(b.buf>=Sim.BUFCAP||(S.stock[res]>=capNow*0.9&&b.buf>=2));
@@ -626,10 +653,13 @@ function refreshSel(){
   else if(b.type==='granary')info=`Grano immagazzinato: ${S.stock.grain}/${Sim.stats().capGrain}. Lo ritira il mugnaio.`;
   else if(b.type==='well')info=`Acqua per le case entro ${Sim.WELL_R} celle. Luogo piacevole.`;
   else if(b.type==='church'){info=`Le case entro ${Sim.CHURCH_R} celle possono raggiungere il livello massimo. Luogo molto attraente.`+(b.cem?' Il cimitero sorge accanto alla chiesa.':'');}
-  else if(b.type==='school'){const w=Sim.villagers().filter(v=>v.job===b.id);const att=Sim.villagers().filter(v=>v.state==='learn').length;info=`Maestri: ${w.length}/${b.want} · bambini in classe ora: ${att} · persone istruite: ${stt.schooled}`;
-    list=w.map(v=>`<div>Maestro: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>I bambini dai 6 anni vengono al mattino. A 14 anni chi ha studiato abbastanza sa leggere e scrivere: la sua casa migliora due volte più in fretta.</div>'+(w.length===0?'<div>Senza maestro la scuola resta chiusa.</div>':'');}
+  else if(b.type==='school'){const w=Sim.villagers().filter(v=>v.job===b.id);info=`Maestri: ${w.length}/${b.want} · alunni ora: ${b.pupils|0}/${Sim.SCHOOL_CAP} · persone istruite: ${stt.schooled}`;
+    list=w.map(v=>`<div>Maestro: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>I bambini dai 6 anni vengono al mattino (con l\'editto sull\'istruzione obbligatoria anche al pomeriggio). A 14 anni chi ha studiato abbastanza sa leggere e scrivere: la sua casa migliora più in fretta.</div>'+(w.length===0?'<div>Senza maestro la scuola resta chiusa.</div>':'')+((b.pupils|0)>=Sim.SCHOOL_CAP?'<div>Aula piena: costruisci un\'altra scuola.</div>':'');}
+  else if(b.type==='infirmary'){const w=Sim.villagers().filter(v=>v.job===b.id);const near=Sim.villagers().filter(v=>{if(!v.ill)return false;const hb=Sim.buildings().get(v.home);return hb&&Math.hypot(hb.cell%N-b.cell%N,(hb.cell/N|0)-(b.cell/N|0))<=Sim.HEAL_R;}).length;
+    info=`Erboristi: ${w.length}/${b.want} · malati nel raggio di cura: ${near} · guariti finora: ${S.cured}`;
+    list=w.map(v=>`<div>Erborista: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>Cura i malati delle case entro 45 celle: guariscono più in fretta e rischiano meno di morire. Frena anche il contagio.</div>'+(w.length===0?'<div>Senza erborista l\'ospizio non cura.</div>':'');}
   else if(b.type==='cemetery'){info=`Sepolti: ${S.buried} · defunti senza sepoltura: ${S.unburied||0}`;list='<div>I defunti ricevono sepoltura qui: senza un cimitero i morti rendono la zona meno piacevole.</div>';}
-  $('selName').textContent=name;$('selInfo').textContent=info;$('selList').innerHTML=list;
+  $('selName').textContent=name;$('selInfo').textContent=info;if(selCacheList!==list){selCacheList=list;$('selList').innerHTML=list;}
   $('selJobs').hidden=!(b.state==='done'&&t.slots>0);
   $('selZone').hidden=!(Sim.ZONED[b.type]&&b.state==='done');if(!$('selZone').hidden){$('zR').textContent=b.zone?b.zone.r:(b.type==='forester'?72:39);$('zSet').textContent=zoneEdit===b.id?'Clicca sulla mappa…':(b.zone?'Sposta zona':'Scegli sulla mappa');}$('wCount').textContent=b.want;
   $('selCem').hidden=!(b.type==='church'&&b.state==='done'&&!b.cem);
@@ -640,7 +670,11 @@ function selB(){return sel&&Sim.buildings().get(sel);}
 $('selCem').addEventListener('click',()=>{const b=selB();if(!b||b.type!=='church')return;const res=Sim.addCemetery(b.id);toast(res.ok?'Cantiere del cimitero avviato accanto alla chiesa.':(res.msg||'Non c\'è spazio per il cimitero'));refreshSel();});
 const EDICTS=[
   {k:'noUpgrade',ic:'🏚️',t:'Vieta l\'avanzamento delle Case',d:'Le famiglie non potranno più migliorare la propria casa: i livelli restano come sono.',fx:'Utile per tenere basso il livello del borgo.'},
-  {k:'noImmig',ic:'🚧',t:'Blocca l\'immigrazione',d:'I viandanti non si fermeranno più in paese e nessun nuovo abitante arriverà da fuori.',fx:'La popolazione crescerà solo con le nascite.'}];
+  {k:'noImmig',ic:'🚧',t:'Blocca l\'immigrazione',d:'I viandanti non si fermeranno più in paese e nessun nuovo abitante arriverà da fuori.',fx:'La popolazione crescerà solo con le nascite.'},
+  {k:'birthBonus',ic:'👶',t:'Incentivo alle nascite',d:'Le famiglie con una coppia in salute hanno figli più spesso: la comunità promette doni e aiuto ai genitori.',fx:'Più bambini = più bocche da sfamare e più legna da scaldare.'},
+  {k:'schoolMandatory',ic:'📖',t:'Istruzione obbligatoria',d:'I bambini dai 6 anni frequentano la scuola anche il pomeriggio e imparano più in fretta.',fx:'Meno aiuto in giardino, ma più persone istruite. Serve una scuola con maestro.'},
+  {k:'quarantine',ic:'🚷',t:'Quarantena',d:'Si chiudono porte e mercati: niente viandanti né nuovi arrivi, niente banchi e baratti. Il contagio rallenta molto.',fx:'Il commercio si ferma finché resta in vigore.'},
+  {k:'woodDuty',ic:'🪵',t:'Obbligo di legna da ardere',d:'Ogni famiglia deve fare scorta di legna anche d\'estate e tenerne di più in casa (fino a 20).',fx:'Case più calde e sane, ma i giardini rendono un po\' meno.'}];
 function renderEdicts(){
   const E=S.edicts||{};
   $('edList').innerHTML=EDICTS.map(e=>`<div class="edC${E[e.k]?' on':''}"><div class="ic">${e.ic}</div><div><b>${e.t}</b><span class="d">${e.d}</span><span class="fx">${E[e.k]?'In vigore · ':''}${e.fx}</span></div><button class="btn" type="button" data-ed="${e.k}">${E[e.k]?'Ritira':'Emana'}</button><div class="seal">✠</div></div>`).join('')+
@@ -651,7 +685,7 @@ $('edictBtn').addEventListener('click',()=>openEdicts($('edicts').hidden));
 $('edClose').addEventListener('click',()=>openEdicts(false));
 $('edicts').addEventListener('click',ev=>{if(ev.target===$('edicts')){openEdicts(false);return;}const bt=ev.target.closest&&ev.target.closest('[data-ed]');if(!bt)return;const k=bt.getAttribute('data-ed');const on=!(S.edicts&&S.edicts[k]);Sim.setEdict(k,on);const e=EDICTS.find(x=>x.k===k);toast(on?`Editto emanato: ${e.t}`:`Editto ritirato: ${e.t}`);renderEdicts();});
 addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!$('edicts').hidden)openEdicts(false);});
-$('zSet').addEventListener('click',()=>{const b=selB();if(!b)return;zoneEdit=zoneEdit===b.id?null:b.id;if(zoneEdit)toast('Clicca sulla mappa il centro della zona di lavoro. Tasto destro per annullare.');refreshSel();});
+$('zSet').addEventListener('click',()=>{const b=selB();if(!b)return;zoneEdit=zoneEdit===b.id?null:b.id;if(zoneEdit)toast(document.body.classList.contains('touch')?'Tocca la mappa dove vuoi il centro della zona di lavoro. Ritocca il pulsante per annullare.':'Clicca sulla mappa il centro della zona di lavoro. Tasto destro per annullare.');refreshSel();});
 $('zMinus').addEventListener('click',()=>{const b=selB();if(!b)return;const r=(b.zone?b.zone.r:(b.type==='forester'?72:39))-6;Sim.setZone(b.id,b.zone?b.zone.c:b.cell,r);refreshSel();});
 $('zPlus').addEventListener('click',()=>{const b=selB();if(!b)return;const r=(b.zone?b.zone.r:(b.type==='forester'?72:39))+6;Sim.setZone(b.id,b.zone?b.zone.c:b.cell,r);refreshSel();});
 $('zReset').addEventListener('click',()=>{const b=selB();if(!b)return;Sim.setZone(b.id,-1,0);refreshSel();});
@@ -665,14 +699,41 @@ $('selDemo').addEventListener('click',()=>{if(!sel)return;const b=Sim.buildings(
 // ---------- input ----------
 const ray=new THREE.Raycaster(),mouse=new THREE.Vector2(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),hitP=new THREE.Vector3();
 function setRay(e){const r=cv.getBoundingClientRect();mouse.x=((e.clientX-r.left)/r.width)*2-1;mouse.y=-((e.clientY-r.top)/r.height)*2+1;ray.setFromCamera(mouse,camera);}
-function cellAt(e){setRay(e);if(!ray.ray.intersectPlane(plane,hitP))return null;
+function cellAt(e,off){setRay(off?{clientX:e.clientX,clientY:e.clientY-off}:e);if(!ray.ray.intersectPlane(plane,hitP))return null;
   const cx=Math.floor((hitP.x+W/2)/CS),cy=Math.floor((hitP.z+W/2)/CS);if(cx<0||cy<0||cx>=N||cy>=N)return null;return {cx,cy};}
 const anchor=(type,c)=>{const [w,h]=Sim.dimsOf(BT[type],rot);return {x:c.cx-Math.floor((w-1)/2),y:c.cy-Math.floor((h-1)/2)};};
 const isDist=id=>TOOL[id]&&TOOL[id].dt!==undefined;
-let drag=null,hover=null;const keys={};
+const keys={};
+const ptrs=new Map(),TOFF=64;let gest=null,lockPtr=false;
+function updPbar(){const on=pend&&BT[tool]&&!zoneEdit;$('pbar').hidden=!on;if(!on)return;const c=BT[tool].cost,p=[];if(c.wood)p.push('legno '+c.wood);if(c.stone)p.push('pietra '+c.stone);$('pName').textContent=BT[tool].name+(p.length?' · '+p.join(', '):'');$('pRot').style.display=NOGATE[tool]?'none':'';}
+$('pOk').addEventListener('click',()=>{if(!hover||!BT[tool])return;const a=anchor(tool,hover),r=Sim.place(tool,a.x,a.y,rot);if(!r.ok)toast(r.msg,true);});
+$('pRot').addEventListener('click',()=>rotate());
+$('pNo').addEventListener('click',()=>{pend=false;hover=null;updPbar();});
+// gesti a due dita: pizzico = zoom, torsione = rotazione, trascinamento = spostamento
+function gInfo(){const a=[...ptrs.values()],p=a[0],q=a[1];return {d:Math.hypot(q.x-p.x,q.y-p.y)||1,ang:Math.atan2(q.y-p.y,q.x-p.x),mx:(p.x+q.x)/2,my:(p.y+q.y)/2};}
+function startGest(){const g=gInfo();gest={d:g.d,ang:g.ang,mx:g.mx,my:g.my,goal:cam.goal,yaw:cam.yaw};}
+function moveGest(){
+  if(!gest||ptrs.size<2)return;const g=gInfo();
+  cam.goal=Math.max(16,Math.min(150,gest.goal*gest.d/g.d));
+  cam.yaw=gest.yaw+(g.ang-gest.ang);
+  const dx=g.mx-gest.mx,dy=g.my-gest.my;gest.mx=g.mx;gest.my=g.my;
+  const k=cam.dist*0.0019,sy=Math.sin(cam.yaw),cy=Math.cos(cam.yaw),kf=k/Math.max(.5,Math.sin(cam.pitch));
+  cam.x+=-cy*dx*k-sy*dy*kf;cam.z+=sy*dx*k-cy*dy*kf;
+}
+function ptrUp(e){
+  const t=e.pointerType==='touch';
+  if(t){ptrs.delete(e.pointerId);
+    if(gest){if(ptrs.size<2){gest=null;lockPtr=ptrs.size>0;}drag=null;return;}
+    if(lockPtr){if(!ptrs.size)lockPtr=false;drag=null;return;}}
+  const wasPlace=drag&&drag.m==='place';
+  endDrag();
+  if(t&&!(wasPlace||pend))hover=null;
+}
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 cv.addEventListener('pointerdown',e=>{
-  cv.focus();cv.setPointerCapture(e.pointerId);const c=cellAt(e);
+  cv.focus();cv.setPointerCapture(e.pointerId);const touch=e.pointerType==='touch';
+  if(touch){document.body.classList.add('touch');ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(ptrs.size>=2){drag=null;startGest();return;}if(lockPtr)return;}
+  const c=cellAt(e,touch&&BT[tool]&&!zoneEdit?TOFF:0);
   if(e.button===2){drag={m:'rot',x:e.clientX,y:e.clientY,acc:0};return;}
   if(e.button===1){e.preventDefault();drag={m:'pan',x:e.clientX,y:e.clientY};return;}
   if(e.button!==0)return;
@@ -683,11 +744,12 @@ cv.addEventListener('pointerdown',e=>{
   if(isDist(tool)){drag={m:tool,a:c,b:c};return;}
   if(tool==='road'){drag={m:'road',last:c};Sim.paintRoad(c.cx,c.cy);return;}
   if(tool==='demolish'){const r=Sim.demolishAt(c.cx,c.cy);if(r&&r!=='ok')toast(r,true);return;}
-  if(BT[tool]){const a=anchor(tool,c),r=Sim.place(tool,a.x,a.y,rot);if(!r.ok)toast(r.msg,true);}
+  if(BT[tool]){if(touch){hover=c;pend=true;drag={m:'place'};updPbar();return;}const a=anchor(tool,c),r=Sim.place(tool,a.x,a.y,rot);if(!r.ok)toast(r.msg,true);}
 });
 cv.addEventListener('pointermove',e=>{
+  if(e.pointerType==='touch'){const p=ptrs.get(e.pointerId);if(p){p.x=e.clientX;p.y=e.clientY;}if(gest){moveGest();return;}if(lockPtr)return;}
   if(drag&&drag.m==='selpan'){
-    if(!drag.moved&&Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<5)return;
+    if(!drag.moved&&Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<(e.pointerType==='touch'?10:5))return;
     drag.moved=true;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;
     const k=cam.dist*0.0019,sy=Math.sin(cam.yaw),cy=Math.cos(cam.yaw),kf=k/Math.max(.5,Math.sin(cam.pitch));
     cam.x+=-cy*dx*k-sy*dy*kf;cam.z+=sy*dx*k-cy*dy*kf;return;
@@ -699,7 +761,7 @@ cv.addEventListener('pointermove',e=>{
       cam.x+=-cy*dx*k-sy*dy*kf;cam.z+=sy*dx*k-cy*dy*kf;}
     return;
   }
-  const c=cellAt(e);hover=c;
+  const c=cellAt(e,e.pointerType==='touch'&&drag&&drag.m==='place'?TOFF:0);hover=c;
   if(drag&&c){
     if(isDist(drag.m))drag.b=c;
     else if(drag.m==='road'){let x=drag.last.cx,y=drag.last.cy;const dx=Math.abs(c.cx-x),dy=Math.abs(c.cy-y),sx=x<c.cx?1:-1,sy=y<c.cy?1:-1;let er=dx-dy;
@@ -708,7 +770,8 @@ cv.addEventListener('pointermove',e=>{
 });
 function endDrag(){
   if(drag&&drag.m==='rot'&&(drag.acc||0)<6){setTool('select');select(null);toast('Modalità Osserva.');}
-  if(drag&&drag.m==='selpan'&&!drag.moved){setRay({clientX:drag.sx,clientY:drag.sy});const h=ray.intersectObjects(pickables,false);select(h.length?h[0].object.userData.bid:null);}
+  if(drag&&drag.m==='selpan'&&!drag.moved){setRay({clientX:drag.sx,clientY:drag.sy});const vh=ray.intersectObjects(vpick,false),h=ray.intersectObjects(pickables,false);
+    if(vh.length&&(!h.length||vh[0].distance<=h[0].distance+3))openCard(vh[0].object.userData.vid);else select(h.length?h[0].object.userData.bid:null);}
   if(drag&&isDist(drag.m)){
     const t=TOOL[drag.m];const n=Sim.paintDistrict(drag.a.cx,drag.a.cy,drag.b.cx,drag.b.cy,t.dt);
     if(t.dt===1&&(Math.abs(drag.a.cx-drag.b.cx)<9||Math.abs(drag.a.cy-drag.b.cy)<9))toast('Zona residenziale piccola: una casa con giardino richiede circa 8×5 celle libere. Disegna un rettangolo più ampio (1 lotto = 3×3 celle).',true);
@@ -716,8 +779,8 @@ function endDrag(){
   }
   drag=null;
 }
-cv.addEventListener('pointerup',endDrag);cv.addEventListener('pointercancel',endDrag);
-cv.addEventListener('pointerleave',()=>{hover=null;});
+cv.addEventListener('pointerup',ptrUp);cv.addEventListener('pointercancel',ptrUp);
+cv.addEventListener('pointerleave',e=>{if(e.pointerType!=='touch')hover=null;});
 cv.addEventListener('wheel',e=>{e.preventDefault();cam.goal=Math.max(16,Math.min(150,cam.goal*Math.exp(e.deltaY*0.0012)));},{passive:false});
 const TK={};TOOLS.forEach(t=>TK[t.key]=t.id);
 addEventListener('keydown',e=>{
@@ -743,8 +806,8 @@ $('camIn').addEventListener('click',()=>{cam.goal=Math.max(16,cam.goal*0.8);});$
 
 // ---------- velocità ----------
 let speed=1;
-function setSpeed(s){speed=s;document.querySelectorAll('#speed .btn').forEach(b=>b.classList.toggle('on',+b.dataset.s===s));}
-document.querySelectorAll('#speed .btn').forEach(b=>b.addEventListener('click',()=>setSpeed(+b.dataset.s)));
+function setSpeed(s){speed=s;document.querySelectorAll('#speed .btn[data-s]').forEach(b=>b.classList.toggle('on',+b.dataset.s===s));}
+document.querySelectorAll('#speed .btn[data-s]').forEach(b=>b.addEventListener('click',()=>setSpeed(+b.dataset.s)));
 
 // ---------- livelli ----------
 const lv2=s=>s.levels[2]+s.levels[3]+s.levels[4];
@@ -792,7 +855,7 @@ const LEVELS=[
     {txt:'Raggiungi 60 abitanti',cur:s=>s.pop,n:60},
     {txt:'Un viandante diventa abitante',cur:s=>s.settled,n:1},
     {txt:'Tre banchi aperti al mercato',cur:s=>s.stalls,n:3},
-    {txt:'Consolida 25 tratti di strada',cur:s=>s.roads,n:25}]}
+    {txt:'Traccia 25 tratti di strada',cur:s=>s.roads,n:25}]}
 ];
 let lvl=0,goalEls=[],cleared=false;
 function showLevel(){
@@ -810,7 +873,47 @@ function checkGoals(st){
 }
 $('mBtn').addEventListener('click',()=>{$('modal').hidden=true;setSpeed(1);if(lvl<LEVELS.length-1){lvl++;showLevel();}});
 $('lvlTitle').addEventListener('click',()=>$('lvl').classList.toggle('collapsed'));
-if(window.innerWidth<640)$('lvl').classList.add('collapsed');
+if(window.innerWidth<640||COARSE)$('lvl').classList.add('collapsed');
+
+// ---------- scheda abitante ----------
+let cardId=null,cardHtml='';
+function relLink(id){const r=Sim.reg.get(id);if(!r)return '?';return `<span class="lk" data-v="${id}">${esc(r.name)} ${esc(r.fam)}</span>${r.died!==null?' †':''}`;}
+function openCard(id){cardId=id;cardHtml='';$('card').hidden=false;renderCard();}
+function closeCard(){cardId=null;$('card').hidden=true;}
+function renderCard(){
+  if(cardId===null)return;
+  const r=Sim.reg.get(cardId);if(!r){closeCard();return;}
+  const v=Sim.villagers().find(x=>x.id===cardId),dead=r.died!==null;
+  const age=dead?r.ageD:Math.floor(v.age),child=v?v.child:age<14;
+  const sexT=r.sex==='M'?'Uomo':'Donna',ageT=child?(r.sex==='M'?'Bambino':'Bambina'):sexT;
+  let h=`<h2>${esc(r.name)} ${esc(r.fam)}</h2><div class="sub">${ageT}, ${age} anni${dead?' · morto/a '+Sim.dateStr(r.died):''}</div>`;
+  h+='<h4>Mestiere</h4>';
+  if(dead)h+=`<p>${r.trade?Sim.TRADENAME[r.trade]:'Nessun mestiere'}${r.inh?' <span class="tag">ereditato</span>':''}</p><p>${r.cause?({age:'Morto di vecchiaia.',cold:'Morto di freddo.',hunger:'Morto di fame.',ill:'Morto di malattia.'})[r.cause]||'':''}</p>`;
+  else{h+=`<p>${child?(age<6?'Gioca in giardino':'Gioca e studia'):esc(Sim.roleText(v))}${v.trade&&!child?` · mestiere: ${Sim.TRADENAME[v.trade]}`:''}${v.inh?' <span class="tag">ereditato</span>':''}</p>`;}
+  h+='<h4>Istruzione</h4>';
+  const sch=dead?r.schooled:v.schooled;
+  if(!dead&&child){const p=Math.min(100,Math.round(v.edu/3));h+=`<p>${age<6?'Troppo piccolo per la scuola.':'Frequenta la scuola, se c\'è un maestro.'}</p><div class="bar"><i style="width:${p}%"></i></div><p>Apprendimento: ${p}%</p>`;}
+  else h+=`<p>${sch?'Sa leggere e scrivere.':'Non sa leggere né scrivere.'}</p>`;
+  if(!dead){
+    h+='<h4>Salute</h4>';
+    if(v.ill)h+=`<p>Malato: ${Sim.DIS[v.ill.k].n} <span class="tag bad">a letto</span></p>`;
+    else h+=`<p>In salute${v.immT>S.t?' · immune per un po\'':''}.</p>`;
+    const hb=v.home&&Sim.buildings().get(v.home);
+    h+='<h4>Casa</h4>'+(hb?`<p>${Sim.LVNAME[hb.level-1]} · benessere ${hb.well}/100 · legna ${hb.goods.firewood}/${Sim.fuelNeed()}</p>`:'<p>Senza casa.</p>');
+  }
+  h+='<h4>Parenti</h4>';
+  const par=r.par.map(relLink).join(', ')||'sconosciuti (arrivato da fuori)',kids=r.kids.map(relLink).join(', ')||'nessuno';
+  h+=`<p>Genitori: ${par}</p><p>Figli: ${kids}</p>`;
+  if(!dead){const hb=v.home&&Sim.buildings().get(v.home);if(hb){const oth=hb.members.filter(i=>i!==cardId&&!r.kids.includes(i)&&!r.par.includes(i));if(oth.length)h+=`<p>In casa con: ${oth.map(relLink).join(', ')}</p>`;}}
+  h+='<h4>Storia</h4><ul class="log">'+r.log.slice().reverse().map(e=>`<li>${esc(e.txt)}<em>${Sim.dateStr(e.t)}</em></li>`).join('')+'</ul>';
+  if(h!==cardHtml){cardHtml=h;$('cardBody').innerHTML=h;}
+  $('cardHome').disabled=dead||!(v&&v.home);$('cardHome').style.opacity=$('cardHome').disabled?.5:1;
+}
+$('cardClose').addEventListener('click',closeCard);
+$('card').addEventListener('click',ev=>{if(ev.target===$('card')){closeCard();return;}const l=ev.target.closest&&ev.target.closest('[data-v]');if(l)openCard(+l.getAttribute('data-v'));});
+$('cardHome').addEventListener('click',()=>{const v=Sim.villagers().find(x=>x.id===cardId);const b=v&&v.home&&Sim.buildings().get(v.home);if(!b)return;closeCard();const [cx,cz]=footCenter(b);cam.x=cx;cam.z=cz;cam.goal=Math.min(cam.goal,34);select(b.id);});
+$('selList').addEventListener('click',ev=>{const l=ev.target.closest&&ev.target.closest('[data-v]');if(l)openCard(+l.getAttribute('data-v'));});
+addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!$('card').hidden)closeCard();});
 
 // ---------- HUD ----------
 let hudT=0;const PHN={work:'lavoro',meal:'pasto',evening:'sera',night:'notte'};
@@ -818,9 +921,10 @@ function updateHUD(){
   const st=Sim.stats();
   capNow=st.capRes||80;if(attrOn)groundDirty=true;
   $('rWood').textContent=`${S.stock.wood}/${capNow}`;$('rStone').textContent=`${S.stock.stone}/${capNow}`;$('rFood').textContent=st.food;$('rIron').textContent=`${S.stock.iron}`;$('rGrain').textContent=`${S.stock.grain}·${S.stock.flour}`;
-  $('rDay').textContent=`${Sim.SEASONS[st.season]} ${st.day%Sim.SEASON_DAYS+1}/${Sim.SEASON_DAYS} · anno ${st.year} · ${PHN[st.ph]}`;
+  $('rDay').textContent=`${Sim.SEASONS[st.season]} ${st.day%Sim.SEASON_DAYS+1}/${Sim.SEASON_DAYS} · annata ${st.year} · ${PHN[st.ph]}`;
   $('rPop').textContent=`${st.pop}/${st.cap}`+(st.children?` (👶${st.children})`:'');$('rJobs').textContent=`${st.jobs}/${st.slots}`;$('rBarter').textContent=st.barters;
-  checkGoals(st);refreshSel();
+  $('rFire').textContent=`${st.fire}/${st.fireNeed}`;$('rSick').textContent=st.sick+(st.plague?' ☣':'');$('chipSick').classList.toggle('alert',st.sick>0);$('rWell').textContent=Math.round(st.avgWell);
+  checkGoals(st);refreshSel();if(cardId)renderCard();
   for(const t of TOOLS)if(BT[t.id])toolBtns[t.id].classList.toggle('poor',!Sim.afford(t.id));
 }
 
@@ -888,7 +992,7 @@ function showStory(){
 }
 function begin(mode){
   Music.start();$('story').hidden=true;
-  Sim.init(7,mode);started=true;
+  Sim.init(7,mode);started=true;if(COARSE)setTimeout(()=>toast('Un dito: sposta la mappa. Due dita: pizzica per zoomare, ruota per girare. Scegli una categoria e uno strumento in basso.'),7000);
   if(treesDirty)rebuildTrees();if(rocksDirty)rebuildRocks();if(sapsDirty)rebuildSaps();groundDirty=true;
   showLevel();
 }
@@ -913,10 +1017,11 @@ function frame2(now){
     const m=vms.get(v.id);if(!m)continue;
     m.gp.visible=!v.inside&&!hiddenIn(v);m.gp.position.set(v.x,v.moving?Math.abs(Math.sin(clock*11+v.id))*0.07:0,v.z);m.gp.rotation.y=v.fa;
     if(v.age!==undefined&&!v.guest){const k=0.8*(0.62+0.38*Math.min(1,v.age/14));if(m.k!==k){m.k=k;m.gp.scale.setScalar(k);}}
+    if(!v.guest){const ill=!!v.ill;if(m.ill!==ill){m.ill=ill;m.body.material=ill?MAT.sick:m.mat;}}
     const cw=v.carry||null;if(cw!==m.carry){m.carry=cw;m.load.visible=!!cw;if(cw)m.load.material=CARRY[cw]||MAT.log;}
   }
   ghost.visible=false;arrow.visible=false;
-  if(hover&&!drag){
+  if(hover&&(!drag||drag.m==='place')){
     if(BT[tool]){const a=anchor(tool,hover),ok=!Sim.canPlace(tool,a.x,a.y,rot)&&Sim.afford(tool),[gw,gh]=Sim.dimsOf(BT[tool],rot);setGhost(a.x,a.y,gw,gh,ok,1.2);showArrow(tool,a.x,a.y,rot,ok);}
     else if(isDist(tool)||tool==='road')setGhost(hover.cx,hover.cy,1,1,true,0.2,isDist(tool)?TOOL[tool].col:0xcfc5ae);
     else if(tool==='demolish')setGhost(hover.cx,hover.cy,1,1,false,0.3);

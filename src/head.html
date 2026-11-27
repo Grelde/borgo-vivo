@@ -1,3 +1,6 @@
+<meta name="theme-color" content="#17110c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>Borgo Vivo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -6,7 +9,6 @@
 /* Layout: mappa 3D a tutto schermo, cruscotto in alto, obiettivi a sinistra, barra strumenti in basso. Tema unico: legno scuro e pergamena. */
 :root{--ink:#17110c;--wood:#2a2017;--wood2:#3d2f21;--line:#5e4932;--parch:#eadcb8;--parch2:#cdbb8a;--gold:#d6ad4e;--blood:#c4503a;--moss:#93b56a;--muted:#a69378;
 --serif:'Alegreya',Georgia,'Times New Roman',serif;--disp:'Cinzel','Trajan Pro',Georgia,serif;color-scheme:dark}
-[hidden]{display:none!important}
 html,body{height:100%}
 body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--serif);overflow:hidden;-webkit-user-select:none;user-select:none}
 #app{position:relative;width:100%;height:100%;overflow:hidden}
@@ -25,6 +27,7 @@ body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--seri
 .stats{display:flex;flex-wrap:wrap;gap:4px 12px;padding:7px 12px}
 .chip{display:inline-flex;align-items:center;gap:5px;color:var(--parch2);font-size:14px}
 .chip b{color:var(--parch);font-variant-numeric:tabular-nums;font-weight:700;min-width:1.5ch}
+.chip.alert b{color:var(--blood)}
 .sw{display:inline-block;width:11px;height:11px;border-radius:2px;border:1px solid rgba(0,0,0,.45)}
 .sw.w{background:#9a6a37}.sw.s{background:#9c9c94}.sw.f{background:#7fae4e}
 .speed{display:flex;gap:4px;padding:5px}
@@ -71,10 +74,14 @@ body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--seri
 #selList::-webkit-scrollbar{width:5px}#selList::-webkit-scrollbar-thumb{background:rgba(214,173,78,.45);border-radius:3px}#selList::-webkit-scrollbar-track{background:transparent}
 #selList>div{padding-bottom:4px;border-bottom:1px solid rgba(214,173,78,.12)}#selList>div:last-child{border-bottom:0}
 #selList:empty{display:none}
+#selList .lk{color:var(--gold);cursor:pointer;text-decoration:underline;text-decoration-color:rgba(214,173,78,.4)}
 .flags{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0}
 .flags span{padding:1px 9px;border-radius:10px;font-size:13px;border:1px solid var(--line);color:var(--muted)}
 .flags .ok{color:var(--moss);border-color:var(--moss)}
 .flags .no{color:#e08a76;border-color:#7b3326}
+.flags .warn{color:#e6c25a;border-color:#8a6d22}
+.wbar{height:7px;border-radius:4px;background:rgba(255,235,190,.12);overflow:hidden;margin:3px 0 2px}
+.wbar i{display:block;height:100%;background:var(--moss)}
 #hint{position:absolute;left:50%;transform:translateX(-50%);bottom:126px;max-width:min(560px,calc(100% - 32px));text-align:center;font-size:15px;color:var(--parch2);background:rgba(23,17,12,.72);padding:4px 12px;border-radius:12px;pointer-events:none}
 #hint:empty{display:none}
 #toast{position:absolute;left:50%;bottom:164px;transform:translate(-50%,8px);max-width:min(520px,calc(100% - 32px));padding:9px 16px;text-align:center;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;font-size:16px}
@@ -106,6 +113,86 @@ body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--seri
   .brand{display:none}
 }
 @media (prefers-reduced-motion:reduce){#toast{transition:none}}
+/* ===== Mobile / touch (v18) ===== */
+html,body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--st:env(safe-area-inset-top,0px)}
+#app{height:100dvh}
+.btn{touch-action:manipulation}
+#pbar{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(138px + var(--sb));display:flex;align-items:center;gap:8px;padding:6px 10px;z-index:3;max-width:calc(100% - 16px)}
+#pbar[hidden]{display:none}
+#modal[hidden]{display:none}
+#pbar span{font:700 12px/1.2 var(--disp);letter-spacing:.05em;text-transform:uppercase;color:var(--gold);max-width:140px}
+#pbar .btn{min-height:44px;min-width:48px;font-size:16px;white-space:nowrap}
+#pOk{background:#5a4528;border-color:var(--gold);color:#fff3d0}
+.touch #rotBtn{display:none!important}
+.touch #tools .nm kbd{display:none}
+@media (pointer:coarse),(max-width:640px){
+  #top{top:calc(6px + var(--st));left:calc(8px + var(--sl));right:calc(8px + var(--sr));gap:6px}
+  .brand{display:none}
+  .stats{flex:1 1 100%;flex-wrap:nowrap;overflow-x:auto;gap:14px;padding:6px 10px;scrollbar-width:none;min-width:0}
+  .stats::-webkit-scrollbar{display:none}
+  .chip{white-space:nowrap;font-size:13px;flex:none}
+  .speed{padding:4px;gap:4px}
+  .speed .btn.sm{min-height:40px;min-width:44px;font-size:15px}
+  #musVol{display:none}
+  #lvl{top:calc(104px + var(--st));left:calc(8px + var(--sl));bottom:auto;width:auto;max-width:calc(100% - 76px - var(--sl) - var(--sr));padding:4px 12px}
+  #lvl h2{padding:8px 0;font-size:12px}
+  #lvl.collapsed h2{padding:6px 0}
+  #goals li{font-size:14px}
+  #camctl{top:calc(104px + var(--st));bottom:auto;right:calc(8px + var(--sr));gap:6px}
+  #camctl .btn{width:44px;height:44px;font-size:20px}
+  #hint{display:none}
+  #toast{left:calc(8px + var(--sl));right:calc(64px + var(--sr));bottom:auto;top:calc(152px + var(--st));transform:translateY(-6px);max-width:none;font-size:15px;z-index:4}
+  #toast.show{transform:none}
+  #cats{left:calc(8px + var(--sl));right:calc(8px + var(--sr));bottom:calc(78px + var(--sb));max-width:none;padding:4px;gap:6px;-webkit-overflow-scrolling:touch}
+  #cats .btn{flex:none;min-height:40px;padding:6px 14px;font-size:15px}
+  #tools{left:calc(8px + var(--sl));right:calc(8px + var(--sr));bottom:calc(6px + var(--sb));-webkit-overflow-scrolling:touch}
+  #tools .btn{min-width:96px;min-height:52px;padding:6px 10px}
+  #tools .nm{font-size:11px}
+  #sel{left:calc(8px + var(--sl));right:calc(8px + var(--sr));width:auto;max-width:none;bottom:calc(134px + var(--sb));max-height:44vh;overflow-y:auto;padding:12px 14px}
+  #selList{max-height:22vh}
+  #sel .btn{min-height:40px}
+  #sel .btn.sm{min-height:40px;min-width:44px}
+  #sel .jobs{flex-wrap:wrap}
+  #pbar{bottom:calc(134px + var(--sb))}
+  .edBox,.cardBox{max-height:88dvh}
+  #story .box,#modal .box{max-width:min(480px,100%);padding:20px}
+  #story .btn,#modal .btn{min-height:44px;padding:8px 18px}
+}
+@media (max-height:480px) and (pointer:coarse),(max-height:480px) and (max-width:900px){
+  #top{top:calc(4px + var(--st))}
+  .stats{flex:1 1 0}
+  .speed .btn.sm{min-height:36px}
+  #lvl{top:calc(52px + var(--st))}
+  #camctl{top:calc(52px + var(--st));flex-direction:column;flex-wrap:wrap;align-content:flex-end;max-height:calc(100% - 175px)}
+  #camctl .btn{width:38px;height:38px;font-size:18px}
+  #cats{bottom:calc(68px + var(--sb))}
+  #cats .btn{min-height:34px;padding:4px 12px}
+  #tools{bottom:calc(4px + var(--sb))}
+  #tools .btn{min-height:44px}
+  #sel{left:auto;right:calc(100px + var(--sr));width:min(330px,50%);bottom:calc(112px + var(--sb));max-height:calc(100% - 165px)}
+  #selList{max-height:90px}
+  #pbar{bottom:calc(112px + var(--sb))}
+  #toast{top:calc(50px + var(--st));right:calc(100px + var(--sr))}
+}
+/* ===== v20: scheda abitante ===== */
+#card{position:absolute;inset:0;z-index:41;display:flex;align-items:center;justify-content:center;background:rgba(12,8,3,.62);padding:12px}
+#card[hidden]{display:none}
+.cardBox{position:relative;width:min(560px,100%);max-height:92dvh;overflow:auto;background:linear-gradient(#ecdcae,#d8c48c);color:#3a2812;border:3px solid #6b4a2b;border-radius:6px;box-shadow:0 10px 40px rgba(0,0,0,.6),inset 0 0 40px rgba(120,80,30,.35);padding:16px 20px 14px;-webkit-user-select:text;user-select:text}
+.cardBox h2{margin:0;font-family:Georgia,'Times New Roman',serif;font-size:24px;text-align:center;letter-spacing:.03em;color:#4a2f12}
+.cardBox .sub{margin:2px 0 8px;text-align:center;font-size:14px;font-style:italic;opacity:.85}
+.cardBox h4{margin:12px 0 4px;font:700 12px var(--disp);letter-spacing:.1em;text-transform:uppercase;color:#7a2a1c;border-bottom:1px solid rgba(90,60,25,.35);padding-bottom:2px}
+.cardBox p{margin:3px 0;font-size:15px;line-height:1.35}
+.cardBox .lk{color:#8c2f23;text-decoration:underline;cursor:pointer}
+.cardBox .bar{height:8px;border-radius:4px;background:rgba(90,60,25,.25);overflow:hidden;margin:4px 0}
+.cardBox .bar i{display:block;height:100%;background:#6a7a3b}
+.cardBox .tag{display:inline-block;padding:0 8px;border-radius:9px;font-size:12px;border:1px solid #6b4a2b;margin-left:4px}
+.cardBox .tag.bad{border-color:#8c2f23;color:#8c2f23}
+.cardBox ul.log{list-style:none;margin:4px 0 0;padding:0;max-height:200px;overflow:auto;font-size:14px}
+.cardBox ul.log li{padding:3px 0;border-bottom:1px dotted rgba(90,60,25,.3)}
+.cardBox ul.log em{display:block;font-size:12px;color:#7a5a30;font-style:normal}
+.cardBox .acts{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+.cardBox .btn{background:#5a3c1c;color:#fff0cc;border-color:#3a2410}
 </style>
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
@@ -117,10 +204,13 @@ body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--seri
       <span class="chip" title="Ferro nei magazzini"><i class="sw" style="background:#55575c"></i>Ferro <b id="rIron">0</b></span>
       <span class="chip" title="Grano nei granai · farina nei mulini"><i class="sw" style="background:#d6b24e"></i>Grano·Farina <b id="rGrain">0</b></span>
       <span class="chip" title="Cibo nelle scorte delle famiglie"><i class="sw f"></i>Cibo <b id="rFood">0</b></span>
-      <span class="chip" title="Abitanti / posti nelle case">Abitanti <b id="rPop">0</b></span>
+      <span class="chip" title="Legna da ardere nelle case · fabbisogno di tutte le case"><i class="sw w"></i>Legna case <b id="rFire">0</b></span>
+      <span class="chip" title="Abitanti / posti nelle case"><span>Abitanti</span> <b id="rPop">0</b></span>
+      <span class="chip" id="chipSick" title="Abitanti malati (☣ = epidemia in corso)">Malati <b id="rSick">0</b></span>
+      <span class="chip" title="Benessere medio delle case: cibo, caldo, legna, acqua, quiete, chiesa">Benessere <b id="rWell">0</b></span>
       <span class="chip" title="Abitanti con un mestiere fuori casa / posti disponibili">Al lavoro <b id="rJobs">0</b></span>
       <span class="chip" title="Scambi conclusi al mercato">Baratti <b id="rBarter">0</b></span>
-      <span class="chip" title="Giorno e momento della giornata">Giorno <b id="rDay">1</b></span>
+      <span class="chip" title="Un'annata dura quattro stagioni (24 giorni). Gli abitanti invecchiano di un anno ogni 2,4 giorni: in un'annata passano 10 anni di vita.">Giorno <b id="rDay">1</b></span>
     </div>
     <div class="panel speed" id="speed">
       <button class="btn sm" data-s="0">Pausa</button>
@@ -133,6 +223,9 @@ body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--seri
   <div id="lvl" class="panel"><h2 id="lvlTitle"></h2><ul id="goals"></ul></div>
   <div id="edicts" hidden role="dialog" aria-label="Editti">
     <div class="edBox"><h2>Editti del Borgo</h2><p class="sub">La tua parola è legge: emana un editto, o ritiralo quando vuoi.</p><div id="edList"></div><button class="btn x" id="edClose" type="button">Chiudi</button></div>
+  </div>
+  <div id="card" hidden role="dialog" aria-label="Scheda abitante">
+    <div class="cardBox"><div id="cardBody"></div><div class="acts"><button class="btn" id="cardHome" type="button">Vai alla casa</button><button class="btn" id="cardClose" type="button">Chiudi</button></div></div>
   </div>
   <div id="camctl">
     <button class="btn" id="camL" title="Ruota a sinistra (Q)">↺</button>
@@ -154,6 +247,7 @@ body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--seri
     <button class="btn danger" id="selDemo">Demolisci</button>
   </div>
   <div id="hint"></div>
+  <div id="pbar" class="panel" hidden><span id="pName"></span><button class="btn" id="pOk" type="button">✓ Costruisci</button><button class="btn" id="pRot" type="button" title="Ruota l'edificio">⟳</button><button class="btn danger" id="pNo" type="button" title="Annulla">✕</button></div>
   <div id="toast" class="panel"></div>
   <div id="cats" class="panel"></div>
   <div id="tools" class="panel"></div>
