@@ -1,5 +1,8 @@
 # Changelog
 
+## v21.1 – 2026-11-27
+- Etichetta della versione accanto al titolo in alto a sinistra (letta da `VERSION` durante la build). `build.sh` genera anche `dist/artifact.html` per la pagina claude.ai.
+
 ## v21 – 2026-11-27
 Unione di due linee sviluppate in chat parallele a partire dalla v19 (la v18 e la v19 non erano mai state caricate qui).
 - Da v18: controlli touch/mobile (gesti a due dita, barra di conferma ✓/✕, layout adattivo).

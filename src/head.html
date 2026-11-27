@@ -9,6 +9,7 @@
 /* Layout: mappa 3D a tutto schermo, cruscotto in alto, obiettivi a sinistra, barra strumenti in basso. Tema unico: legno scuro e pergamena. */
 :root{--ink:#17110c;--wood:#2a2017;--wood2:#3d2f21;--line:#5e4932;--parch:#eadcb8;--parch2:#cdbb8a;--gold:#d6ad4e;--blood:#c4503a;--moss:#93b56a;--muted:#a69378;
 --serif:'Alegreya',Georgia,'Times New Roman',serif;--disp:'Cinzel','Trajan Pro',Georgia,serif;color-scheme:dark}
+#ver{font-size:11px;color:var(--muted);letter-spacing:.05em;margin-left:4px;text-transform:none}
 html,body{height:100%}
 body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--serif);overflow:hidden;-webkit-user-select:none;user-select:none}
 #app{position:relative;width:100%;height:100%;overflow:hidden}
@@ -197,7 +198,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo</div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v__VERSION__</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
