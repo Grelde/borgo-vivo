@@ -1,5 +1,14 @@
 # Changelog
 
+## v33 – 2026-11-27
+Funzione nuova: lotti organici (casa + giardino non più rettangoli).
+- **Forme del giardino:** a lato, a L, a ferro di cavallo, intorno alla casa (anello) o triangolare; la casa resta un rettangolo da 3×3 a 6×4. Il giardino iniziale ha 9-24 celle, forma specchiata/ruotata a caso.
+- **Ingresso:** una cella libera accanto al lotto, di preferenza accanto alla casa e sulla/verso la strada già tracciata.
+- **Ampliamento del giardino:** cresce da qualunque cella di bordo verso strada o vicini (fino a 3 celle), sempre entro 24 celle totali.
+- **Produzione proporzionale alla grandezza:** il raccolto sale del 25% per ogni cella oltre le 9 (giardino da 24 celle = 4,75× uno da 9).
+- **Grafica:** il blocco 3×3 (o 2×2 in scala, o 1 cella) più centrale regge orto/animali/bottega, le altre celle sono come gli ampliamenti; la staccionata ricalca la forma, si interrompe lungo la casa e davanti al cancello. Pannello: forma e celle del giardino.
+- Test: `tests/lotti.js` riscritto (connessione, porta adiacente, 9-24 celle, varietà di forme, ingresso verso la strada). Grafica non verificata in un browser WebGL.
+
 ## v32 – 2026-11-27
 Funzione nuova: bravura nei mestieri.
 - Chi lavora in un edificio prende quel mestiere (come prima) e ne accumula **esperienza**: un livello ogni 1800 s di lavoro (circa 1,2 per annata), da Apprendista (0) a Maestro (4). Chi eredita il mestiere di famiglia parte da Praticante (1).
