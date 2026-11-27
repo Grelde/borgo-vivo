@@ -48,6 +48,10 @@ const DIS={
   plague:{n:'Peste',dur:[70,120],mort:0.0035}
 };
 const TRADENAME={wood:'taglialegna',quarry:'cavatore',mine:'minatore',forester:'guardaboschi',farm:'contadino',store:'magazziniere',mill:'mugnaio',school:'maestro',inn:'oste',sheepfold:'pastore',infirmary:'erborista'};
+// tratti di carattere (negativi): ogni abitante ne ha al massimo uno; i figli lo ereditano da un genitore con probabilità 35%
+const TRAITS={pigro:{n:'Pigro',d:'Lavora più lentamente e controvoglia.'},cagionevole:{n:'Cagionevole',d:'Si ammala più facilmente.'},brontolone:{n:'Brontolone',d:'Si lamenta di tutto: è sempre meno felice degli altri.'},litigioso:{n:'Litigioso',d:'Litiga con chi vive in casa e ne abbassa la felicità.'}};
+const TRAITK=Object.keys(TRAITS);
+const rollTrait=()=>Math.random()<0.35?TRAITK[(Math.random()*TRAITK.length)|0]:null;
 const CAUSETXT={age:'Muore di vecchiaia.',cold:'Muore di freddo, in una casa senza legna.',hunger:'Muore di fame.',ill:'Muore di malattia.'};
 const MNAMES=['Bartolo','Benedetto','Bruno','Corrado','Domenico','Dino','Enrico','Federico','Fulvio','Giovanni','Guido','Jacopo','Lorenzo','Matteo','Nicola','Odoardo','Pietro','Rinaldo','Tommaso','Ugo','Vitale','Aldo','Carlo','Elia','Gino','Ivo','Leone','Martino'];
 const FNAMES=['Agnese','Beatrice','Chiara','Diana','Elisabetta','Francesca','Giulia','Ginevra','Ilaria','Lucia','Margherita','Matilde','Orsola','Piera','Rosa','Sibilla','Tecla','Vittoria','Alba','Bianca','Dora','Elena','Flora','Gemma','Nora','Costanza','Livia','Berta'];
@@ -66,7 +70,7 @@ const tree=new Uint8Array(N*N),rock=new Uint8Array(N*N),ore=new Uint8Array(N*N),
 const wear=new Float32Array(N*N),jit=new Float32Array(N*N),attr=new Float32Array(N*N),sapT=new Float32Array(N*N),plev=new Uint8Array(N*N),phit=new Uint8Array(N*N),pexp=new Float32Array(N*N);
 const EDICT0=()=>({noUpgrade:false,noImmig:false,birthBonus:false,schoolMandatory:false,quarantine:false,woodDuty:false});
 const S={t:0,mode:'lake',stock:{wood:40,stone:10,iron:0,grain:0,flour:0},inflight:{wood:0,stone:0,iron:0},grow:0,barters:0,helps:0,visits:0,settled:0,season:0,year:1,frozen:false,day:0,f:0.06,ph:'work',wh:{wood:0,stone:0,iron:0},xf:{wood:0,stone:0,iron:0},edicts:EDICT0(),births:0,deaths:0,buried:0,unburied:0,
-  deathsBy:{age:0,cold:0,hunger:0,ill:0},plague:{on:false,since:0,dead:0},inherits:0,cured:0,sickTot:0,moves:0};
+  deathsBy:{age:0,cold:0,hunger:0,ill:0},plague:{on:false,since:0,dead:0},inherits:0,cured:0,sickTot:0,moves:0,left:0};
 const guests=[];const buildings=new Map();let villagers=[];const vmap=new Map();const resv=new Map();const plantResv=new Set();let nextId=1;
 const acc={a1:0,a05:0,farm:0,attr:99};
 const told={};
@@ -107,7 +111,7 @@ function init(sd,mode){
   gate.fill(0);gatedSet.clear();
   occ.fill(0);field.fill(0);wear.fill(0);plev.fill(0);phit.fill(0);pexp.fill(0);attr.fill(0);sapT.fill(0);
   buildings.clear();villagers=[];vmap.clear();reg.clear();resv.clear();plantResv.clear();nextId=1;guests.length=0;
-  S.t=0;S.edicts=EDICT0();S.births=0;S.deaths=0;S.buried=0;S.unburied=0;S.wh={wood:0,stone:0,iron:0};S.xf={wood:0,stone:0,iron:0};S.stock={wood:40,stone:10,iron:0,grain:0,flour:0};S.inflight={wood:0,stone:0,iron:0};S.grow=0;S.barters=0;S.helps=0;S.visits=0;S.settled=0;S.season=0;S.year=1;S.frozen=false;acc.a1=0;acc.a05=0;acc.farm=0;acc.attr=99;for(const k in told)delete told[k];
+  S.t=0;S.edicts=EDICT0();S.births=0;S.deaths=0;S.buried=0;S.unburied=0;S.wh={wood:0,stone:0,iron:0};S.xf={wood:0,stone:0,iron:0};S.stock={wood:40,stone:10,iron:0,grain:0,flour:0};S.inflight={wood:0,stone:0,iron:0};S.grow=0;S.left=0;S.barters=0;S.helps=0;S.visits=0;S.settled=0;S.season=0;S.year=1;S.frozen=false;acc.a1=0;acc.a05=0;acc.farm=0;acc.attr=99;for(const k in told)delete told[k];
   S.deathsBy={age:0,cold:0,hunger:0,ill:0};S.plague={on:false,since:0,dead:0};S.inherits=0;S.cured=0;S.sickTot=0;S.moves=0;
   const M=N/SC;
   for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;jit[i]=hash(x,y+500)*0.15;}
@@ -175,13 +179,13 @@ function addBuilding(type,x,y,done,o){
   buildings.set(b.id,b);occStamp++;hooks.building(b);hooks.ground();acc.attr=99;
   return b;
 }
-function addVillager(x,z,age,fam){
+function addVillager(x,z,age,fam,parTrait){
   if(age===undefined)age=20+Math.random()*20;
   const sex=Math.random()<0.5?'M':'F',name=pick(sex==='M'?MNAMES:FNAMES),fm=fam||pick(FAMS);
   const v={age,child:age<14,edu:0,schooled:false,sd:false,life:62+Math.random()*20,xr:null,id:nextId++,x,z,cell:w2cell(x,z),path:[],state:'idle',carry:null,cq:0,cargo:null,task:null,job:null,home:null,stall:null,timer:0,cool:0,fa:0,moving:false,inside:false,
     target:-1,day:-1,ate:false,drew:false,prayed:false,next:'sleep',sleepPh:'',helpH:0,err:null,duty:false,
-    name,fam:fm,sex,ill:null,immT:0,trade:null,inh:false,sch:null};
-  reg.set(v.id,{id:v.id,name,fam:fm,sex,born:S.t-age*AGEY,died:null,cause:null,ageD:null,par:[],kids:[],log:[],trade:null,inh:false,schooled:false});
+    name,fam:fm,sex,ill:null,immT:0,trade:null,inh:false,sch:null,trait:parTrait!==undefined?parTrait:rollTrait(),joy:50,sad:0};
+  reg.set(v.id,{id:v.id,name,fam:fm,sex,born:S.t-age*AGEY,died:null,cause:null,ageD:null,par:[],kids:[],log:[],trade:null,inh:false,schooled:false,trait:v.trait});
   villagers.push(v);vmap.set(v.id,v);hooks.villager(v);return v;
 }
 
@@ -853,7 +857,7 @@ function updV(v,dt){
     case 'toHomeLife':case 'toWell':case 'toChurch':case 'toHelp':case 'toCollect':case 'toStoreC':case 'toErr':case 'toHomeErr':case 'toPlant':case 'toMill':case 'toGranary':case 'toGraze':case 'toBuild':case 'toStoreSleep':case 'toSupply':case 'toInnSup':
       if(moveV(v,dt))onArrive(v);break;
     case 'chop':case 'mine':case 'till':
-      v.timer-=dt;if(v.timer<=0)endGather(v);break;
+      v.timer-=dt*workRate(v);if(v.timer<=0)endGather(v);break;
     case 'build':{v.moving=false;const bb=buildings.get(v.target);if(!bb||bb.state!=='site'||S.ph!=='work'||(S.f>=DUSK&&v.home))v.state='idle';break;}
     case 'graze':v.timer-=dt;if(v.timer<=0){const b=buildings.get(v.job);if(b&&b.buf!==undefined)b.buf=Math.min(BUFCAP+2,b.buf+2);v.state='idle';}break;
     case 'plant':v.timer-=dt;if(v.timer<=0){const i=v.target;if(!tree[i]&&!sap[i]&&!occ[i]){sap[i]=1;sapT[i]=0;hooks.saps();}plantResv.delete(i);v.state='idle';}break;
@@ -1048,18 +1052,27 @@ function adultsIn(b){let n=0;for(const id of b.members){const v=vmap.get(id);if(
 // una famiglia con un solo adulto (vedovo, giovane) è più attraente per chi cerca casa: può nascere una nuova coppia
 const lone=b=>adultsIn(b)===1?0.8:0;
 function schooledIn(b){for(const id of b.members){const v=vmap.get(id);if(v&&v.schooled)return true;}return false;}
-// benessere della casa (0-100): cibo, caldo, legna da ardere, acqua, quiete, chiesa, assenza di fame
-function wellOf(b){
-  const f=b.flags;let s=0;
-  if(f.food)s+=25;
-  if(f.heat)s+=15;
-  s+=15*Math.min(1,b.goods.firewood/fuelNeed());
-  if(f.water)s+=15;
-  if(f.attr)s+=10;
-  if(f.church)s+=10;
-  if(b.hungry<10)s+=10;
-  return Math.round(s);
+// felicità/benessere della casa (0-100) = quattro bisogni: cibo (30), casa (25: caldo, legna, quiete, spazio), acqua (25),
+// chiesa (20, solo dal livello 2 in poi: ai livelli bassi non conta e il punteggio si calcola sugli altri tre)
+function needsOf(b){
+  const f=b.flags,ch=b.level>=2;
+  const food=(f.food?20:0)+(b.hungry<10?10:0);
+  const home=(f.heat?10:0)+8*Math.min(1,b.goods.firewood/fuelNeed())+(f.attr?4:0)+(b.members.length<=capOf(b)?3:0);
+  const water=f.water?25:0,church=ch&&f.church?20:0;
+  return {food,home,water,church,hasChurch:ch,max:ch?100:80};
 }
+function wellOf(b){const n=needsOf(b);return Math.round((n.food+n.home+n.water+n.church)/n.max*100);}
+// felicità del singolo: quella della casa, corretta da malattia e carattere
+function joyOf(v){
+  const h=v.home&&buildings.get(v.home);
+  let s=(!h||h.state!=='done')?20:h.well;
+  if(v.ill)s-=15;
+  if(v.trait==='brontolone')s-=18;
+  else if(v.trait==='litigioso')s-=6;
+  if(h){let q=0;for(const id of h.members){if(id===v.id)continue;const o=vmap.get(id);if(o&&o.trait==='litigioso')q++;}s-=Math.min(3,q)*5;}
+  return Math.max(0,Math.min(100,Math.round(s)));
+}
+const workRate=v=>(v.trait==='pigro'?0.6:1)*(v.joy<35?0.8:1);
 function birthTick(b){
   if(S.t<b.birthT)return;
   const bonus=S.edicts.birthBonus;
@@ -1068,10 +1081,11 @@ function birthTick(b){
   const ad=b.members.map(id=>vmap.get(id)).filter(v=>v&&!v.child&&v.age>=17&&v.age<50&&!v.ill);
   if(ad.length<2||Math.random()>(bonus?0.9:0.7))return;
   const hd=b.head&&vmap.get(b.head);
-  const c=addVillager(cx2w(b.door%N),cy2w((b.door/N)|0),0,hd?hd.fam:undefined);c.home=b.id;b.members.push(c.id);S.births++;
+  const pt=[ad[0].trait,ad[1].trait].filter(Boolean);
+  const c=addVillager(cx2w(b.door%N),cy2w((b.door/N)|0),0,hd?hd.fam:undefined,pt.length&&Math.random()<0.35?pt[(Math.random()*pt.length)|0]:rollTrait());c.home=b.id;b.members.push(c.id);S.births++;
   const r=reg.get(c.id);r.par=[ad[0].id,ad[1].id];
   for(const p of [ad[0],ad[1]]){const pr=reg.get(p.id);if(pr)pr.kids.push(c.id);}
-  logV(c,'Nato da '+ad[0].name+' e '+ad[1].name+'.');
+  logV(c,'Nato da '+ad[0].name+' e '+ad[1].name+'.'+(c.trait?' Carattere: '+TRAITS[c.trait].n.toLowerCase()+'.':''));
   tell('birth','È nato un bambino! I figli crescono, vanno a scuola (se c\'è un maestro) e a 14 anni diventano adulti.');
 }
 function transfer(v,from,to,msg){
@@ -1139,21 +1153,27 @@ function killV(v,cause){
   if(h)h.members=h.members.filter(id=>id!==v.id);
   const j=jobId&&buildings.get(jobId);if(j)j.workers=j.workers.filter(id=>id!==v.id);
   villagers=villagers.filter(x=>x!==v);vmap.delete(v.id);hooks.gone(v);
-  S.deaths++;S.deathsBy[cause]=(S.deathsBy[cause]||0)+1;
-  if(illk==='plague')S.plague.dead++;
+  const left=cause==='left';
+  if(left)S.left++;else{S.deaths++;S.deathsBy[cause]=(S.deathsBy[cause]||0)+1;}
+  if(illk==='plague'&&!left)S.plague.dead++;
   const r=reg.get(v.id);if(r){r.died=S.t;r.cause=cause;r.ageD=v.age|0;r.trade=v.trade;r.inh=v.inh;r.schooled=v.schooled;}
-  logV(v,cause==='ill'&&illk?'Muore di '+DIS[illk].n.toLowerCase()+'.':CAUSETXT[cause]);
+  logV(v,left?'Infelice, lascia il paese in cerca di una vita migliore.':cause==='ill'&&illk?'Muore di '+DIS[illk].n.toLowerCase()+'.':CAUSETXT[cause]);
   inherit(v,h,jobId,wasHead);
+  if(left){tell('left','Un abitante infelice ha lasciato il paese. Cibo, una casa calda, acqua vicina e (dal livello 2) una chiesa vicina tengono la gente contenta.');acc.attr=99;return;}
   if(cause==='ill')tell('deathill','Una malattia ha ucciso un abitante: un ospizio con un erborista, un pozzo e la legna in casa riducono il rischio.');
   if([...buildings.values()].some(b=>b.type==='cemetery'&&b.state==='done')){S.buried++;tell('death1','Un abitante è morto ed è stato sepolto nel cimitero della chiesa.');}
   else{S.unburied++;tell('death0','Un abitante è morto. Senza un cimitero accanto alla chiesa i morti sono sepolti nei campi, e la gente ne soffre.');}
   acc.attr=99;
 }
 function lifeTick(){
-  const dead=[];
+  const dead=[],leavers=[];
   for(const v of villagers){
     v.age+=1/AGEY;
     const h=v.home&&buildings.get(v.home);
+    v.joy=joyOf(v);
+    // chi resta a lungo molto infelice se ne va (mai sotto gli 8 abitanti)
+    if(!v.child&&v.joy<25)v.sad++;else v.sad=Math.max(0,v.sad-2);
+    if(v.sad>=DAY*1.5&&villagers.length-leavers.length>8)leavers.push(v);
     if(v.child&&v.age>=14){
       v.child=false;v.schooled=v.edu>=300;
       const ft=h?famTrade(h):null;
@@ -1175,6 +1195,7 @@ function lifeTick(){
     }
   }
   for(const [v,cause] of dead)killV(v,cause);
+  for(const v of leavers)if(vmap.has(v.id))killV(v,'left');
 }
 
 // ---- malattie ed epidemie ----
@@ -1253,7 +1274,7 @@ function diseaseTick(){
   for(const v of villagers){
     if(v.ill||v.immT>S.t)continue;
     const h=v.home&&buildings.get(v.home);if(!h||h.state!=='done')continue;
-    const wf=1+Math.max(0,60-h.well)/60,crowd=h.members.length>capOf(h)?1.4:1,frail=(v.age>55||v.age<4)?1.6:1,k=wf*crowd*frail;
+    const wf=1+Math.max(0,60-h.well)/60,crowd=h.members.length>capOf(h)?1.4:1,frail=(v.age>55||v.age<4)?1.6:1,k=wf*crowd*frail*(v.trait==='cagionevole'?2:1);
     if(S.plague.on&&Math.random()<exposure(h)*k){fallIll(v,'plague');continue;}
     const p1=S.season===3?0.00012*(h.warm?1:4):0;
     if(p1&&Math.random()<p1*k){fallIll(v,'fever');continue;}
@@ -1268,7 +1289,7 @@ function houseTick(b){
   if(S.ph==='work'){
     let tenders=0,kids=0;
     for(const v of m){
-      if(v.duty&&!v.job&&(v.state==='idle'||v.state==='toGarden'||v.state==='tend'||v.state==='wait'||v.state==='toErr'||v.state==='doErr'||v.state==='toHomeErr'))tenders++;
+      if(v.duty&&!v.job&&(v.state==='idle'||v.state==='toGarden'||v.state==='tend'||v.state==='wait'||v.state==='toErr'||v.state==='doErr'||v.state==='toHomeErr'))tenders+=workRate(v);
       else if(v.child&&v.age>=9&&(v.state==='toGarden'||v.state==='tend'))kids++;
     }
     tenders=Math.min(3,tenders)+Math.min(1,kids*0.4);
@@ -1609,10 +1630,10 @@ function stats(){
   let jobs=0;for(const v of villagers)if(v.job)jobs++;
   return {pop:villagers.length,jobs,slots,houses,cap,sites,roads,dc,built,levels,food,farms,stalls,hungry,barters:S.barters,helps:S.helps,stock:S.stock,capRes:capTotal(),capGrain:capGrain(),capFlour:capFlour(),
     avgAttr:houses?asum/houses:0,maxAttr:houses?amax:0,day:S.day,ph:S.ph,f:S.f,herds,crafters,bakers,fishers,hunters,tools,saps,weavers,tailors,clothes,season:S.season,year:S.year,visits:S.visits,settled:S.settled,guests:guests.length,children:kids,schooled,births:S.births,deaths:S.deaths,buried:S.buried,
-    sick,plagueN,plague:S.plague.on,avgWell:houses?wsum/houses:0,fire,fireNeed,inherits:S.inherits,cured:S.cured,moves:S.moves,deathsBy:S.deathsBy,pupils};
+    sick,plagueN,plague:S.plague.on,avgWell:houses?wsum/houses:0,avgJoy:villagers.length?villagers.reduce((a,v)=>a+v.joy,0)/villagers.length:0,unhappy:villagers.filter(v=>v.joy<35).length,left:S.left,fire,fireNeed,inherits:S.inherits,cured:S.cured,moves:S.moves,deathsBy:S.deathsBy,pupils};
 }
 return {setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,WELL_R,CHURCH_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
-  reg,DIS,TRADENAME,fuelNeed,dateStr,
+  reg,DIS,TRADENAME,TRAITS,needsOf,fuelNeed,dateStr,
   _t:{chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
   grids:{tree,rock,ore,water,sap,sapT,road,dist,occ,wear,plev,field,door,attr,cen},guests:()=>guests,buildings:()=>buildings,villagers:()=>villagers};
 })();

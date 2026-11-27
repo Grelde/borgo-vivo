@@ -625,7 +625,7 @@ function refreshSel(){
     info=`Famiglia ${hd?esc(hd.fam):''}: ${b.members.length}/${cap} · giardino: ${b.crop==='veg'?'orto':b.crop==='eggs'?'galline':'allevamento'}${b.pure?' (resta giardino)':''}${b.craft?' · bottega':''}${b.bake?' · panificio':''}${b.weave?' · tessitore':''}${b.tailor?' · sarto':''}`;
     const rows=b.members.map(id=>{const v=VM(id);return v?`<div><span class="lk" data-v="${v.id}">${esc(v.name)}</span>${v.id===b.head?' ★':''} (${v.age|0} anni${v.schooled?', istruito':''}${v.ill?', malato':''}): ${esc(Sim.roleText(v))}</div>`:'';}).join('');
     const need=b.level>=Sim.MAXLV?'':('Per migliorare: cibo'+(b.level>=2?', acqua':'')+(b.level>=3?', chiesa':'')+(b.level>=2?', quiete, legna':'')+(()=>{const u=Sim.UPC[b.level+1];return u?`, materiali (legno ${u.wood}${u.stone?`, pietra ${u.stone}`:''})`:'';})()+` (${Math.min(25,b.up)}/25)`);
-    list=rows+`<div>Benessere <b>${b.well}</b>/100</div><div class="wbar"><i style="width:${b.well}%"></i></div><div>Legna da ardere: ${gd.firewood}/${fn} ${gd.firewood>=fn?'(scorta sufficiente)':'(scorta scarsa)'}</div>`+(S.edicts&&S.edicts.noUpgrade?'<div>Editto in vigore: le case non migliorano.</div>':'')+`${b.ext&&b.ext.length?`<div>Giardino ampliato di ${b.ext.length} celle, verso la strada.</div>`:''}<div>Attività secondaria: ${b.side==='fish'?'pesca (casa vicino all\'acqua)':b.side==='hunt'?'caccia (casa vicino a un bosco tranquillo)':'legna da ardere'}. ${b.side==='wood'?'Quella in più la vende al mercato.':(S.edicts.woodDuty?'Per editto la raccoglie anche lei.':'Non raccoglie legna: la compra al mercato.')}</div><div>Attrattiva della zona: ${Sim.attrLabel(b.attr)} (${b.attr.toFixed(1)})</div>`+
+    list=rows+`<div>Felicità <b>${b.well}</b>/100</div><div class="wbar"><i style="width:${b.well}%"></i></div>${needsHtml(b)}<div>Legna da ardere: ${gd.firewood}/${fn} ${gd.firewood>=fn?'(scorta sufficiente)':'(scorta scarsa)'}</div>`+(S.edicts&&S.edicts.noUpgrade?'<div>Editto in vigore: le case non migliorano.</div>':'')+`${b.ext&&b.ext.length?`<div>Giardino ampliato di ${b.ext.length} celle, verso la strada.</div>`:''}<div>Attività secondaria: ${b.side==='fish'?'pesca (casa vicino all\'acqua)':b.side==='hunt'?'caccia (casa vicino a un bosco tranquillo)':'legna da ardere'}. ${b.side==='wood'?'Quella in più la vende al mercato.':(S.edicts.woodDuty?'Per editto la raccoglie anche lei.':'Non raccoglie legna: la compra al mercato.')}</div><div>Attrattiva della zona: ${Sim.attrLabel(b.attr)} (${b.attr.toFixed(1)})</div>`+
       `<div class="flags"><span class="${fl.food?'ok':'no'}">Cibo</span><span class="${fl.water?'ok':'no'}">Acqua</span><span class="${fl.church?'ok':'no'}">Chiesa</span><span class="${fl.attr?'ok':'no'}">Quiete</span><span class="${fl.heat?'ok':'no'}">Caldo</span><span class="${fl.fuel?'ok':'warn'}">Legna</span><span class="${fl.mat?'ok':'no'}">Materiali</span></div>`+
       `<div>Scorte: ortaggi ${gd.veg} · uova ${gd.eggs} · grano ${gd.grain} · pesce ${gd.fish} · carne ${gd.meat} · pane ${gd.bread}</div><div>Legna ${gd.firewood} · ferro ${gd.iron} · farina ${gd.flour} · attrezzi ${gd.tools}</div><div>Lana ${gd.wool} · tessuto ${gd.cloth} · abiti ${gd.clothes}</div>`+(b.level>=3&&!fl.tools?'<div>Per salire a livello 4 serve un attrezzo di ferro.</div>':'')+(need?`<div>${need}</div>`:'<div>Livello massimo raggiunto.</div>');
   }
@@ -875,9 +875,14 @@ $('mBtn').addEventListener('click',()=>{$('modal').hidden=true;setSpeed(1);if(lv
 $('lvlTitle').addEventListener('click',()=>$('lvl').classList.toggle('collapsed'));
 if(window.innerWidth<640||COARSE)$('lvl').classList.add('collapsed');
 
+// ---------- bisogni di una casa (felicità) ----------
+function needsHtml(b){
+  const n=Sim.needsOf(b),row=(t,v,m)=>`<div class="need"><span>${v>=m?'✓':'✗'} ${t}</span><b>${v}/${m}</b></div>`;
+  return row('Cibo',n.food,30)+row('Casa (caldo, legna, quiete, spazio)',Math.round(n.home),25)+row('Acqua (pozzo vicino)',n.water,25)+(n.hasChurch?row('Chiesa vicina',n.church,20):'<div class="need"><span>• Chiesa: serve dal livello 2</span><b>–</b></div>');
+}
 // ---------- scheda abitante ----------
 let cardId=null,cardHtml='';
-function relLink(id){const r=Sim.reg.get(id);if(!r)return '?';return `<span class="lk" data-v="${id}">${esc(r.name)} ${esc(r.fam)}</span>${r.died!==null?' †':''}`;}
+function relLink(id){const r=Sim.reg.get(id);if(!r)return '?';return `<span class="lk" data-v="${id}">${esc(r.name)} ${esc(r.fam)}</span>${r.died!==null&&r.cause!=='left'?' †':''}`;}
 function openCard(id){cardId=id;cardHtml='';$('card').hidden=false;renderCard();}
 function closeCard(){cardId=null;$('card').hidden=true;}
 function renderCard(){
@@ -886,9 +891,9 @@ function renderCard(){
   const v=Sim.villagers().find(x=>x.id===cardId),dead=r.died!==null;
   const age=dead?r.ageD:Math.floor(v.age),child=v?v.child:age<14;
   const sexT=r.sex==='M'?'Uomo':'Donna',ageT=child?(r.sex==='M'?'Bambino':'Bambina'):sexT;
-  let h=`<h2>${esc(r.name)} ${esc(r.fam)}</h2><div class="sub">${ageT}, ${age} anni${dead?' · morto/a '+Sim.dateStr(r.died):''}</div>`;
+  let h=`<h2>${esc(r.name)} ${esc(r.fam)}</h2><div class="sub">${ageT}, ${age} anni${dead?(r.cause==='left'?' · partito/a dal paese ':' · morto/a ')+Sim.dateStr(r.died):''}</div>`;
   h+='<h4>Mestiere</h4>';
-  if(dead)h+=`<p>${r.trade?Sim.TRADENAME[r.trade]:'Nessun mestiere'}${r.inh?' <span class="tag">ereditato</span>':''}</p><p>${r.cause?({age:'Morto di vecchiaia.',cold:'Morto di freddo.',hunger:'Morto di fame.',ill:'Morto di malattia.'})[r.cause]||'':''}</p>`;
+  if(dead)h+=`<p>${r.trade?Sim.TRADENAME[r.trade]:'Nessun mestiere'}${r.inh?' <span class="tag">ereditato</span>':''}</p><p>${r.cause?({age:'Morto di vecchiaia.',cold:'Morto di freddo.',hunger:'Morto di fame.',ill:'Morto di malattia.',left:'Ha lasciato il paese perché infelice.'})[r.cause]||'':''}</p>`;
   else{h+=`<p>${child?(age<6?'Gioca in giardino':'Gioca e studia'):esc(Sim.roleText(v))}${v.trade&&!child?` · mestiere: ${Sim.TRADENAME[v.trade]}`:''}${v.inh?' <span class="tag">ereditato</span>':''}</p>`;}
   h+='<h4>Istruzione</h4>';
   const sch=dead?r.schooled:v.schooled;
@@ -898,9 +903,11 @@ function renderCard(){
     h+='<h4>Salute</h4>';
     if(v.ill)h+=`<p>Malato: ${Sim.DIS[v.ill.k].n} <span class="tag bad">a letto</span></p>`;
     else h+=`<p>In salute${v.immT>S.t?' · immune per un po\'':''}.</p>`;
-    const hb=v.home&&Sim.buildings().get(v.home);
-    h+='<h4>Casa</h4>'+(hb?`<p>${Sim.LVNAME[hb.level-1]} · benessere ${hb.well}/100 · legna ${hb.goods.firewood}/${Sim.fuelNeed()}</p>`:'<p>Senza casa.</p>');
+    const hb=v.home&&Sim.buildings().get(v.home),tr=v.trait&&Sim.TRAITS[v.trait];
+    h+='<h4>Carattere e felicità</h4>'+(tr?`<p><span class="tag bad">${tr.n}</span> ${tr.d}</p>`:'<p>Nessun difetto particolare.</p>')+`<div class="bar"><i style="width:${v.joy}%"></i></div><p>Felicità: ${v.joy}/100${v.joy<25?' · pensa di andarsene':v.joy<35?' · scontento, lavora meno':''}</p>`+(hb?needsHtml(hb):'');
+    h+='<h4>Casa</h4>'+(hb?`<p>${Sim.LVNAME[hb.level-1]} · felicità ${hb.well}/100 · legna ${hb.goods.firewood}/${Sim.fuelNeed()}</p>`:'<p>Senza casa.</p>');
   }
+  if(dead&&r.trait)h+=`<h4>Carattere</h4><p>${Sim.TRAITS[r.trait].n}: ${Sim.TRAITS[r.trait].d}</p>`;
   h+='<h4>Parenti</h4>';
   const par=r.par.map(relLink).join(', ')||'sconosciuti (arrivato da fuori)',kids=r.kids.map(relLink).join(', ')||'nessuno';
   h+=`<p>Genitori: ${par}</p><p>Figli: ${kids}</p>`;
@@ -923,7 +930,7 @@ function updateHUD(){
   $('rWood').textContent=`${S.stock.wood}/${capNow}`;$('rStone').textContent=`${S.stock.stone}/${capNow}`;$('rFood').textContent=st.food;$('rIron').textContent=`${S.stock.iron}`;$('rGrain').textContent=`${S.stock.grain}·${S.stock.flour}`;
   $('rDay').textContent=`${Sim.SEASONS[st.season]} ${st.day%Sim.SEASON_DAYS+1}/${Sim.SEASON_DAYS} · annata ${st.year} · ${PHN[st.ph]}`;
   $('rPop').textContent=`${st.pop}/${st.cap}`+(st.children?` (👶${st.children})`:'');$('rJobs').textContent=`${st.jobs}/${st.slots}`;$('rBarter').textContent=st.barters;
-  $('rFire').textContent=`${st.fire}/${st.fireNeed}`;$('rSick').textContent=st.sick+(st.plague?' ☣':'');$('chipSick').classList.toggle('alert',st.sick>0);$('rWell').textContent=Math.round(st.avgWell);
+  $('rFire').textContent=`${st.fire}/${st.fireNeed}`;$('rSick').textContent=st.sick+(st.plague?' ☣':'');$('chipSick').classList.toggle('alert',st.sick>0);$('rWell').textContent=Math.round(st.avgJoy)+(st.unhappy?' · '+st.unhappy+' tristi':'');$('chipJoy').classList.toggle('alert',st.unhappy>0&&st.avgJoy<45);
   checkGoals(st);refreshSel();if(cardId)renderCard();
   for(const t of TOOLS)if(BT[t.id])toolBtns[t.id].classList.toggle('poor',!Sim.afford(t.id));
 }

@@ -12,6 +12,7 @@ const t0=Date.now();
 for(let a=1;a<=4;a++){run(2400);const st=Sim.stats();console.log('annata',a,'pop',st.pop,'kids',st.children,'houses',st.houses,'sick',st.sick,'dead',st.deaths,JSON.stringify(st.deathsBy),'inh',st.inherits,'cured',st.cured,'moves',st.moves,'well',st.avgWell.toFixed(0),'fire',st.fire+'/'+st.fireNeed,'plague',st.plague,'school',st.schooled);
  if(a===1){for(const k of ['birthBonus','schoolMandatory','woodDuty'])Sim.setEdict(k,true);}
  if(a===2){Sim.setEdict('quarantine',true);}if(a===3)Sim.setEdict('quarantine',false);}
+{const st=Sim.stats(),tr={};for(const v of Sim.villagers()){const k=v.trait||'nessuno';tr[k]=(tr[k]||0)+1;}console.log('felicità media',Math.round(st.avgJoy),'tristi',st.unhappy,'partiti',st.left,'tratti',JSON.stringify(tr));}
 console.log('ms',Date.now()-t0);
 // force plague
 Sim._t.startPlague('x');run(600);const s2=Sim.stats();console.log('after plague','pop',s2.pop,'sick',s2.sick,'dead',s2.deaths,s2.plague);
