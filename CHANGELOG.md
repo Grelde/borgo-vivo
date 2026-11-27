@@ -1,5 +1,16 @@
 # Changelog
 
+## v41 – 2026-11-27
+Funzione nuova: la festa di paese, che si indice dalla piazza.
+- **Indizione:** clic sulla piazza con fontana (completata) e pulsante "Indici la festa di paese" (servono almeno 6 abitanti). Si può annullare durante i preparativi (il legno raccolto torna al magazzino, il cibo no).
+- **Preparativi:** durano 6 giorni di gioco, una stagione, cioè "un paio di settimane" con la settimana di gioco di 3 giorni (costante `FEST.prep`). In questo tempo il paese raccoglie gradualmente **8 legni** dal magazzino e **16 pezzi di cibo** dalle case che ne hanno più di 2 (la scorta di famiglia non si tocca). Se alla scadenza i preparativi sono sotto il 50% la festa slitta di un giorno, fino a 3 volte; poi si fa comunque, più modesta.
+- **Festa:** comincia il giorno della scadenza dopopranzo (da f=0,54) e dura fino alla notte. Gli abitanti (anche chi lavora, bambini compresi) vanno in piazza e restano 20-50 s attorno alla piazza; ognuno partecipa una volta a festa. Chi abita entro 45 celle ha **+12 di felicità** durante la festa e **+8 per 2 giorni** dopo, in proporzione ai preparativi (q = 0..1): sale la felicità media, e quindi l'attrattiva e l'arrivo di nuovi abitanti.
+- **Pausa:** dopo una festa non se ne può indire un'altra per 12 giorni (due stagioni).
+- **Grafica:** durante i preparativi compaiono la catasta di legna, poi i pali con le ghirlande e i tavoli col cibo; durante la festa un falò. Pannello della piazza con giorni mancanti, legno/cibo raccolti e partecipanti.
+- Test: nuovo `tests/festa.js` (indizione, annullamento, raccolta, festa, partecipanti, felicità, pausa); gli altri test restano verdi. Grafica verificata solo con DOM finto, non in un browser WebGL (posizione di tavoli, falò e ghirlande da tarare a occhio).
+- **Salvataggio (v40):** la festa (preparativi, raccolta, partecipanti) si salva con la partita; al caricamento il numero progressivo delle feste viene ricalcolato (`festSeq`), così una festa nuova non viene saltata dagli abitanti. Provato in `tests/festa.js`.
+- Limiti: legno e cibo si prelevano in modo astratto (senza trasporto fisico); la festa non ha ancora effetti su nascite o criminalità; più piazze hanno ciascuna la propria festa.
+
 ## v40.1 – 2026-11-27
 Ritocco: il giardino nasce attaccato alla strada e la riempie fino in fondo.
 - **Alla nascita:** appena posata la casa il giardino si allarga subito verso le strade vicine, riempiendo tutto lo spazio libero fino alla strada (varchi fino a 5 celle, in qualsiasi direzione, anche a gradini che seguono una strada diagonale).

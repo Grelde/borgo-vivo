@@ -1083,7 +1083,17 @@ function refreshSel(){
   else if(b.type==='inn'){const w=Sim.villagers().filter(v=>v.job===b.id);info=`Dispensa ${b.pantry}/20 · ospiti ${b.guestsIn}/4 · cavalli in stalla ${b.horses}/3`;
     list=w.map(v=>`<div>Oste: ${esc(Sim.roleText(v))}</div>`).join('')+`<div>Pasti serviti: ${S.visits} · viandanti diventati abitanti: ${S.settled}</div><div>L'oste compra il cibo in eccedenza dalle famiglie.</div>`;}
   else if(b.type==='sheepfold'){const w=Sim.villagers().filter(v=>v.job===b.id);info=`Lana pronta: ${b.buf}/${Sim.BUFCAP} · pascolo: ${b.fields.length} celle`+(b.owner?'':` · pastori ${w.length}/${b.want}`);list=w.map(v=>`<div>Pastore: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>Il telaio del tessitore e le case con il telaio ritirano la lana qui.</div>'+(!b.fields.length?'<div>Nessun pascolo libero dentro il recinto: allarga la zona Pascolo intorno all\'ovile.</div>':'')+(b.why&&w.length?`<div>${esc(b.why)}</div>`:'');}
-  else if(b.type==='plaza'||b.type==='flowers'||b.type==='statue')info='Abbellimento: rende più piacevole la zona e attira nuovi abitanti.';
+  else if(b.type==='plaza'){
+    const f=b.fest,F=Sim.FEST,st=f&&f.st;
+    info='Abbellimento: rende più piacevole la zona e attira nuovi abitanti.';
+    const dl=f?Math.max(0,Math.ceil((f.due-S.t)/Sim.DAY)):0,prog=f?`legno ${f.have.wood}/${F.need.wood} · cibo ${f.have.food}/${F.need.food}`:'';
+    if(st==='prep'){info=`Festa di paese in preparazione: mancano ${dl} giorni · ${prog}`;list=`<div>Il paese raccoglie il legno dal magazzino e il cibo in eccesso delle case. Più si raccoglie, più la festa sarà bella${f.ext?' (i preparativi sono in ritardo)':''}.</div>`;}
+    else if(st==='ready'){info=`Festa di paese: tutto pronto, comincia dopopranzo · ${prog}`;}
+    else if(st==='on'){info=`Festa di paese in corso · ${f.att} partecipanti · ${prog}`;list=`<div>Chi abita entro ${F.r} celle ha +${Math.round(F.joy*f.q)} di felicità.</div>`;}
+    else if(st==='cool'&&S.t<f.coolT)info=`Il paese ha festeggiato: tra ${Math.ceil((f.coolT-S.t)/Sim.DAY)} giorni si potrà indire un'altra festa.`;
+    else if(b.state==='done')list=`<div>Clicca "Indici la festa di paese": dopo ${Math.round(F.prep/Sim.DAY)} giorni di preparativi (legno ${F.need.wood}, cibo ${F.need.food}) tutto il borgo si raduna in piazza e la felicità sale.</div>`;
+  }
+  else if(b.type==='flowers'||b.type==='statue')info='Abbellimento: rende più piacevole la zona e attira nuovi abitanti.';
   else if(b.type==='granary'){const si=b.state==='done'?Sim.storeInfo(b):null;
     info=si?`Contiene ${si.tot}/${si.total} · grano ${S.stock.grain} · farina ${S.stock.flour} · pane ${S.stock.bread} · pesce ${S.stock.fish} · carne ${S.stock.meat}`:'Granaio in costruzione.';
     list='<div>Accoglie il cibo che non viene dai giardini: grano delle fattorie, farina del mulino, pane del forno, pesce e carne dei pescatori e dei cacciatori. Il raccolto dei giardini resta alle case. Il mugnaio ritira il grano.</div>';}
@@ -1100,6 +1110,8 @@ function refreshSel(){
   $('selJobs').hidden=!(b.state==='done'&&t.slots>0&&!(b.type==='sheepfold'&&b.owner));
   $('selZone').hidden=!(Sim.ZONED[b.type]&&b.state==='done');if(!$('selZone').hidden){$('zR').textContent=b.zone?b.zone.r:(b.type==='forester'?72:39);$('zSet').textContent=zoneEdit===b.id?'Clicca sulla mappa…':(b.zone?'Sposta zona':'Scegli sulla mappa');}$('wCount').textContent=b.want;
   $('selCem').hidden=!(b.type==='church'&&b.state==='done'&&!b.cem);
+  $('selFest').hidden=!(b.type==='plaza'&&b.state==='done');
+  if(!$('selFest').hidden){const fs=b.fest&&b.fest.st;$('selFest').textContent=(fs==='prep'||fs==='ready')?'Annulla la festa':fs==='on'?'Festa in corso…':'Indici la festa di paese';$('selFest').disabled=fs==='on';}
   $('selDemo').hidden=b.type==='stall';
   $('selDemo').textContent=b.state==='site'?'Annulla cantiere':'Demolisci';
 }
@@ -1134,6 +1146,41 @@ $('selStore').addEventListener('change',ev=>{
   refreshSel();
 });
 $('selCem').addEventListener('click',()=>{const b=selB();if(!b||b.type!=='church')return;const res=Sim.addCemetery(b.id);toast(res.ok?'Cantiere del cimitero avviato accanto alla chiesa.':(res.msg||'Non c\'è spazio per il cimitero'));refreshSel();});
+$('selFest').addEventListener('click',()=>{const b=selB();if(!b||b.type!=='plaza')return;const st=b.fest&&b.fest.st;
+  if(st==='prep'||st==='ready'){Sim.cancelFest(b.id);toast('Festa annullata: il legno raccolto torna al magazzino.');}
+  else{const r=Sim.callFest(b.id);if(!r.ok)toast(r.msg,true);}
+  refreshSel();});
+// v37: addobbi della festa di paese (pali con ghirlande, tavoli col cibo, catasta di legna, falò)
+function mountFest(e){
+  const g=new THREE.Group(),pile=new THREE.Group(),bunt=new THREE.Group(),tables=new THREE.Group(),food=new THREE.Group(),fire=new THREE.Group();
+  const P=[[-2.7,-2.7],[2.7,-2.7],[2.7,2.7],[-2.7,2.7]],cols=[MAT.red,MAT.flower2,MAT.blue,MAT.cloth,MAT.leaf2];
+  for(const [x,z] of P)cyl(g,.07,.07,2.4,6,MAT.timber,x,1.2,z);
+  for(let s=0;s<4;s++){const [x0,z0]=P[s],[x1,z1]=P[(s+1)%4];
+    for(let k=1;k<9;k++){const t=k/9;bx(bunt,.22,.3,.03,cols[(k+s)%5],x0+(x1-x0)*t,2.2-Math.sin(t*Math.PI)*.35,z0+(z1-z0)*t,s%2?Math.PI/2:0);}}
+  for(const [x,z] of [[-2.2,.0],[2.2,.0]]){
+    bx(tables,.6,.08,1.6,MAT.timber,x,.55,z+.8);
+    for(const [lx,lz] of [[-.25,.05],[.25,.05],[-.25,1.55],[.25,1.55]])bx(tables,.08,.5,.08,MAT.logD,x+lx,.27,z+lz);
+    [MAT.grain,MAT.carrot,MAT.egg,MAT.meatM,MAT.flour,MAT.veg].forEach((m,i)=>bx(food,.18,.12,.18,m,x+(i%2?.14:-.14),.65,z+.25+((i/2)|0)*.45));
+  }
+  for(let i=0;i<5;i++)cyl(pile,.13,.13,1.1,6,MAT.log,-2.3,.15+((i/3)|0)*.24,-1.4+(i%3)*.26-((i/3)|0)*.13,0,Math.PI/2);
+  pile.position.set(0,0,0);
+  cyl(fire,.5,.6,.15,8,MAT.stoneD,2.3,.08,-1.4);
+  for(let k=0;k<3;k++){const l=cyl(fire,.07,.07,.8,6,MAT.logD,2.3,.3,-1.4,0,Math.PI/2);l.rotation.y=k*1.05;}
+  const flame=cone(fire,.3,.9,7,MAT.fire,2.3,.7,-1.4,0);
+  g.add(bunt,tables,food,pile,fire);e.root.add(g);e.fest={g,pile,bunt,tables,food,fire,flame};
+}
+function animFest(e){
+  const b=e.b,f=b.fest,st=f?f.st:'';
+  if(!e.fest){if(!st||b.state!=='done')return;mountFest(e);}
+  const F=e.fest,show=st==='prep'||st==='ready'||st==='on'||(st==='cool'&&S.t<f.glowT);
+  F.g.visible=show;if(!show)return;
+  const prog=st==='prep'?Math.min(1,(S.t-f.t0)/(f.due-f.t0)):1,N0=Sim.FEST.need;
+  F.pile.visible=st==='prep'||st==='ready';F.pile.scale.setScalar(.3+.7*Math.min(1,f.have.wood/N0.wood));
+  F.bunt.visible=prog>=.5;F.tables.visible=prog>=.7;
+  F.food.visible=prog>=.7&&f.have.food>0;F.food.scale.setScalar(.4+.6*Math.min(1,f.have.food/N0.food));
+  F.fire.visible=st==='on';
+  if(st==='on')F.flame.scale.set(1+.15*Math.sin(clock*13),1+.3*Math.sin(clock*9+1),1+.15*Math.sin(clock*11));
+}
 const EDICTS=[
   {k:'noUpgrade',ic:'🏚️',t:'Vieta l\'avanzamento delle Case',d:'Le famiglie non potranno più migliorare la propria casa: i livelli restano come sono.',fx:'Utile per tenere basso il livello del borgo.'},
   {k:'noImmig',ic:'🚧',t:'Blocca l\'immigrazione',d:'I viandanti non si fermeranno più in paese e nessun nuovo abitante arriverà da fuori.',fx:'La popolazione crescerà solo con le nascite.'},
@@ -1695,6 +1742,7 @@ function frame2(now){
   for(const e of ents.values()){
     const b=e.b,ud=e.body.userData;
     if(e.sheep)animSheep(e,dt);
+    if(b.type==='plaza')animFest(e);
     if(ud&&ud.sails)ud.sails.rotation.z-=dt*0.7;
     if(ud&&ud.gv){const n=Math.min(ud.gv.length,S.buried|0);if(ud.shown!==n){ud.shown=n;ud.gv.forEach((m,i)=>{m.visible=i<n;});}}
     if(ud&&ud.logs){ud.logs.scale.y=0.15+0.85*Math.min(1,S.stock.wood/Math.min(capNow,160));ud.stones.scale.y=0.2+0.8*Math.min(1,S.stock.stone/Math.min(capStoneNow,160));}
