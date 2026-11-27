@@ -222,7 +222,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v31</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v31.1</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -316,7 +316,7 @@ const BT={
   well:{name:'Pozzo',w:2,h:2,cost:{wood:2,stone:6},time:6,slots:0,want:0},
   house:{name:'Casa',w:3,h:3,cost:{wood:4,stone:0},time:6,slots:0,want:0},
   farm:{name:'Fattoria',w:6,h:6,cost:{wood:8,stone:0},time:9,slots:0,want:0},
-  stall:{name:'Banco del mercato',w:3,h:3,cost:{wood:0,stone:0},time:0,slots:0,want:0}
+  stall:{name:'Banco del mercato',w:2,h:2,cost:{wood:0,stone:0},time:0,slots:0,want:0}
 };
 // attrattiva: [forza, raggio in celle]. Positivo = piacevole, negativo = rumore e disagio.
 const ATTR={church:[4,36],well:[2.5,24],stall:[1.2,18],wood:[-3,24],quarry:[-4.5,33],mine:[-5,36],farm:[-1.5,18],forester:[0.6,18],granary:[-0.8,15],mill:[-1.5,21],inn:[1,21],sheepfold:[-0.8,15],school:[1,18],infirmary:[0.5,15],cemetery:[-0.5,15],plaza:[3.2,30],flowers:[0.9,12],statue:[2,21]};
@@ -1710,11 +1710,12 @@ function spawnStall(h){
   for(const b of buildings.values())if(b.type==='stall'){cx+=b.x;cy+=b.y;n++;}
   if(!n)for(let i=0;i<N*N;i++)if(dist[i]===3){cx+=i%N;cy+=(i/N)|0;n++;}
   if(!n)return;cx/=n;cy/=n;
+  // v31.1: banchi 2×2, posati cella per cella e molto vicini tra loro (mercato affollato)
   const fr=buildSAT(i=>cellFree(i,3)?0:1),c=[];
-  for(let y=0;y<=N-3;y+=2)for(let x=0;x<=N-3;x+=2){if(rect(fr,x,y,3,3))continue;c.push([(x-cx)**2+(y-cy)**2+hash(x,y+(S.t|0))*54,x,y]);}
+  for(let y=0;y<=N-2;y++)for(let x=0;x<=N-2;x++){if(rect(fr,x,y,2,2))continue;c.push([(x+0.5-cx)**2+(y+0.5-cy)**2+hash(x,y+(S.t|0))*6,x,y]);}
   c.sort((a,b)=>a[0]-b[0]);
-  for(const [,x,y] of c.slice(0,10)){
-    if(connectMsg(3,3,x,y,-1))continue;
+  for(const [,x,y] of c.slice(0,14)){
+    if(connectMsg(2,2,x,y,-1))continue;
     const st=addBuilding('stall',x,y,true,{owner:h.id});h.stall=st.id;return;
   }
 }
@@ -2515,12 +2516,12 @@ const BUILD={
     cyl(g,.6,.66,.6,12,MAT.stone,0,.3,0);cyl(g,.45,.45,.05,12,MAT.water,0,.58,0);
     bx(g,.1,1.3,.1,MAT.timber,-.55,.95,0);bx(g,.1,1.3,.1,MAT.timber,.55,.95,0);bx(g,1.3,.1,.1,MAT.timber,0,1.6,0);
     gable(g,1.1,1.0,.4,MAT.thatch,1.62);cyl(g,.015,.015,.5,4,MAT.timber,0,1.3,0);cyl(g,.1,.08,.14,8,MAT.logD,0,1.02,0);return g;},
-  stall(b){const g=new THREE.Group();
+  stall(b){const g0=new THREE.Group(),g=new THREE.Group();g.scale.setScalar(.86);g0.add(g);  // v31.1: il banco sta in 2×2 celle, più piccolo delle case
     bx(g,1.4,.1,.8,MAT.log,0,.55,0);bx(g,1.3,.5,.1,MAT.logD,0,.25,.3);bx(g,1.3,.5,.1,MAT.logD,0,.25,-.3);
     for(const sx of[-1,1])for(const sz of[-1,1])bx(g,.07,1.35,.07,MAT.timber,sx*.65,.68,sz*.4);
     const aw=(b.id%2)?MAT.red:MAT.blue;
     for(let k=0;k<4;k++)bx(g,.36,.05,1.0,k%2?MAT.cream:aw,-.54+k*.36,1.42-k*0,0).rotation.x=0;
-    bx(g,.3,.2,.3,MAT.veg,-.4,.7,0);bx(g,.3,.2,.3,MAT.egg,0,.7,0);bx(g,.3,.2,.3,MAT.grain,.4,.7,0);return g;},
+    bx(g,.3,.2,.3,MAT.veg,-.4,.7,0);bx(g,.3,.2,.3,MAT.egg,0,.7,0);bx(g,.3,.2,.3,MAT.grain,.4,.7,0);return g0;},
   mine(b){const g=new THREE.Group();
     bx(g,3.6,.18,3.6,MAT.stoneD,0,.09,0);
     bx(g,2.0,1.6,1.4,MAT.stone,-.4,.8,-1.0);bx(g,1.0,1.0,.2,MAT.door,-.4,.5,-.28);

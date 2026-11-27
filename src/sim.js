@@ -30,7 +30,7 @@ const BT={
   well:{name:'Pozzo',w:2,h:2,cost:{wood:2,stone:6},time:6,slots:0,want:0},
   house:{name:'Casa',w:3,h:3,cost:{wood:4,stone:0},time:6,slots:0,want:0},
   farm:{name:'Fattoria',w:6,h:6,cost:{wood:8,stone:0},time:9,slots:0,want:0},
-  stall:{name:'Banco del mercato',w:3,h:3,cost:{wood:0,stone:0},time:0,slots:0,want:0}
+  stall:{name:'Banco del mercato',w:2,h:2,cost:{wood:0,stone:0},time:0,slots:0,want:0}
 };
 // attrattiva: [forza, raggio in celle]. Positivo = piacevole, negativo = rumore e disagio.
 const ATTR={church:[4,36],well:[2.5,24],stall:[1.2,18],wood:[-3,24],quarry:[-4.5,33],mine:[-5,36],farm:[-1.5,18],forester:[0.6,18],granary:[-0.8,15],mill:[-1.5,21],inn:[1,21],sheepfold:[-0.8,15],school:[1,18],infirmary:[0.5,15],cemetery:[-0.5,15],plaza:[3.2,30],flowers:[0.9,12],statue:[2,21]};
@@ -1424,11 +1424,12 @@ function spawnStall(h){
   for(const b of buildings.values())if(b.type==='stall'){cx+=b.x;cy+=b.y;n++;}
   if(!n)for(let i=0;i<N*N;i++)if(dist[i]===3){cx+=i%N;cy+=(i/N)|0;n++;}
   if(!n)return;cx/=n;cy/=n;
+  // v31.1: banchi 2×2, posati cella per cella e molto vicini tra loro (mercato affollato)
   const fr=buildSAT(i=>cellFree(i,3)?0:1),c=[];
-  for(let y=0;y<=N-3;y+=2)for(let x=0;x<=N-3;x+=2){if(rect(fr,x,y,3,3))continue;c.push([(x-cx)**2+(y-cy)**2+hash(x,y+(S.t|0))*54,x,y]);}
+  for(let y=0;y<=N-2;y++)for(let x=0;x<=N-2;x++){if(rect(fr,x,y,2,2))continue;c.push([(x+0.5-cx)**2+(y+0.5-cy)**2+hash(x,y+(S.t|0))*6,x,y]);}
   c.sort((a,b)=>a[0]-b[0]);
-  for(const [,x,y] of c.slice(0,10)){
-    if(connectMsg(3,3,x,y,-1))continue;
+  for(const [,x,y] of c.slice(0,14)){
+    if(connectMsg(2,2,x,y,-1))continue;
     const st=addBuilding('stall',x,y,true,{owner:h.id});h.stall=st.id;return;
   }
 }

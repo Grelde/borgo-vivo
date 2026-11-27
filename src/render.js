@@ -502,12 +502,12 @@ const BUILD={
     cyl(g,.6,.66,.6,12,MAT.stone,0,.3,0);cyl(g,.45,.45,.05,12,MAT.water,0,.58,0);
     bx(g,.1,1.3,.1,MAT.timber,-.55,.95,0);bx(g,.1,1.3,.1,MAT.timber,.55,.95,0);bx(g,1.3,.1,.1,MAT.timber,0,1.6,0);
     gable(g,1.1,1.0,.4,MAT.thatch,1.62);cyl(g,.015,.015,.5,4,MAT.timber,0,1.3,0);cyl(g,.1,.08,.14,8,MAT.logD,0,1.02,0);return g;},
-  stall(b){const g=new THREE.Group();
+  stall(b){const g0=new THREE.Group(),g=new THREE.Group();g.scale.setScalar(.86);g0.add(g);  // v31.1: il banco sta in 2×2 celle, più piccolo delle case
     bx(g,1.4,.1,.8,MAT.log,0,.55,0);bx(g,1.3,.5,.1,MAT.logD,0,.25,.3);bx(g,1.3,.5,.1,MAT.logD,0,.25,-.3);
     for(const sx of[-1,1])for(const sz of[-1,1])bx(g,.07,1.35,.07,MAT.timber,sx*.65,.68,sz*.4);
     const aw=(b.id%2)?MAT.red:MAT.blue;
     for(let k=0;k<4;k++)bx(g,.36,.05,1.0,k%2?MAT.cream:aw,-.54+k*.36,1.42-k*0,0).rotation.x=0;
-    bx(g,.3,.2,.3,MAT.veg,-.4,.7,0);bx(g,.3,.2,.3,MAT.egg,0,.7,0);bx(g,.3,.2,.3,MAT.grain,.4,.7,0);return g;},
+    bx(g,.3,.2,.3,MAT.veg,-.4,.7,0);bx(g,.3,.2,.3,MAT.egg,0,.7,0);bx(g,.3,.2,.3,MAT.grain,.4,.7,0);return g0;},
   mine(b){const g=new THREE.Group();
     bx(g,3.6,.18,3.6,MAT.stoneD,0,.09,0);
     bx(g,2.0,1.6,1.4,MAT.stone,-.4,.8,-1.0);bx(g,1.0,1.0,.2,MAT.door,-.4,.5,-.28);

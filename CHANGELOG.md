@@ -1,5 +1,11 @@
 # Changelog
 
+## v31.1 – 2026-11-27
+Ritocco: mercato più affollato, banchi più piccoli.
+- **Banchi 2×2 celle** (prima 3×3): il modello 3D è rimpicciolito (86%) e ora è chiaramente più piccolo di una casa.
+- **Mercato più fitto:** i banchi si posano cella per cella (prima su una griglia a passo 2) e vicino al centro del mercato, con poca casualità: nella prova (`tests/mercato.js`, 40 giorni, 26 banchi) sono affiancati, senza spazio vuoto tra l'uno e l'altro. Restano posati solo dove c'è un accesso raggiungibile e senza bloccare l'ingresso di una casa.
+- Nuovo test `tests/mercato.js` (tutti 2×2, nessuna cella occupata due volte, distanza media dal banco più vicino). `tests/legna.js` e gli altri test veloci invariati. Grafica non provata in un browser WebGL.
+
 ## v31 – 2026-11-27
 Cambio di regole: vicinanza tra casa, lavoro e servizi.
 - **Scontento da pendolarismo:** chi lavora a più di 30 celle da casa perde felicità (0,4 per cella oltre la soglia, al massimo 25).
