@@ -987,6 +987,10 @@ function needsHtml(b){
   const n=Sim.needsOf(b),row=(t,v,m)=>`<div class="need"><span>${v>=m?'✓':'✗'} ${t}</span><b>${v}/${m}</b></div>`;
   return row('Cibo',n.food,30)+row('Casa (caldo, legna, quiete, spazio)',Math.round(n.home),25)+row('Acqua (pozzo vicino)',n.water,25)+(n.hasChurch?row('Chiesa vicina',n.church,20):'<div class="need"><span>• Chiesa: serve dal livello 2</span><b>–</b></div>');
 }
+function skillHtml(sk){
+  const ks=Object.keys(sk||{}).filter(k=>sk[k]>=1).sort((a,b)=>sk[b]-sk[a]);if(!ks.length)return '';
+  return '<h4>Bravura</h4>'+ks.map(k=>{const l=Sim.skLevel({sk},k),p=Math.round((sk[k]%Sim.XPL)/Sim.XPL*100);return `<div class="need"><span>${Sim.TRADENAME[k]||k}: ${Sim.SKNAME[l]} (livello ${l})</span><b>${l>=Sim.SKMAX?'massimo':p+'%'}</b></div>`;}).join('');
+}
 // ---------- scheda abitante ----------
 let cardId=null,cardHtml='';
 function relLink(id){const r=Sim.reg.get(id);if(!r)return '?';return `<span class="lk" data-v="${id}">${esc(r.name)} ${esc(r.fam)}</span>${r.died!==null&&r.cause!=='left'?' †':''}`;}
@@ -1003,6 +1007,7 @@ function renderCard(){
   if(dead)h+=`<p>${r.trade?Sim.TRADENAME[r.trade]:'Nessun mestiere'}${r.inh?' <span class="tag">ereditato</span>':''}</p><p>${r.cause?({age:'Morto di vecchiaia.',cold:'Morto di freddo.',hunger:'Morto di fame.',ill:'Morto di malattia.',left:'Ha lasciato il paese perché infelice.'})[r.cause]||'':''}</p>`;
   else{h+=`<p>${child?(age<6?'Gioca in giardino':'Gioca e studia'):esc(Sim.roleText(v))}${v.trade&&!child?` · mestiere: ${Sim.TRADENAME[v.trade]}`:''}${v.inh?' <span class="tag">ereditato</span>':''}</p>`;}
   if(!dead&&v.job){const cd=Math.round(Sim.commuteOf(v));h+=`<p>Casa-lavoro: ${cd} celle${cd>Sim.COMMUTE_OK?' <span class="tag bad">troppo lontano: scontento</span>':''}</p>`;}
+  h+=skillHtml(dead?r.sk:v.sk);
   h+='<h4>Istruzione</h4>';
   const sch=dead?r.schooled:v.schooled;
   if(!dead&&child){const p=Math.min(100,Math.round(v.edu/3));h+=`<p>${age<6?'Troppo piccolo per la scuola.':'Frequenta la scuola, se c\'è un maestro.'}</p><div class="bar"><i style="width:${p}%"></i></div><p>Apprendimento: ${p}%</p>`;}
@@ -1059,7 +1064,7 @@ function popPeople(st){
   const at=st.att;
   h+='<h4>Capacità e attrattiva</h4>'+popRow('Posti nelle case',st.capHouses)+popRow('Bonus di attrattiva',`+${st.capBonus}`)+popRow('Adulti senza lavoro',at.unemp)+popRow('Attrattiva (felicità ÷ disoccupati)',Math.round(at.a*100)+'%');
   h+='<p style="opacity:.75;font-size:12px">Più gli abitanti sono felici e meno adulti sono senza lavoro, più gente vuole trasferirsi, anche oltre i posti delle case (in case un po\' affollate).</p>';
-  h+='<h4>Casa e lavoro</h4>'+popRow('Distanza media casa-lavoro',Math.round(st.avgCommute)+' celle')+popRow(`Lavorano lontano (oltre ${Sim.COMMUTE_OK} celle): scontenti`,`${st.far}/${st.commuters}`);
+  h+='<h4>Casa e lavoro</h4>'+popRow('Distanza media casa-lavoro',Math.round(st.avgCommute)+' celle')+popRow(`Lavorano lontano (oltre ${Sim.COMMUTE_OK} celle): scontenti`,`${st.far}/${st.commuters}`)+popRow('Bravura media nel mestiere',st.avgSkill.toFixed(1)+' / '+Sim.SKMAX)+popRow('Maestri (livello massimo)',st.masters);
   h+='<h4>Per età</h4>'+AGEB.map(([t,a,b])=>popRow(t,vs.filter(v=>v.age>=a&&v.age<b).length)).join('');
   const jc={};let home=0;
   for(const v of adults){const b=v.job&&Sim.buildings().get(v.job);if(b)jc[b.type]=(jc[b.type]||0)+1;else home++;}

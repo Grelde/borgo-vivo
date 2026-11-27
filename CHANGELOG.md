@@ -1,5 +1,13 @@
 # Changelog
 
+## v32 – 2026-11-27
+Funzione nuova: bravura nei mestieri.
+- Chi lavora in un edificio prende quel mestiere (come prima) e ne accumula **esperienza**: un livello ogni 1800 s di lavoro (circa 1,2 per annata), da Apprendista (0) a Maestro (4). Chi eredita il mestiere di famiglia parte da Praticante (1).
+- Ogni livello dà **+12% di resa** nel proprio mestiere (taglio, cava, aratura, pascolo, piantagione, mulino); il maestro della scuola istruisce più in fretta.
+- **Preferenza nei posti:** nell'assegnazione dei lavori chi è bravo in un mestiere è più portato a riprenderlo (bonus per livello) e meno propenso ad accettarne un altro; gli altri abitanti, di conseguenza, vengono scelti meno per quell'edificio finché c'è uno specialista libero. La bravura si conserva se si cambia mestiere.
+- Scheda: sezione "Bravura" con livello e avanzamento; registro: "Diventa esperto/provetto/maestro...". Pannello Abitanti: bravura media e numero di maestri.
+- Misura (`tests/population.js`, 4 annate): bravura media 0,9 dopo 2 annate e 1,3-1,4 dopo 3-4 (il ricambio generazionale la tiene bassa), nessun maestro in quella prova. Limiti: la preferenza agisce solo quando un posto si libera (nessuno viene spostato di mestiere in corso d'opera); l'infermeria e la locanda non hanno ancora un bonus di resa. Grafica non provata in un browser WebGL.
+
 ## v31.1 – 2026-11-27
 Ritocco: mercato più affollato, banchi più piccoli.
 - **Banchi 2×2 celle** (prima 3×3): il modello 3D è rimpicciolito (86%) e ora è chiaramente più piccolo di una casa.
