@@ -309,7 +309,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v60</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v60.1</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -1012,7 +1012,9 @@ function stepOn(i){
 }
 // movimento lungo il percorso (v38): agli angoli l'abitante taglia dolcemente la curva (SMOOTH_R) invece di girare di scatto sul centro della cella,
 // e il corpo ruota gradualmente verso la direzione di marcia. L'ultima cella del percorso si raggiunge sempre esattamente.
-const SMOOTH_R=0.6,SMOOTH_REACH=0.25;
+// v57.1: SMOOTH_REACH deve superare il punto fisso della curva morbida (distanza d dal centro cella con d=0,5·L·(1-d/SMOOTH_R), L = distanza al centro della cella successiva:
+// 0,667 ortogonale → 0,21; 0,943 diagonale → 0,264). Con 0,25 e passi piccoli (browser: 0,05 s) l'abitante restava fermo per sempre su certe curve diagonali.
+const SMOOTH_R=0.6,SMOOTH_REACH=0.3;
 function moveV(v,dt){
   if(!v.path.length){v.moving=false;return true;}
   v.inside=false;
@@ -3341,6 +3343,13 @@ function importState(d){
   const ids=new Set();
   for(const b of bl){if(!b||!Number.isInteger(b.id)||!BT[b.type]||!Number.isFinite(b.x)||!Number.isFinite(b.y)||ids.has(b.id))bad('edificio non valido');ids.add(b.id);}
   for(const v of vl){if(!v||!Number.isInteger(v.id)||!Number.isFinite(v.x)||!Number.isFinite(v.z)||ids.has(v.id))bad('abitante non valido');ids.add(v.id);}
+  // v60.1: i salvataggi precedenti alla v59 non hanno i bisogni dell'abitante (n, nv, nc): si danno valori di riserva, altrimenti il gioco si ferma a ogni passo
+  for(const v of vl){
+    if(!v.n||typeof v.n!=='object')v.n={};
+    for(const [k,lo,sp] of [['water',55,45],['food',55,45],['rest',60,40],['church',50,50],['social',50,50]])if(!Number.isFinite(v.n[k]))v.n[k]=lo+Math.random()*sp;
+    if(!Number.isFinite(v.nv))v.nv=0.85+Math.random()*0.3;
+    if(v.nc===undefined)v.nc=null;
+  }
   for(const g of gl){if(!g||!Number.isInteger(g.id)||!Number.isFinite(g.x)||!Number.isFinite(g.z)||ids.has(g.id))bad('viandante non valido');ids.add(g.id);}
   for(const i of ids)if(i>=d.nextId)bad('numerazione incoerente');
   if(typeof Sx.stock!=='object'||!Sx.stock||!Number.isFinite(Sx.t))bad('stato del borgo incompleto');

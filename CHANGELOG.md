@@ -1,5 +1,12 @@
 # Changelog
 
+## v60.1 – 2026-11-28
+Correzione: abitanti bloccati a metà percorso (cantieri fermi) e salvataggi vecchi che bloccavano il gioco.
+- **Movimento:** con il passo del browser (0,05 s) un abitante si fermava per sempre su certe curve diagonali del percorso: il punto di mira della curva morbida coincideva con la sua posizione (0,264 dal centro della cella) e `SMOOTH_REACH` era 0,25, quindi non risultava mai arrivato. Restava "in cammino" senza muoversi. Succedeva anche al costruttore del campo: con 2 adulti su 3 di turno all'orto nessun cantiere avanzava (i lavoratori «restavano in casa»). `SMOOTH_REACH` ora è 0,3 (sopra il punto fisso massimo, 0,264).
+- **Salvataggi precedenti alla v59:** gli abitanti non avevano i bisogni (`n`, `nv`, `nc`) e il gioco andava in errore a ogni passo dopo il caricamento. `importState` ora li ricrea con valori di riserva.
+- Test nuovo: `tests/bloccati.js` (nessun abitante fermo a metà percorso con passo 0,05 s, più il salvataggio reale in `tests/fixtures/stallo-curva-diagonale.json`: tutti i cantieri devono finire). Il test fallisce sul codice precedente.
+- Nota: il salvataggio v57 usato dal test ha il tempo in giorni da 150 s; dalla v58 il giorno dura 300 s, quindi le date delle partite vecchie risultano ridotte (non toccato qui).
+
 ## v60 – 2026-11-28
 Ritocco ai giardini della v57: lo spazio del giardino futuro non è più riservato.
 - Le case nuove si piazzano con **3 celle libere intorno** (non occupate): il giardino vero, dal livello 2, si costruisce su quello spazio se è ancora libero; se la zona è fitta (spazio di 1 cella) l'orto resta piccolo.
