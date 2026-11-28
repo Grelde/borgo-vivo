@@ -342,7 +342,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v84</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v85</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -560,6 +560,11 @@ const tree=new Uint8Array(N*N),rock=new Uint8Array(N*N),ore=new Uint8Array(N*N),
 // wear: solo per le strade tracciate dal giocatore (usura lenta). plev/phit/pexp: livello del sentiero, passaggi nella finestra corrente, istante di scadenza del livello.
 const lastStep=new Float32Array(N*N); // v44: ultimo passaggio di un abitante su ogni cella libera (non salvato: dopo un caricamento riparte da adesso)
 // v63: fertilità del suolo (0 arido, 1 povero, 2 buono, 3 fertile), falde acquifere (aq: c'è acqua sotto; aqK: il giocatore l'ha scoperta; aqV: numero della falda, solo per la generazione)
+// v85: sottobosco e bosco protetto. Il sottobosco (cespugli con le bacche) non è memorizzato: dove c'è un albero e `undP` (macchie decise dal seme) lo permette, c'è anche il sottobosco.
+// Tagliare l'albero lo fa sparire; un albero nuovo (foresta rinfoltita o piantata dal guardaboschi) lo riporta. `prot` = celle dove il taglialegna non taglia.
+const prot=new Uint8Array(N*N),undP=new Uint8Array(N*N);
+const under=i=>tree[i]===1&&undP[i]===1,berriesRipe=()=>S.season===1||S.season===2;
+function genUnder(){for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;undP[i]=(vnoise(x/SC*0.28+511,y/SC*0.28+73)>0.5&&hash(x,y+913)<0.8)?1:0;}}
 const aq=new Uint8Array(N*N),aqK=new Uint8Array(N*N),aqV=new Uint8Array(N*N);
 // v76: la fertilità (griglia `fert` 0-100 dell'ambiente, v69) conta davvero: resa 0,6 (terra magra) … 1,4 (ottima), 1,0 a metà
 const soilF=v=>0.6+0.8*v/100,soilName=v=>v<25?'Arida':v<45?'Povera':v<70?'Buona':'Ottima',AQ_COST=2,AQ_FIND_R=27,AQ_REVEAL_R=54;
@@ -928,6 +933,7 @@ function init(sd,mode,diff,opt){
   S.aqRule=!!(opt&&opt.aquifers);S.dowsed=0;aqK.fill(0);
   for(let i=0;i<N*N;i++)if(aq[i]&&aqV[i]===1&&Math.hypot(i%N-CEN,((i/N)|0)-CEN)<=AQ_REVEAL_R)aqK[i]=1;
   for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;jit[i]=hash(x,y+500)*0.15;}
+  prot.fill(0);genUnder();
   windP=null;computeEnv();
   updClock();
   addBuilding('store',(CT-1)*SC,(CT-1)*SC,true,{center:true});
@@ -1205,6 +1211,14 @@ function paintDistrict(x0,y0,x1,y1,type){
   }
   if(n)hooks.ground();return n;
 }
+// v85: bosco protetto — su=1 segna le celle come «da non tagliare», su=0 le libera; non vale sull'acqua
+function paintNoCut(x0,y0,x1,y1,on){
+  let n=0;on=on?1:0;
+  for(let y=Math.max(0,Math.min(y0,y1));y<=Math.min(N-1,Math.max(y0,y1));y++)for(let x=Math.max(0,Math.min(x0,x1));x<=Math.min(N-1,Math.max(x0,x1));x++){
+    const i=y*N+x;if(water[i])continue;if(prot[i]!==on){prot[i]=on;n++;}
+  }
+  if(n)hooks.ground();return n;
+}
 function paintRoad(cx,cy){
   if(cx<0||cy<0||cx>=N||cy>=N)return;
   const i=cy*N+cx;if(occ[i]||tree[i]||rock[i]||ore[i]||road[i]||field[i]||water[i]||sap[i])return;
@@ -1435,7 +1449,7 @@ function findResource(arr,b,r,v){
   const bx=zc%N,by=(zc/N)|0;let best=-1,bd=1e9;
   for(let y=Math.max(0,by-r);y<=Math.min(N-1,by+r);y++)for(let x=Math.max(0,bx-r);x<=Math.min(N-1,bx+r);x++){
     const i=y*N+x;if(arr[i]<=0)continue;
-    if(arr===tree){const o=resv.get(i);if(o!==undefined&&o!==v.id)continue;}
+    if(arr===tree){if(prot[i])continue;const o=resv.get(i);if(o!==undefined&&o!==v.id)continue;}   // v85: il bosco protetto non si taglia
     const d=(x-bx)**2+(y-by)**2;if(d<bd){bd=d;best=i;}
   }
   return best;
@@ -2116,7 +2130,8 @@ function endGather(v){
     if(h&&route(v,h.cell,h.id))v.state='toHomeF';else{v.carry=null;v.state='wait';v.timer=3;}
     return;
   }
-  if(v.state==='chop'){if(tree[v.target]){tree[v.target]=0;hooks.trees();}resv.delete(v.target);v.carry='wood';}
+  if(v.state==='chop'){if(prot[v.target]){resv.delete(v.target);v.carry=null;v.state='wait';v.timer=2;return;}   // zona protetta nel frattempo: non si taglia
+    if(tree[v.target]){tree[v.target]=0;hooks.trees();}resv.delete(v.target);v.carry='wood';}
   else if(b&&b.type==='mine'){if(ore[v.target]>0){ore[v.target]--;hooks.rocks();}v.carry='iron';}
   else{if(rock[v.target]>0){rock[v.target]--;hooks.rocks();}v.carry='stone';}
   if(!b){v.job=null;v.carry=null;v.state='idle';return;}
@@ -4350,7 +4365,7 @@ function stats(){
 const SAVE_FMT=1;
 const SAVE_GRIDS={tree,rock,ore,water,sap,road,dist,occ,field,door,cen,gate,wear,sapT,plev,phit,pexp};
 // v63: suolo e falde si salvano a parte e sono facoltativi: un salvataggio precedente non li ha e li ricostruisce dal seme
-const SOIL_GRIDS={aq,aqK};
+const SOIL_GRIDS={aq,aqK,prot};
 function b64enc(u8){let s='';for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s);}
 function b64dec(str){const s=atob(str),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u;}
 // griglie: compressione a run (lunghezza,byte) sui byte grezzi, poi base64
@@ -4397,7 +4412,8 @@ function importState(d){
   for(const v of villagers)hooks.gone(v);
   for(const g of guests)hooks.gone(g);
   for(const k in SAVE_GRIDS)SAVE_GRIDS[k].set(tmp[k]);
-  seed=d.seed;for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;jit[i]=hash(x,y+500)*0.15;}
+  seed=d.seed;for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;jit[i]=hash(x,y+500)*0.15;}genUnder();
+  if(sg.prot)prot.set(sg.prot);else prot.fill(0);   // v85: i salvataggi precedenti non hanno il bosco protetto
   if(sg.aq&&sg.aqK){aq.set(sg.aq);aqK.set(sg.aqK);}
   else{const R2=mulberry((Math.imul(d.seed|0,2246822519)^0x9e3779b9)>>>0);genAquifers(R2);aqK.set(aq);} // salvataggio precedente alla v76: le falde si ricreano dal seme (la fertilità si ricava da sola, v69); le falde sono tutte note e i pozzi già costruiti restano dove sono
   for(const k of Object.keys(S))delete S[k];
@@ -4428,7 +4444,7 @@ function importState(d){
   for(const g of guests)hooks.villager(g);
   hooks.trees();hooks.rocks();hooks.saps();hooks.ground();
 }
-return {capOf,PET_LIFE,petitionTick,acceptPetition,refusePetition,arriveFamily,famText,newPetition,MT,CT,CEN,dowse,soilOf,soilF,soilName,AQ_FIND_R,AQ_COST,TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWanted,WEAPON_PER_POST,startHouseWork,mergeTick,trySpawnDense,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,EDUREQ,EDU_BLD,IMM_LIT,HIRE_COST,canWorkAt,eduBld,hireEducated,hireNeeded,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
+return {paintNoCut,under,berriesRipe,capOf,PET_LIFE,petitionTick,acceptPetition,refusePetition,arriveFamily,famText,newPetition,MT,CT,CEN,dowse,soilOf,soilF,soilName,AQ_FIND_R,AQ_COST,TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWanted,WEAPON_PER_POST,startHouseWork,mergeTick,trySpawnDense,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,EDUREQ,EDU_BLD,IMM_LIT,HIRE_COST,canWorkAt,eduBld,hireEducated,hireNeeded,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,NEEDS,NEED_LOW,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
   TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,WAGE_JOB,EDU_JOBS,CITY_RANK,WAGE_OWE_CAP,wageJob,wageOf,wagePayer,TAX_TABLE,TAX_WEEK,TAX_POUCH,WAGE,WAGE_SEC,SILVER_GOLD,TAX_MARGIN,MSELL,MSELL_KEEP,MSELL_LIM,taxOf,joyOf,TAX_RATES,TAX_JOY,setTaxRate,taxForecast,ledgerTick,money,taxActive,taxStats,taxDue,taxRefuses,merceryTakes,merceryBuy,merceryBuyer,jobless,kingJob,cityMakes,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
@@ -4436,7 +4452,7 @@ return {capOf,PET_LIFE,petitionTick,acceptPetition,refusePetition,arriveFamily,f
   STORE_KEYS,GRAN_KEYS,GRAN_TOTAL,CENTER_CAP,setPolicy,storeInfo,stockRoom,capRes,reconcileStock,extraTotal,festTakeFood,
   _t:{joyOf,eatOne,drinkTick,shoeTick,FISH_CYCLE,FAM_FISH_RATE,FAM_FISH_Q,famFishTime,jobNeed,jobSurplus,rebalanceJobs,JOBRES,JOB_MARGIN,JOB_DWELL,tradeTick,doTrade,chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
   env:{fert,flowS,flowX,flowY,FERT_HIGH,flowSeason,riverInfo,windNow,windAt,flowLabel,windLabel,COMPASS8,WIND_NAME,FLOW_MS},
-  grids:{aq,aqK,tree,rock,ore,water,sap,sapT,road,dist,occ,wear,plev,field,door,attr,cen},guests:()=>guests,buildings:()=>buildings,villagers:()=>villagers};
+  grids:{prot,undP,aq,aqK,tree,rock,ore,water,sap,sapT,road,dist,occ,wear,plev,field,door,attr,cen},guests:()=>guests,buildings:()=>buildings,villagers:()=>villagers};
 })();
 if(typeof module!=='undefined')module.exports=Sim;
 (function(){
@@ -4676,6 +4692,7 @@ function drawGround(){
   g.fillStyle='rgba(150,118,76,.8)';
   for(let i=0;i<N*N;i++)if(door[i]&&!road[i]){g.beginPath();g.arc((i%N+.5)*PX,((i/N|0)+.5)*PX,PX*0.55,0,7);g.fill();}
   if(attrOn){for(let i=0;i<N*N;i++){const a=attr[i];if(Math.abs(a)<0.2)continue;g.fillStyle=a>0?`rgba(70,190,90,${Math.min(.5,a*.09)})`:`rgba(225,70,50,${Math.min(.55,-a*.1)})`;g.fillRect((i%N)*PX,((i/N)|0)*PX,PX,PX);}}
+  {const pr=Sim.grids.prot;g.fillStyle='rgba(40,160,100,0.26)';for(let i=0;i<N*N;i++)if(pr[i]&&!water[i])g.fillRect((i%N)*PX-.5,((i/N)|0)*PX-.5,PX+1,PX+1);}   // v85: bosco protetto (velo verde)
   drawSoilOverlay(ovEff());
   g.strokeStyle='rgba(60,45,25,.55)';g.lineWidth=10;g.strokeRect(0,0,TEX,TEX);
   gtex.needsUpdate=true;
@@ -4699,6 +4716,10 @@ oresM.castShadow=true;scene.add(oresM);
 oresM.frustumCulled=false;
 const sapM=new THREE.InstancedMesh(new THREE.ConeGeometry(.28,.8,5),new THREE.MeshLambertMaterial({color:0x7bb04a}),MAXI);sapM.count=0;scene.add(sapM);
 sapM.frustumCulled=false;
+// v85: sottobosco (cespugli) e bacche sotto gli alberi: un cespuglio per ogni albero che ha il sottobosco (Sim.under), con i frutti in estate e in autunno
+const MAXB=Math.ceil(N*N*0.4),MAXBER=Math.ceil(N*N*0.6);
+const bushM=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.42,0),new THREE.MeshLambertMaterial({color:0xffffff}),MAXB);bushM.count=0;scene.add(bushM);bushM.frustumCulled=false;
+const berM=new THREE.InstancedMesh(new THREE.SphereGeometry(.11,5,4),new THREE.MeshLambertMaterial({color:0xffffff}),MAXBER);berM.count=0;scene.add(berM);berM.frustumCulled=false;
 const col=new THREE.Color();
 let sapsDirty=true;
 crowns.setColorAt(0,col.set(0x4f8a3a));rocksM.setColorAt(0,col.set(0x9a9a92));oresM.setColorAt(0,col.set(0x6a4a3a));
@@ -4708,9 +4729,19 @@ function rebuildSaps(){let n=0;
   sapM.count=n;sapM.instanceMatrix.needsUpdate=true;sapsDirty=false;}
 let treesDirty=true,rocksDirty=true;
 function rebuildTrees(){
-  let n=0;
+  let n=0,nb=0,ne=0;const SNB=S.season,ripe=Sim.berriesRipe();
   for(let i=0;i<N*N;i++){
     if(!tree[i])continue;
+    if(Sim.under(i)&&nb<MAXB){ // v83: sottobosco ai piedi dell'albero
+      const bx=Sim.cx2w(i%N)+(rn(i,12)-.5)*1.1+.35,bz=Sim.cy2w((i/N)|0)+(rn(i,13)-.5)*1.1+.35,bs=.7+rn(i,14)*.5;
+      dummy.position.set(bx,.2*bs,bz);dummy.rotation.set(0,rn(i,15)*6.28,0);dummy.scale.set(bs*1.2,bs*.8,bs*1.2);dummy.updateMatrix();bushM.setMatrixAt(nb,dummy.matrix);
+      if(SNB===3)col.setHSL(0.09,0.12,0.42+rn(i,16)*0.08);else if(SNB===2)col.setHSL(0.08+rn(i,16)*0.08,0.5,0.3);else col.setHSL(0.28+rn(i,16)*0.05,0.5,0.24+rn(i,17)*0.08);
+      bushM.setColorAt(nb,col);nb++;
+      if(ripe)for(let k=0;k<2&&ne<MAXBER;k++){
+        dummy.position.set(bx+(rn(i,20+k)-.5)*.5,.28*bs+rn(i,22+k)*.12,bz+(rn(i,24+k)-.5)*.5);dummy.rotation.set(0,0,0);dummy.scale.set(1,1,1);dummy.updateMatrix();berM.setMatrixAt(ne,dummy.matrix);
+        if(rn(i,26)<.6)col.setHSL(0.99,0.75,0.42);else col.setHSL(0.74,0.45,0.3);   // rosse o more (a macchie)
+        berM.setColorAt(ne,col);ne++;}
+    }
     const sc=0.8+rn(i,1)*0.55;
     dummy.position.set(Sim.cx2w(i%N)+(rn(i,2)-.5)*0.9,0,Sim.cy2w((i/N)|0)+(rn(i,3)-.5)*0.9);
     dummy.rotation.set(0,rn(i,4)*6.28,0);dummy.scale.set(sc,sc*(0.9+rn(i,5)*.35),sc);dummy.updateMatrix();
@@ -4722,6 +4753,8 @@ function rebuildTrees(){
     else col.setHSL(0.27+rn(i,6)*0.06,0.38+rn(i,7)*0.12,0.22+rn(i,8)*0.1);
     crowns.setColorAt(n,col);n++;
   }
+  bushM.count=nb;bushM.instanceMatrix.needsUpdate=true;if(bushM.instanceColor)bushM.instanceColor.needsUpdate=true;
+  berM.count=ne;berM.instanceMatrix.needsUpdate=true;if(berM.instanceColor)berM.instanceColor.needsUpdate=true;
   trunks.count=crowns.count=n;trunks.instanceMatrix.needsUpdate=crowns.instanceMatrix.needsUpdate=true;
   if(crowns.instanceColor)crowns.instanceColor.needsUpdate=true;treesDirty=false;
 }
@@ -5695,9 +5728,11 @@ const TOOLS=[
   {id:'d4',label:'Forestale',key:'f',dt:4,col:0x3f9a5d,hint:'Trascina: i guardaboschi pianteranno qui alberi che crescono e si possono tagliare di nuovo.'},
   {id:'d5',label:'Pascolo',key:'p',dt:5,col:0xe8e4d0,hint:'Trascina: l\'ovile nasce solo dentro il pascolo. La zona intorno all\'ovile viene chiusa da un recinto e le pecore restano lì dentro. La lana serve ai tessitori.'},
   {id:'d6',label:'Alta densità',key:'h',dt:6,col:0xb0624a,hint:'Trascina: case di mattoni addossate l\'una all\'altra, senza giardino. Le famiglie prendono cibo e legna dal magazzino, quindi servono scorte.'},
+  {id:'nocut',label:'Bosco protetto',key:'j',nc:1,col:0x2f8f6a,hint:'Trascina: gli alberi di questa zona non vengono tagliati dai taglialegna (la zona si vede con un velo verde). Il sottobosco con le bacche resta finché ci sono gli alberi.'},
+  {id:'cutok',label:'Togli protezione',nc:0,col:0xd9a03f,hint:'Trascina per togliere la protezione: gli alberi tornano tagliabili.'},
   {id:'undistrict',label:'Togli zona',key:'5',dt:0,col:0xd9553f,hint:'Trascina per cancellare un quartiere.'},
   {id:'road',label:'Strada',key:'6',hint:'Trascina per tracciare una strada: resta a lungo anche senza passaggi, poi torna sentiero e sparisce. Puoi demolirla.'},
-  {id:'wood',label:'Taglialegna',key:'7',hint:'Vicino a un bosco. Rumoroso: le case vicine perdono attrattiva.'},
+  {id:'wood',label:'Taglialegna',key:'7',hint:'Vicino a un bosco. Rumoroso: le case vicine perdono attrattiva. Non taglia i boschi protetti (Zone e strade: Bosco protetto).'},
   {id:'quarry',label:'Cava',key:'8',hint:'Vicino alle rocce. Molto rumorosa: tienila lontana dalle case. I massi più grossi (e le zone gialle della mappa del suolo, tasto L) sono giacimenti ricchi: durano di più.'},
   {id:'forester',label:'Guardaboschi',key:'g',hint:'Pianta alberi nelle zone forestali. Servono circa 2 minuti perché crescano.'},
   {id:'mine',label:'Miniera',key:'m',hint:'Vicino ai filoni di ferro (rocce scure). Molto rumorosa. Il ferro va al magazzino. Le zone rosse della mappa del suolo (tasto L) sono filoni ricchi.'},
@@ -5751,7 +5786,7 @@ const TOOLS=[
 const TOOL=Object.fromEntries(TOOLS.map(t=>[t.id,t]));
 const CATS=[
   {id:'tools',label:'Strumenti',ids:['select','pan','demolish']},
-  {id:'zone',label:'Zone e strade',ids:['d1','d2','d3','d4','d5','d6','undistrict','road']},
+  {id:'zone',label:'Zone e strade',ids:['d1','d2','d3','d4','nocut','cutok','d5','d6','undistrict','road']},
   {id:'prod',label:'Produzione',ids:['wood','quarry','mine','forester','granary','mill']},
   {id:'shop',label:'Botteghe',ids:['carpenter','mason','claypit','brickworks','limekiln','saltworks','butcher','smokehouse','dairy','brewery','winery','tannery','cobbler','smithy','bakery','sheepfold','charcoal','smelter','retting','ropewalk','dyehouse','weaver','tailor','fisher','hunter','mercery']},
   {id:'serv',label:'Servizi',ids:['store','well','dowse','school','infirmary','surgeon','church','inn','tavern','hall','taxoffice']},
@@ -6084,7 +6119,7 @@ function setRay(e){const r=cv.getBoundingClientRect();mouse.x=((e.clientX-r.left
 function cellAt(e,off){setRay(off?{clientX:e.clientX,clientY:e.clientY-off}:e);if(!ray.ray.intersectPlane(plane,hitP))return null;
   const cx=Math.floor((hitP.x+W/2)/CS),cy=Math.floor((hitP.z+W/2)/CS);if(cx<0||cy<0||cx>=N||cy>=N)return null;return {cx,cy};}
 const anchor=(type,c)=>{const [w,h]=Sim.dimsOf(BT[type],rot);return {x:c.cx-Math.floor((w-1)/2),y:c.cy-Math.floor((h-1)/2)};};
-const isDist=id=>TOOL[id]&&TOOL[id].dt!==undefined;
+const isDist=id=>TOOL[id]&&(TOOL[id].dt!==undefined||TOOL[id].nc!==undefined);   // v85: anche il bosco protetto si disegna a rettangoli
 const keys={};
 const ptrs=new Map(),TOFF=64;let gest=null,lockPtr=false;
 function updPbar(){const on=pend&&BT[tool]&&!zoneEdit;$('pbar').hidden=!on;if(!on)return;const c=Sim.costOf(tool),p=[];if(c.wood)p.push('legno '+c.wood);if(c.stone)p.push('pietra '+c.stone);if(c.planks)p.push('assi '+c.planks);if(c.bricks)p.push('mattoni '+c.bricks);if(c.lime)p.push('calce '+c.lime);$('pName').textContent=BT[tool].name+(p.length?' · '+p.join(', '):'');$('pRot').style.display=NOGATE[tool]?'none':'';}
@@ -6156,7 +6191,9 @@ function endDrag(){
   if(drag&&drag.m==='selpan'&&!drag.moved){setRay({clientX:drag.sx,clientY:drag.sy});const vh=ray.intersectObjects(vpick,false),h=ray.intersectObjects(pickables,false);
     if(vh.length&&(!h.length||vh[0].distance<=h[0].distance+3))openCard(vh[0].object.userData.vid);else select(h.length?h[0].object.userData.bid:null);}
   if(drag&&isDist(drag.m)){
-    const t=TOOL[drag.m];const n=Sim.paintDistrict(drag.a.cx,drag.a.cy,drag.b.cx,drag.b.cy,t.dt);
+    const t=TOOL[drag.m];
+    if(t.nc!==undefined){const n=Sim.paintNoCut(drag.a.cx,drag.a.cy,drag.b.cx,drag.b.cy,t.nc);toast(n?(t.nc?'Bosco protetto: qui gli alberi non si tagliano.':'Protezione tolta: gli alberi tornano tagliabili.'):(t.nc?'Quella zona è già protetta.':'Nessuna protezione da togliere qui.'),!n);drag=null;return;}
+    const n=Sim.paintDistrict(drag.a.cx,drag.a.cy,drag.b.cx,drag.b.cy,t.dt);
     if(t.dt===1&&(Math.abs(drag.a.cx-drag.b.cx)<9||Math.abs(drag.a.cy-drag.b.cy)<9))toast('Zona residenziale piccola: una casa con giardino richiede circa 8×5 celle libere. Disegna un rettangolo più ampio (1 lotto = 3×3 celle).',true);
     if(n===0&&t.dt)toast('Quella zona è già di questo tipo.');
   }

@@ -1,5 +1,15 @@
 # Changelog
 
+## v85 – 2026-11-28
+Funzione nuova: sottobosco con le bacche sotto gli alberi e bosco protetto (zona da non tagliare).
+- **Sottobosco:** ogni albero può avere ai piedi un cespuglio (macchie decise dal seme, circa un terzo degli alberi: `undP`, `genUnder`). Non è un dato a parte: `under(i)` = albero **e** macchia, quindi **tagliando l'albero sparisce anche il sottobosco**, e ogni albero nuovo (foresta rinfoltita o piantata dal guardaboschi) lo riporta se cade in una macchia. Nulla da salvare: dopo il caricamento ricompare identico.
+- **Bacche:** i cespugli hanno frutti rossi e more in estate e in autunno (`berriesRipe`), restano spogli e bruni in inverno. Per ora sono solo visibili: **la raccolta delle bacche (casa con `side='berry'`) non c'è ancora** e va legata a `Sim.under`.
+- **Bosco protetto:** nuovi strumenti in «Zone e strade»: «Bosco protetto» (tasto J) e «Togli protezione» si disegnano a rettangoli come i quartieri; la zona ha un velo verde sul terreno. Nelle celle protette (`prot`) **il taglialegna non taglia** (`findResource`; se la zona viene protetta mentre sta per tagliare, rinuncia). La legna da ardere raccolta dalle case non abbatte alberi e quindi non è limitata. Il guardaboschi pianta come prima; l'acqua non si protegge.
+- **Salvataggi:** `prot` viaggia come griglia opzionale (come `aq`); i salvataggi precedenti non hanno zone protette. `SAVE_FMT` resta 1.
+- Grafica: cespugli e bacche sono due InstancedMesh ricostruiti con gli alberi (cambio di stagione compreso); non verificato in un browser WebGL (densità, colori, prestazioni con la mappa grande).
+- Test: nuovo `tests/sottobosco.js` (percentuale di sottobosco, sparizione al taglio, ritorno con il germoglio, stagioni delle bacche, taglialegna con e senza protezione, protezione parziale, salvataggio).
+
+
 ## v84 – 2026-11-28
 Funzione nuova: Selvaggina e scheda del Cibo.
 - **La selvaggina è un cibo a sé (`game`):** i cacciatori e le case che cacciano non producono più «carne» (che resta quella degli allevamenti) ma selvaggina. Ha la sua scorta nei Granai (`GRAN_KEYS`), il suo prezzo di commercio (`TRADE_FOOD`, `T_KEEP/T_TARGET`), si porta nelle case, si mangia e conta come tipo di cibo diverso per la varietà della dieta (`TYPES`). Il macellaio fa le conserve con carne o selvaggina. Piccolo spostamento di bilanciamento: un cibo fresco in più per la varietà.
