@@ -941,6 +941,12 @@ const BUILD={
     bx(g,1.4,.5,.6,MAT.log,1.5,.25,.9);for(const x of[1.1,1.5,1.9])bx(g,.3,.15,.14,MAT.door,x,.58,.9);
     cyl(g,.18,.18,.5,8,MAT.fw,2.6,.25,.8,0,Math.PI/2);bx(g,.06,1.3,.06,MAT.timber,.6,.65,1.1);bx(g,.4,.3,.05,MAT.fw,.6,1.3,1.1);
     return g;},
+  shipyard(b){const g=new THREE.Group();
+    bx(g,2.8,1.3,2.0,MAT.log,-.8,.65,-1.0);bx(g,2.9,.1,2.1,MAT.timber,-.8,1.3,-1.0);gab(g,3.1,1.9,.8,MAT.thatch,1.1,-.8,-1.0);bx(g,.6,.9,.06,MAT.door,-1.2,.45,.02);
+    // scalo di costruzione con lo scafo in cantiere, ordinate e barile di pece
+    bx(g,3.4,.12,1.2,MAT.timber,1.5,.1,1.6);for(let i=0;i<6;i++){bx(g,.08,.8,1.0,MAT.fw,.2+i*.5,.55,1.6);}bx(g,3.2,.1,.2,MAT.timber,1.5,.95,1.6);
+    for(const z of[1.0,2.2])bx(g,.06,1.2,.06,MAT.timber,3.0,.6,z);cyl(g,.3,.3,.6,10,MAT.timber,-.6,.3,1.5);cyl(g,.31,.31,.05,10,MAT.soil,-.6,.62,1.5);
+    return g;},
   sawmill(b){const g=new THREE.Group();
     bx(g,3.0,1.2,2.0,MAT.log,-.6,.6,-1.0);bx(g,3.1,.1,2.1,MAT.timber,-.6,1.2,-1.0);gab(g,3.3,1.8,.8,MAT.thatch,1.1,-.6,-1.0);bx(g,.6,.9,.06,MAT.door,-1.2,.45,.02);
     // ruota ad acqua, carrello della sega e cataste di tronchi e assi
@@ -1331,6 +1337,7 @@ const TOOLS=[
   {id:'cobbler',label:'Bottega del calzolaio',key:'',hint:"Dal cuoio della conceria fa 2 scarpe per cuoio. Le scarpe si consumano (1 ogni 10 abitanti al giorno); con scarpe per almeno il 40% degli abitanti tutto il paese è più contento (fino a +3)."},
   {id:'winery',label:'Cantina',key:'',hint:"Spremi l'uva delle fattorie con la coltura vigna: 3 uve diventano 2 vini. Il vino rende la taverna ancora più allegra e si vende bene in città. Volta di mattoni e calce."},
   {id:'sawmill',label:'Segheria',key:'',hint:"Sulla riva di un lago o di un fiume (ruota ad acqua). Un segantino ricava 3 assi per 1 legno, contro le 2 del falegname: più assi per i cantieri con meno legname. Titolo 5, dopo il falegname."},
+  {id:'shipyard',label:'Cantiere navale',key:'',hint:"Sulla riva di un lago o di un fiume (Legno, titolo 6, dopo segheria e carbonaia). Il calafato fa barche da pesca (3 assi + 1 corda + 1 pece): +1 pesce per ciclo al pescatore, una barca ogni 40 cicli si consuma. Poi chiatte da fiume (6 assi + 2 corde + 2 pece + 1 barra): +2 pezzi per merce a ogni visita di carovana, una chiatta ogni 8 visite si consuma. La pece la dà la carbonaia."},
   {id:'cooper',label:'Bottega del bottaio',key:'',hint:"Con 2 assi (non quelle dei cantieri) e 1 barra di ferro (o 1 ferro) fa 2 botti. Ogni botte in magazzino dà +1 a ciclo a birrificio, cantina, macelleria e affumicatoio. Titolo 6, dopo la segheria."},
   {id:'wheelwright',label:'Bottega del carradore',key:'',hint:"Con 3 assi (non quelle dei cantieri) e 1 barra di ferro (o 1 ferro) fa 1 carro. Con almeno un carro in magazzino gli abitanti trasportano 2 pezzi a viaggio invece di 1 (chi lavora al Magazzino ha già il carretto); un carro si consuma ogni 12 viaggi. Titolo 6, dopo la segheria."},
   {id:'dyehouse',label:'Tintoria',key:'',hint:'Sulla riva di un lago o di un fiume. Tinge il tessuto del telaio con le piante tintorie delle fattorie (1 pezza per pianta ogni 10 s). Il sarto ricava 3 abiti da una pezza tinta, invece di 2.'},
@@ -1367,7 +1374,7 @@ const CATS=[
   {id:'tools',label:'Strumenti',ids:['select','pan','demolish']},
   {id:'zone',label:'Zone e strade',ids:['d1','d2','d3','d4','nocut','cutok','d5','d6','undistrict','road']},
   {id:'prod',label:'Produzione',ids:['wood','quarry','mine','forester','granary','mill']},
-  {id:'shop',label:'Botteghe',ids:['carpenter','sawmill','cooper','wheelwright','mason','claypit','brickworks','limekiln','saltworks','butcher','smokehouse','dairy','brewery','winery','tannery','cobbler','smithy','bakery','sheepfold','charcoal','smelter','retting','ropewalk','dyehouse','weaver','tailor','fisher','hunter','mercery']},
+  {id:'shop',label:'Botteghe',ids:['carpenter','sawmill','shipyard','cooper','wheelwright','mason','claypit','brickworks','limekiln','saltworks','butcher','smokehouse','dairy','brewery','winery','tannery','cobbler','smithy','bakery','sheepfold','charcoal','smelter','retting','ropewalk','dyehouse','weaver','tailor','fisher','hunter','mercery']},
   {id:'serv',label:'Servizi',ids:['store','well','dowse','school','infirmary','surgeon','church','inn','tavern','hall','taxoffice']},
   {id:'deco',label:'Decorazioni',ids:['plaza','flowers','statue']},
   {id:'def',label:'Difesa',ids:['watchtower','barracks','armory','bowyer']}];
@@ -1460,6 +1467,7 @@ function refreshSel(){
       brewery:`Un birraio fa 3 birre con 2 grani e 1 legno ogni ${spec.t} s, con almeno ${Sim.GRAIN_KEEP+2} grani nei Granai e 20 legni. Grano ${S.stock.grain|0} · birra ${S.stock.beer|0}/${Sim.BEER_CAP}. La taverna ne serve una al giorno.`,
       tannery:`Un conciatore ricava 2 cuoio da 2 pelli, 1 calce e 1 legno ogni ${spec.t} s (con almeno 20 legni). Pelli ${S.stock.hides|0} · calce ${S.stock.lime|0} · cuoio ${S.stock.leather|0}/${Sim.LEATHER_CAP}. Le pelli le danno il cacciatore e il macellaio.`,
       cobbler:`Un calzolaio fa 2 scarpe con 1 cuoio ogni ${spec.t} s. Cuoio ${S.stock.leather|0} · scarpe ${S.stock.shoes|0}/${Sim.SHOE_CAP}. Copertura del paese: ${Math.round(Sim.shoeCover()*100)}% (benessere fino a +3 a copertura piena).`,
+      shipyard:`Un calafato costruisce una barca (3 assi + 1 corda + 1 pece) ogni ${spec.t} s finché ce n'è una per pescatore, poi chiatte (6 assi + 2 corde + 2 pece + 1 barra, max ${Sim.BARGE_CAP}). Barche ${S.stock.boats|0}/${Sim.BOAT_CAP} (+${Sim.BOAT_FISH} pesce per ciclo) · chiatte ${S.stock.barges|0}/${Sim.BARGE_CAP} (+${Sim.BARGE_VISIT} pezzi per merce a visita) · pece ${S.stock.pitch|0}/${Sim.PITCH_CAP}. Assi ${S.stock.planks|0} · corde ${S.stock.rope|0}.`,
       sawmill:`Un segantino ricava 3 assi da 1 legno ogni ${spec.t} s. Legno ${S.stock.wood|0} · assi ${S.stock.planks|0}/${Sim.PLANK_CAP||24}.`,
       cooper:`Un bottaio fa 2 botti con 2 assi e 1 barra (o 1 ferro) ogni ${spec.t} s. Assi ${S.stock.planks|0} · barre ${S.stock.bars|0} · botti ${S.stock.barrels|0}/${Sim.BARREL_CAP}. Ogni botte dà +1 a birra, vino e conserve.`,
       armory:`Un armaiolo fa 2 lance (1 asse + 1 barra o 2 ferri) o 1 spada (1 barra + 1 carbone + 1 cuoio) ogni ${spec.t} s, solo se la caserma ha bisogno di armi. Armi ${S.stock.weapons|0} (lance ${(Sim._t.wt().spear)|0} · spade ${(Sim._t.wt().sword)|0} · archi ${(Sim._t.wt().bow)|0}).`,
@@ -1544,7 +1552,7 @@ function refreshSel(){
 }
 function selB(){return sel&&Sim.buildings().get(sel);}
 // v36: pannello di accettazione e massimali di Magazzino e Granaio (le righe si creano una volta per edificio, poi si aggiornano solo i numeri)
-const STKNAME={weapons:'Armi',wood:'Legno',stone:'Pietra',iron:'Ferro',planks:'Assi',tools:'Attrezzi',cloth:'Tessuto',clothes:'Abiti',rope:'Corde',charcoal:'Carbone',bars:'Barre di ferro',clay:'Argilla',bricks:'Mattoni',lime:'Calce',salt:'Sale',hides:'Pelli',leather:'Cuoio',shoes:'Scarpe',barrels:'Botti',carts:'Carri',cured:'Conserve',cheese:'Formaggio',beer:'Birra',wine:'Vino',grain:'Grano',flour:'Farina',bread:'Pane',fish:'Pesce',meat:'Carne'};
+const STKNAME={weapons:'Armi',wood:'Legno',stone:'Pietra',iron:'Ferro',planks:'Assi',tools:'Attrezzi',cloth:'Tessuto',clothes:'Abiti',rope:'Corde',charcoal:'Carbone',bars:'Barre di ferro',clay:'Argilla',bricks:'Mattoni',lime:'Calce',salt:'Sale',hides:'Pelli',leather:'Cuoio',shoes:'Scarpe',barrels:'Botti',pitch:'Pece',boats:'Barche',barges:'Chiatte',carts:'Carri',cured:'Conserve',cheese:'Formaggio',beer:'Birra',wine:'Vino',grain:'Grano',flour:'Farina',bread:'Pane',fish:'Pesce',meat:'Carne'};
 // v85: l'elenco delle merci di Magazzino e Granaio è diviso in gruppi che si comprimono ed espandono (lo stato si ricorda tra una selezione e l'altra)
 const STK_GROUPS=[['Materiali da costruzione',['wood','stone','planks','clay','bricks','lime','salt']],['Metalli e armi',['iron','bars','tools','weapons']],['Tessuti, pelli e corde',['cloth','clothes','rope','hides','leather','shoes']],['Cibo',['grain','flour','bread','fish','meat','game','cured','cheese','beer','wine']]];
 const stkClosed={};

@@ -1,5 +1,13 @@
 # Changelog
 
+## v92 – 2026-11-28
+Funzione nuova: filiera 9, cantiere navale (barche da pesca e chiatte da fiume).
+- **Pece:** la carbonaia produce anche 1 pece ogni 2 cicli (`PITCH_CAP` 20), merce del Magazzino.
+- **Cantiere navale** (ramo Legno, titolo 6, dopo segheria e carbonaia): sulla riva di lago o fiume, 2 posti. Il calafato costruisce **barche da pesca** (3 assi non impegnate + 1 corda + 1 pece, una per pescatore, `BOAT_CAP` 8) e poi **chiatte da fiume** (6 assi + 2 corde + 2 pece + 1 barra, `BARGE_CAP` 4).
+- **Barche:** con una barca disponibile il pescatore prende +1 pesce per ciclo; ogni 40 cicli di pesca con barca una barca si consuma.
+- **Chiatte:** ogni chiatta (fino a 3 contano) aggiunge +2 pezzi per merce a ogni visita di carovana (comprano e vendono di più); una chiatta si consuma ogni 8 visite.
+- Grafica, hint, pannelli, mestiere (calafato) e salari. Test: `tests/cantiere.js`; `tests/storage.js` aggiornato. Barche, chiatte e pece non si commerciano.
+
 ## v91 – 2026-11-28
 Funzione nuova: filiera 8, armi (armeria e arcaio).
 - **Armeria** (ramo Difesa, titolo 5, dopo la caserma): l'armaiolo fa 2 **lance** da 1 asse (non impegnata nei cantieri) + 1 barra (o 2 ferri), oppure 1 **spada** da 1 barra + 1 carbone + 1 cuoio (una spada ogni 2 lance). Il doppio del fabbro per ciclo.
