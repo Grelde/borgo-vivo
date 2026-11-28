@@ -62,6 +62,8 @@ if(war&&arm&&rd){
   ok(near(arm.mhp/rd.mhp,5/3)&&near(arm.dps/rd.dps,5/3),'il guerriero armato ha 5/3 della forza (pf '+(arm.mhp/rd.mhp).toFixed(2)+', danno '+(arm.dps/rd.dps).toFixed(2)+')');
 }
 ok(S.stock.weapons===0,'l\'arma esce dal magazzino con il guerriero');
+ok(mine.filter(g=>g.kind==='warrior'||g.kind==='armed').length<=b1.want,'non escono più guerrieri dei posti della caserma ('+mine.filter(g=>g.kind==='warrior'||g.kind==='armed').length+' su '+b1.want+')');
+run(5);ok(Sim.villagers().filter(v=>v.job===b1.id).length===b1.workers.length&&b1.workers.length===2,'i guerrieri in battaglia mantengono il posto alla caserma (v65: prima si perdeva e la caserma pescava nuovi guerrieri a ogni secondo)');
 const weaponsTotal0=S.stock.weapons+mil('mine').filter(g=>g.armed).length;
 ok(weaponsTotal0===1,'in tutto c\'è 1 arma ('+weaponsTotal0+')');
 // i difensori sono abitanti veri: sono "in guerra" (invisibili) mentre combattono

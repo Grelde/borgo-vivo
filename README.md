@@ -28,6 +28,7 @@ node tests/commercio.js          # merceria, rotte e carovane (lento)
 node tests/commercio-render.js   # grafica del commercio (DOM finto)
 node tests/regno.js              # titoli del Re, progetti, predoni, caserma, guerra, salvataggi
 node tests/difesa.js             # briganti di notte, cittadini/guerrieri/armati (1/3 · 1 · 5/3), armi, morti, salvataggio
+node tests/lupi.js              # branchi di lupi di notte (1/6), morsi, ferite che restano, Cerusico con addetto istruito
 node tests/guida.js              # guida dei cittadini: frasi per titolo, consigli urgenti, consigli spenti
 node tests/albero.js             # albero della conoscenza: rami, prerequisiti, acquisti in ordine, salvataggi vecchi
 ```

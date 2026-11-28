@@ -615,6 +615,18 @@ const BUILD={
     for(const sx of[-.9,.9]){bx(g,.9,.07,.3,MAT.timber,sx,.3,1.85);bx(g,.07,.3,.07,MAT.timber,sx-.4,.15,1.85);bx(g,.07,.3,.07,MAT.timber,sx+.4,.15,1.85);}
     bx(g,.06,.7,.06,MAT.timber,1.5,.35,1.7);bx(g,.5,.3,.05,MAT.cloth,1.5,.8,1.7);
     return g;},
+  surgeon(b){const g=new THREE.Group();
+    bx(g,3.0,1.3,2.3,MAT.plaster,0,.65,.1);bx(g,3.1,.2,2.4,MAT.stoneD,0,.1,.1);
+    gable(g,3.2,2.4,1.0,MAT.slate,1.3);g.children[g.children.length-1].position.z+=.1;g.children[g.children.length-2].position.z+=.1;
+    bx(g,.55,1.0,.06,MAT.door,-.5,.5,1.28);
+    for(const sx of[.6,1.1])bx(g,.4,.45,.06,MAT.glass,sx,.95,1.28);
+    chim(g,1.0,2.0,-.5,.6);
+    // palo del barbiere-cerusico: strisce rosse e bianche, come l'insegna di chi curava le ferite
+    for(let k=0;k<7;k++)cyl(g,.09,.09,.2,8,k%2?MAT.red:(MAT.white||MAT.cream),1.75,.28+k*.2,1.5);
+    sph(g,.13,MAT.red,1.75,1.75,1.5,1,1,1);
+    // panca con bende e un catino
+    bx(g,.9,.12,.4,MAT.timber,-1.0,.3,1.7);cyl(g,.16,.12,.14,10,MAT.stoneD,-.8,.44,1.7);bx(g,.3,.06,.18,MAT.white||MAT.cream,-1.2,.38,1.7);
+    return g;},
   infirmary(b){const g=new THREE.Group();
     bx(g,3.2,1.4,2.4,MAT.plaster,0,.7,.2);bx(g,3.3,.2,2.5,MAT.stoneD,0,.1,.2);
     gable(g,3.4,2.5,1.0,MAT.slate,1.4);g.children[g.children.length-1].position.z+=.2;g.children[g.children.length-2].position.z+=.2;
@@ -1046,7 +1058,11 @@ Sim.hooks.villager=function(v){
   let hpb=null;
   if(v.mil){
     body.material=L(v.kind==='raider'?0x3a1d1d:v.kind==='royal'?0x4a2a6b:v.kind==='citizen'?0x7a5a3a:v.kind==='armed'?0x1f4f9a:0x2f5d9a);hood.material=L(v.kind==='raider'?0x1a0f0f:v.kind==='royal'?0xb0802e:v.kind==='citizen'?0x4a3a28:v.kind==='armed'?0xc9d3df:0x6a7a8c);
-    bx(gp,.05,.05,.95,MAT.timber,.24,.6,.18);bx(gp,.07,.18,.07,MAT.iron,.24,.6,.7);
+    if(v.kind==='wolf'){
+      // lupo: figura bassa e grigia, con muso e coda
+      body.material=L(0x6b6b70);hood.material=L(0x3a3a3f);gp.scale.set(.62,.46,.85);
+      bx(gp,.22,.2,.4,MAT.stoneD,0,.45,.55);bx(gp,.1,.1,.5,MAT.stoneD,0,.5,-.5);
+    }else{bx(gp,.05,.05,.95,MAT.timber,.24,.6,.18);bx(gp,.07,.18,.07,MAT.iron,.24,.6,.7);}
     hpb=new THREE.Sprite(new THREE.SpriteMaterial({color:v.side==='mine'?0x5fae5f:0xd9553f}));hpb.scale.set(.55,.09,1);hpb.position.y=1.5;gp.add(hpb);
   }
   if(!v.guest){const vh=new THREE.Mesh(new THREE.SphereGeometry(.6,6,5),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));vh.position.y=.55;vh.userData.vid=v.id;gp.add(vh);vpick.push(vh);}
@@ -1142,6 +1158,7 @@ const TOOLS=[
   {id:'store',label:'Magazzino',key:'9',hint:'Secondo deposito con 3 addetti e scorte fino a 80. Un po\' rumoroso.'},
   {id:'well',label:'Pozzo',key:'0',hint:'Dà acqua alle case entro 30 celle e rende la zona più piacevole.'},
   {id:'school',label:'Scuola',key:'k',hint:'I bambini dai 6 anni vengono qui al mattino (serve un maestro). Chi sa leggere e scrivere fa migliorare la casa più in fretta. Serve alle case entro 45 celle per salire al livello 4.'},
+  {id:'surgeon',label:'Cerusico',key:'',hint:'Bottega del cerusico (il barbiere-chirurgo del Medioevo): chi ne ha cura deve aver frequentato la scuola. Cura i feriti delle case entro 45 celle molto più in fretta che a casa: ferite di guerrieri, lupi e briganti.'},
   {id:'infirmary',label:'Ospizio',key:'o',hint:'Un erborista cura i malati delle case entro 45 celle: guariscono prima e rischiano meno. Frena le epidemie.'},
   {id:'church',label:'Chiesa',key:'c',hint:'Serve alle case entro 54 celle per salire dal livello 2 in su. Molto attraente.'},
   {id:'watchtower',label:'Torre di guardia',key:'',hint:'Gli arcieri tirano ai predoni e ai soldati nemici entro 24 celle. Mettila vicino ai magazzini e al centro: i predoni cercano le scorte.'},
@@ -1155,7 +1172,7 @@ const CATS=[
   {id:'zone',label:'Zone e strade',ids:['d1','d2','d3','d4','d5','d6','undistrict','road']},
   {id:'prod',label:'Produzione',ids:['wood','quarry','mine','forester','granary','mill']},
   {id:'shop',label:'Botteghe',ids:['carpenter','mason','smithy','bakery','sheepfold','charcoal','smelter','retting','ropewalk','dyehouse','weaver','tailor','fisher','hunter','mercery']},
-  {id:'serv',label:'Servizi',ids:['store','well','school','infirmary','church','inn','tavern','hall','taxoffice']},
+  {id:'serv',label:'Servizi',ids:['store','well','school','infirmary','surgeon','church','inn','tavern','hall','taxoffice']},
   {id:'deco',label:'Decorazioni',ids:['plaza','flowers','statue']},
   {id:'def',label:'Difesa',ids:['watchtower','barracks']}];
 const CATOF={};CATS.forEach(c=>c.ids.forEach(i=>{CATOF[i]=c.id;}));
@@ -1255,7 +1272,7 @@ function refreshSel(){
       +`<div>Tasse dovute in una settimana: ${Sim.money(ts.weekly)} · riscosse in tutto: ${Sim.money(ts.tax)} · mancate per cassa vuota: ${Sim.money(ts.short)}.</div>`
       +(w.length===0?'<div>Nessun esattore: servono abitanti liberi. Senza esattore non si pagano tasse.</div>':'');
   }
-  else if(t.slots&&b.type!=='inn'&&b.type!=='school'&&b.type!=='infirmary'&&b.type!=='sheepfold'){
+  else if(t.slots&&b.type!=='inn'&&b.type!=='school'&&b.type!=='infirmary'&&b.type!=='surgeon'&&b.type!=='sheepfold'){
     const res=b.type==='wood'?'wood':b.type==='mine'?'iron':'stone';
     const prod=b.buf!==undefined;
     const full=prod&&(b.buf>=Sim.BUFCAP||(S.stock[res]>=Sim.capRes(res)*0.9&&b.buf>=2));
@@ -1288,6 +1305,9 @@ function refreshSel(){
   else if(b.type==='infirmary'){const w=Sim.villagers().filter(v=>v.job===b.id);const near=Sim.villagers().filter(v=>{if(!v.ill)return false;const hb=Sim.buildings().get(v.home);return hb&&Math.hypot(hb.cell%N-b.cell%N,(hb.cell/N|0)-(b.cell/N|0))<=Sim.HEAL_R;}).length;
     info=`Erboristi: ${w.length}/${b.want} · malati nel raggio di cura: ${near} · guariti finora: ${S.cured}`;
     list=w.map(v=>`<div>Erborista: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>Cura i malati delle case entro 45 celle: guariscono più in fretta e rischiano meno di morire. Frena anche il contagio.</div>'+(w.length===0?'<div>Senza erborista l\'ospizio non cura.</div>':'');}
+  else if(b.type==='surgeon'){const w=Sim.villagers().filter(v=>v.job===b.id);const hurt=Sim.villagers().filter(v=>{if(Sim.hpOf(v)>=100)return false;const hb=Sim.buildings().get(v.home);return hb&&Math.hypot(hb.cell%N-b.cell%N,(hb.cell/N|0)-(b.cell/N|0))<=Sim.HEAL_R;}).length;
+    info=`Cerusico: ${w.length}/${b.want} · feriti nel raggio di cura: ${hurt} · punti di salute curati finora: ${Math.round(b.healed||0)}`;
+    list=w.map(v=>`<div>Cerusico: ${esc(Sim.roleText(v))}${v.schooled?'':' (non istruito)'}</div>`).join('')+'<div>Il cerusico deve essere una persona istruita, che ha frequentato la scuola: senza una scuola e abitanti che sanno leggere la bottega resta vuota.</div><div>Cura i feriti delle case entro '+Sim.HEAL_R+' celle: guariscono in circa un giorno invece che in una settimana.</div>'+(Sim.surgeonOpen(b)?'':'<div>Per ora non cura: manca un addetto istruito.</div>');}
   else if(b.type==='cemetery'){info=`Sepolti: ${S.buried} · defunti senza sepoltura: ${S.unburied||0}`;list='<div>I defunti ricevono sepoltura qui: senza un cimitero i morti rendono la zona meno piacevole.</div>';}
   if(b.state==='done'&&Sim.maintainable(b)){const cv=Math.round(Sim.condOf(b));info+=` · condizione ${cv}/100 (${Sim.condLabel(b)})`+(cv<Sim.REPAIR_BELOW?(S.stock.tools>0?' · in attesa di riparazione':' · servono attrezzi nel Magazzino'):'');}
   if(b.state==='done'&&!b.owner&&Sim.WAGE_JOB[b.type])info+=` · stipendio ${Sim.wageJob(b.type)} arg/giorno${Sim.EDU_JOBS.has(b.type)?' (istruiti; senza scuola 2)':''}`;
@@ -1607,6 +1627,7 @@ function alertLine(inf){
   if(W.phase==='warn'){const d=Math.max(1,Math.ceil((W.at-S.t)/Sim.DAY));return {t:`Il Re ci ha dichiarato guerra! L'esercito arriverà tra ${d} ${d===1?'giorno':'giorni'}: torri di guardia e caserme intorno al centro del borgo!`,war:true};}
   if(W.phase==='fight')return {t:'L\'esercito del Re assedia il centro del borgo: difendilo!',war:true};
   if(inf.raiders)return {t:'Briganti! Guerrieri e torri difendono i magazzini.',war:true};
+  if(inf.wolves)return {t:'Lupi! Un branco cerca gli allevamenti e chi è rimasto fuori. Guerrieri e torri lo respingono.',war:true};
   return null;
 }
 // consigli urgenti: la prima condizione vera vince (ordine = priorità)
@@ -1614,6 +1635,7 @@ const ADVICE=[
   [(st)=>st.pop>=4&&st.hungry>=2,'Molte famiglie hanno fame. Servono ortaggi, uova, pesce o grano: i giardini delle case, una zona agricola o un pescatore aiutano.'],
   [(st)=>st.houses>=3&&st.fireNeed>0&&st.fire<st.fireNeed*0.4,'La legna da ardere scarseggia e le case al freddo si ammalano. Un giardino della legna, o il mercato, ne danno.'],
   [(st)=>st.plague,'Epidemia! I malati restano a letto. Un pozzo e legna in casa frenano il contagio'+(owns('infirmary')?', e un ospizio con un erborista cura i malati.':'.')],
+  [(st)=>owns('surgeon')&&!(st.built.surgeon)&&Sim.villagers().filter(v=>Sim.hpOf(v)<60).length>=2,'Ci sono dei feriti: una bottega del cerusico, con una persona istruita, li cura in fretta.'],
   [(st)=>owns('infirmary')&&st.sick>=3&&!(st.built.infirmary),'Ci sono troppi malati. Un ospizio con un erborista li cura più in fretta.'],
   [(st)=>st.unhappy>=3,'Alcuni sono scontenti. Apri il pannello della gente (clic su Abitanti, poi Felicità): dice cosa manca, tra cibo, casa, acqua e chiesa.'],
   [(st)=>st.sites>0&&S.stock.wood<8,'Il legno è finito e i cantieri aspettano. Servono più taglialegna: costruiscine un altro vicino a un bosco.'],
@@ -1849,8 +1871,8 @@ function renderCard(){
   const sexT=r.sex==='M'?'Uomo':'Donna',ageT=child?(r.sex==='M'?'Bambino':'Bambina'):sexT;
   let h=`<h2>${esc(r.name)} ${esc(r.fam)}</h2><div class="sub">${ageT}, ${age} anni${dead?(r.cause==='left'?' · partito/a dal paese ':' · morto/a ')+Sim.dateStr(r.died):''}</div>`;
   h+='<h4>Mestiere</h4>';
-  if(dead)h+=`<p>${r.trade?Sim.TRADENAME[r.trade]:'Nessun mestiere'}${r.inh?' <span class="tag">ereditato</span>':''}</p><p>${r.cause?({age:'Morto di vecchiaia.',cold:'Morto di freddo.',hunger:'Morto di fame.',ill:'Morto di malattia.',raid:'Caduto difendendo il borgo dai briganti.',left:'Ha lasciato il paese perché infelice.'})[r.cause]||'':''}</p>`;
-  else{h+=`<p>${child?(age<6?'Gioca in giardino':'Gioca e studia'):esc(Sim.roleText(v))}${v.trade&&!child?` · mestiere: ${Sim.TRADENAME[v.trade]}`:''}${v.inh?' <span class="tag">ereditato</span>':''}</p>`;}
+  if(dead)h+=`<p>${r.trade?Sim.TRADENAME[r.trade]:'Nessun mestiere'}${r.inh?' <span class="tag">ereditato</span>':''}</p><p>${r.cause?({age:'Morto di vecchiaia.',cold:'Morto di freddo.',hunger:'Morto di fame.',ill:'Morto di malattia.',raid:'Caduto difendendo il borgo dai briganti.',wolf:'Sbranato dai lupi.',left:'Ha lasciato il paese perché infelice.'})[r.cause]||'':''}</p>`;
+  else{h+=`<p>${child?(age<6?'Gioca in giardino':'Gioca e studia'):esc(Sim.roleText(v))}${v.hp!==undefined&&v.hp<100?' · ferito ('+Math.round(v.hp)+'%)':''}${v.trade&&!child?` · mestiere: ${Sim.TRADENAME[v.trade]}`:''}${v.inh?' <span class="tag">ereditato</span>':''}</p>`;}
   if(!dead&&v.job){const jb=Sim.buildings().get(v.job);if(jb&&!jb.owner&&!v.child)h+=`<p>Stipendio: ${Sim.wageOf(v,jb)} d'argento al giorno${Sim.EDU_JOBS.has(jb.type)?(v.schooled?' (lavoro da istruiti)':' (lavoro da istruiti, ma non sa leggere e scrivere: stipendio da artigiano)'):''} · guadagnato in tutto: ${Sim.money(v.pay|0)}</p>`;}
   if(!dead&&v.job){const cd=Math.round(Sim.commuteOf(v));h+=`<p>Casa-lavoro: ${cd} celle${cd>Sim.COMMUTE_OK?' <span class="tag bad">troppo lontano: scontento</span>':''}</p>`;}
   if(!dead)h+=villagerNeedsHtml(v);
@@ -1918,7 +1940,7 @@ function popPeople(st){
   h+='<h4>Mestieri degli adulti</h4>'+Object.keys(jc).sort((a,b)=>jc[b]-jc[a]).map(k=>popRow(Sim.TRADENAME[k]||BT[k].name,jc[k])).join('')+popRow('A casa (giardino, bottega, commissioni)',home);
   h+='<h4>Case</h4>'+[1,2,3,4,5].filter(l=>st.levels[l]).map(l=>popRow(Sim.LVNAME[l-1],st.levels[l])).join('');
   const d=S2.deathsBy;
-  h+='<h4>Nascite, arrivi e partenze</h4>'+popRow('Nati in paese',S2.births)+popRow('Viandanti diventati abitanti',S2.settled)+popRow('Partiti perché infelici',S2.left)+popRow('Morti in tutto',S2.deaths)+popRow('di vecchiaia · freddo · fame · malattia · in battaglia',`${d.age} · ${d.cold} · ${d.hunger} · ${d.ill} · ${d.raid||0}`)+popRow('Trasferimenti tra case',S2.moves);
+  h+='<h4>Nascite, arrivi e partenze</h4>'+popRow('Nati in paese',S2.births)+popRow('Viandanti diventati abitanti',S2.settled)+popRow('Partiti perché infelici',S2.left)+popRow('Morti in tutto',S2.deaths)+popRow('di vecchiaia · freddo · fame · malattia · in battaglia',`${d.age} · ${d.cold} · ${d.hunger} · ${d.ill} · ${d.raid||0}`)+popRow('sbranati dai lupi',d.wolf||0)+popRow('Trasferimenti tra case',S2.moves);
   const list=vs.slice().sort((a,b)=>a.fam.localeCompare(b.fam)||b.age-a.age);
   h+=`<h4>Tutti gli abitanti (${vs.length}) · a destra la felicità</h4><div class="popList">`+(list.map(v=>popRow(`<span class="lk" data-v="${v.id}">${esc(v.name)} ${esc(v.fam)}</span> · ${v.age|0} anni · ${esc(stableRole(v))}`,v.joy)).join('')||'<div class="row"><span>Nessun abitante.</span></div>')+'</div>';
   return h;

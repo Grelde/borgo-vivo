@@ -305,7 +305,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v66.1</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v67</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -434,6 +434,8 @@ const BT={
   statue:{name:'Statua',w:3,h:3,cost:{wood:0,stone:8},time:5,slots:0,want:0},
   school:{name:'Scuola',w:6,h:6,cost:{wood:14,stone:8,planks:4},time:14,slots:1,want:1},
   infirmary:{name:'Ospizio',w:6,h:6,cost:{wood:12,stone:8,planks:4},time:12,slots:1,want:1},
+  // v65: il cerusico (barbiere-chirurgo medievale) cura i feriti; l'addetto deve aver frequentato la scuola (sa leggere e scrivere)
+  surgeon:{name:'Bottega del cerusico',w:6,h:6,cost:{wood:14,stone:8,planks:4},time:12,slots:1,want:1},
   cemetery:{name:'Cimitero',w:9,h:4,cost:{wood:6,stone:10},time:12,slots:0,want:0},
   church:{name:'Chiesa',w:9,h:9,cost:{wood:10,stone:24,planks:8},time:20,slots:0,want:0},
   // v55: tenda dei senza casa (la costruiscono da soli vicino al centro; si smonta, con metà dei materiali recuperati, quando la famiglia si trasferisce in una casa)
@@ -448,7 +450,7 @@ const BT={
 };
 // attrattiva: [forza, raggio in celle]. Positivo = piacevole, negativo = rumore e disagio.
 const ATTR={church:[4,36],well:[2.5,24],stall:[1.2,18],wood:[-3,24],quarry:[-4.5,33],mine:[-5,36],farm:[-1.5,18],forester:[0.6,18],granary:[-0.8,15],mill:[-1.5,21],inn:[1,21],sheepfold:[-0.8,15],school:[1,18],infirmary:[0.5,15],cemetery:[-0.5,15],plaza:[3.2,30],flowers:[0.9,12],statue:[2,21],carpenter:[-1.2,18],mason:[-1.2,18],smithy:[-1.8,21],bakery:[0.4,15],weaver:[-0.3,12],tailor:[0.2,12],mercery:[0.8,18],fisher:[-0.3,12],hunter:[-0.4,12],tavern:[1.6,24],hall:[2.6,30],taxoffice:[-0.5,15]};
-ATTR.watchtower=[0.4,15];ATTR.barracks=[-0.6,15];
+ATTR.watchtower=[0.4,15];ATTR.barracks=[-0.6,15];ATTR.surgeon=[0.3,15];
 const DECO={flowers:1,statue:1};
 const NOGATE={house:1,stall:1,flowers:1,statue:1,plaza:1,well:1,cemetery:1,tent:1};
 // Tempo (v20): 1 anno di vita = AGEY secondi; un'annata del calendario (4 stagioni) = YEARL secondi = 10 anni di vita.
@@ -466,12 +468,12 @@ const DIS={
   flux:{n:'Dissenteria',dur:[30,60],mort:0.0007},
   plague:{n:'Peste',dur:[70,120],mort:0.0035}
 };
-const TRADENAME={wood:'taglialegna',quarry:'cavatore',mine:'minatore',forester:'guardaboschi',farm:'contadino',store:'magazziniere',mill:'mugnaio',school:'maestro',inn:'oste',sheepfold:'pastore',infirmary:'erborista',carpenter:'falegname',mason:'muratore',smithy:'fabbro',bakery:'panettiere',weaver:'tessitore',tailor:'sarto',fisher:'pescatore',hunter:'cacciatore',tavern:'taverniere',hall:'musicante',mercery:'merciaio',retting:'maceratore',ropewalk:'cordaio',dyehouse:'tintore',charcoal:'carbonaio',smelter:'fonditore',barracks:'guerriero',taxoffice:'esattore'};
+const TRADENAME={wood:'taglialegna',quarry:'cavatore',mine:'minatore',forester:'guardaboschi',farm:'contadino',store:'magazziniere',mill:'mugnaio',school:'maestro',inn:'oste',sheepfold:'pastore',infirmary:'erborista',carpenter:'falegname',mason:'muratore',smithy:'fabbro',bakery:'panettiere',weaver:'tessitore',tailor:'sarto',fisher:'pescatore',hunter:'cacciatore',tavern:'taverniere',hall:'musicante',mercery:'merciaio',retting:'maceratore',ropewalk:'cordaio',dyehouse:'tintore',charcoal:'carbonaio',smelter:'fonditore',barracks:'guerriero',surgeon:'cerusico',taxoffice:'esattore'};
 // tratti di carattere (negativi): ogni abitante ne ha al massimo uno; i figli lo ereditano da un genitore con probabilità 35%
 const TRAITS={pigro:{n:'Pigro',d:'Lavora più lentamente e controvoglia.'},cagionevole:{n:'Cagionevole',d:'Si ammala più facilmente.'},brontolone:{n:'Brontolone',d:'Si lamenta di tutto: è sempre meno felice degli altri.'},litigioso:{n:'Litigioso',d:'Litiga con chi vive in casa e ne abbassa la felicità.'}};
 const TRAITK=Object.keys(TRAITS);
 const rollTrait=()=>Math.random()<0.35?TRAITK[(Math.random()*TRAITK.length)|0]:null;
-const CAUSETXT={raid:'Muore difendendo il borgo dai predoni.',age:'Muore di vecchiaia.',cold:'Muore di freddo, in una casa senza legna.',hunger:'Muore di fame.',ill:'Muore di malattia.'};
+const CAUSETXT={wolf:'Muore sbranato dai lupi.',raid:'Muore difendendo il borgo dai predoni.',age:'Muore di vecchiaia.',cold:'Muore di freddo, in una casa senza legna.',hunger:'Muore di fame.',ill:'Muore di malattia.'};
 const MNAMES=['Bartolo','Benedetto','Bruno','Corrado','Domenico','Dino','Enrico','Federico','Fulvio','Giovanni','Guido','Jacopo','Lorenzo','Matteo','Nicola','Odoardo','Pietro','Rinaldo','Tommaso','Ugo','Vitale','Aldo','Carlo','Elia','Gino','Ivo','Leone','Martino'];
 const FNAMES=['Agnese','Beatrice','Chiara','Diana','Elisabetta','Francesca','Giulia','Ginevra','Ilaria','Lucia','Margherita','Matilde','Orsola','Piera','Rosa','Sibilla','Tecla','Vittoria','Alba','Bianca','Dora','Elena','Flora','Gemma','Nora','Costanza','Livia','Berta'];
 const FAMS=['Rocca','Valdoro','Fontana','Marini','Boschetti','Guarnieri','Cavalli','Fabbri','Ferrari','Campana','Serra','Bellandi','Orsini','Contini','Pellegrini','Sartori','Molinari','Tessari','Del Colle','Della Valle'];
@@ -507,7 +509,7 @@ const mkRoutes=()=>ROUTE_IDS.map(id=>({id,open:false,next:0,visits:0,earned:0,sp
 const S={t:0,mode:'lake',extra:{},stock:{wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0},inflight:{wood:0,stone:0,iron:0},grow:0,barters:0,helps:0,visits:0,settled:0,season:0,year:1,frozen:false,day:0,f:0.06,ph:'work',wh:{wood:0,stone:0,iron:0},xf:{wood:0,stone:0,iron:0},edicts:EDICT0(),births:0,deaths:0,buried:0,unburied:0,
   deathsBy:{age:0,cold:0,hunger:0,ill:0},plague:{on:false,since:0,dead:0},inherits:0,cured:0,sickTot:0,moves:0,left:0,att:{joy:0,unemp:0,a:0,bonus:0},made:{},delivered:0,
   coins:COINS0,fin:mkFin(),taxDay:-1,routes:mkRoutes(),tradeOpt:{sell:true,buy:true},tlog:[],trade:{sold:0,bought:0,visits:0},
-  story:false,rank:0,proj:{},msgs:[],raid:{next:0,repelled:0,killed:0,lost:0,stolen:0,bands:{},seq:0},war:{phase:'none',at:0,wave:0,hold:0,defeats:0,killed:0},rk:0};
+  story:false,rank:0,proj:{},msgs:[],raid:{next:0,repelled:0,killed:0,lost:0,stolen:0,bands:{},seq:0},wolf:{next:0,seq:0,arm:0,killed:0,lost:0,eaten:0,bitten:0,dead:0,bands:{}},war:{phase:'none',at:0,wave:0,hold:0,defeats:0,killed:0},rk:0};
 const guests=[];const buildings=new Map();let villagers=[];const vmap=new Map();const resv=new Map();const plantResv=new Set();let nextId=1;
 const acc={a1:0,a05:0,farm:0,attr:99};
 const told={};
@@ -678,7 +680,7 @@ function init(sd,mode,diff,opt){
   buildings.clear();stCache=null;villagers=[];vmap.clear();reg.clear();resv.clear();plantResv.clear();nextId=1;guests.length=0;
   S.t=0;S.festA=[];S.fests=0;festSeq=0;S.edicts=EDICT0();S.births=0;S.deaths=0;S.buried=0;S.unburied=0;S.extra={};S.wh={wood:0,stone:0,iron:0};S.xf={wood:0,stone:0,iron:0};S.stock={wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,rope:0,charcoal:0,bars:0,weapons:0};S.inflight={wood:0,stone:0,iron:0};S.grow=0;S.left=0;S.att={joy:0,unemp:0,a:0,bonus:0};S.barters=0;S.helps=0;S.visits=0;S.settled=0;S.season=0;S.year=1;S.frozen=false;acc.a1=0;acc.a05=0;acc.farm=0;acc.attr=99;for(const k in told)delete told[k];
   S.deathsBy={age:0,cold:0,hunger:0,ill:0};S.plague={on:false,since:0,dead:0};S.inherits=0;S.cured=0;S.sickTot=0;S.moves=0;S.made={};S.delivered=0;S.coins=COINS0;S.fin=mkFin();S.taxDay=-1;S.routes=mkRoutes();S.tradeOpt={sell:true,buy:true};S.tlog=[];S.trade={sold:0,bought:0,visits:0};
-  S.story=!!(opt&&opt.story);S.rank=0;S.proj={};S.msgs=[];S.raid=raid0();S.war=war0();S.rk=0;
+  S.story=!!(opt&&opt.story);S.rank=0;S.proj={};S.msgs=[];S.raid=raid0();S.wolf=wolf0();S.war=war0();S.rk=0;
   let okT=false,att=0;const base=(sd||7)|0;
   for(;att<48&&!okT;att++){genTerrain(S.mode,base,att);okT=terrainOK(S.mode);}
   S.seed=base;S.mapTries=att;S.mapOK=okT;
@@ -731,6 +733,7 @@ function addBuilding(type,x,y,done,o){
   if(type==='farm')b.crop='grain';
   if(type==='mercery')b.shelf={tools:0,bread:0,cloth:0,clothes:0};
   if(type==='taxoffice')Object.assign(b,{visits:0,collected:0});
+  if(type==='surgeon')b.healed=0;
   if(type==='church')b.cem=null;
   if(type==='cemetery')b.owner=o.owner;
   if(type==='wood'||type==='quarry'||type==='mine')b.buf=0;
@@ -1285,6 +1288,7 @@ const WS={
     if(b.out.tools>=OUTCAP)return;
     if(S.stock.bars>=1){S.stock.bars--;b.out.tools+=5;}else if(S.stock.iron>=1){S.stock.iron--;b.out.tools+=3;}}},
   barracks:{t:12,can:b=>true,run:b=>{}},
+  surgeon:{t:10,can:b=>true,run:b=>{}},
   charcoal:{t:10,why:'Serve legno nel magazzino (la carbonaia lavora quando ce n\'è in abbondanza o la fonderia ha bisogno di carbone) o il magazzino del carbone è pieno',can:b=>S.stock.wood>=3&&S.stock.charcoal<CHAR_CAP&&stockRoom('charcoal')>=2&&(S.stock.wood>=30||charcoalWanted()),run:b=>{S.stock.wood-=3;S.stock.charcoal=Math.min(CHAR_CAP,S.stock.charcoal+2);}},
   smelter:{t:11,why:'Servono ferro (minerale della miniera) e carbone (carbonaia) nel magazzino, o il magazzino delle barre è pieno',can:b=>S.stock.iron>=2&&S.stock.charcoal>=1&&S.stock.bars<BAR_CAP&&stockRoom('bars')>=2,run:b=>{S.stock.iron-=2;S.stock.charcoal--;S.stock.bars=Math.min(BAR_CAP,S.stock.bars+2);}},
   bakery:{t:8,why:'Serve farina dal mulino o le scorte di pane sono piene',can:b=>S.stock.flour>=1&&b.out.bread<OUTCAP,run:b=>{S.stock.flour--;b.out.bread+=3;}},
@@ -1952,14 +1956,14 @@ function assignJobs(){
   for(let pass=1;pass<=3;pass++)for(const b of order){
     const isStore=b.type==='store',wn=Math.min(wantOf(b),pass);
     while(b.workers.length<wn&&(isStore||free.length>reserve)){
-      const cand=free.filter(v=>(v.state==='idle'||v.state==='sleep'||v.state==='eat'||v.state==='wait')&&!v.carry);if(!cand.length)break;
+      const cand=free.filter(v=>(v.state==='idle'||v.state==='sleep'||v.state==='eat'||v.state==='wait')&&!v.carry&&(b.type!=='surgeon'||v.schooled));if(!cand.length)break;
       // chi ha già il mestiere (o lo ha ereditato dalla famiglia) ha la precedenza
       let best=null,bd=1e9;for(const v of cand){const d=(v.x-cx2w(b.cell%N))**2+(v.z-cy2w((b.cell/N)|0))**2-(v.trade===b.type?1500:0)-(EDU_JOBS.has(b.type)?(v.schooled?2000:-2000):0)-skLevel(v,b.type)*1500+(v.trade&&v.trade!==b.type?skLevel(v,v.trade)*1200:0);if(d<bd){bd=d;best=v;}}
       setJob(best,b);b.workers.push(best.id);free=free.filter(v=>v!==best);
     }
   }
   for(const b of order){
-    if(b.workers.length>0||wantOf(b)<1||free.length>0)continue;
+    if(b.workers.length>0||wantOf(b)<1||free.length>0||b.type==='surgeon')continue;
     let donor=null;for(const d of order)if(d!==b&&d.type!=='store'&&d.workers.length>=2&&(!donor||d.workers.length>donor.workers.length))donor=d;
     if(!donor)break;
     const id=donor.workers.pop();release(id);const v=vmap.get(id);if(v){setJob(v,b);b.workers.push(id);}
@@ -2448,7 +2452,8 @@ function doNeed(v,k,h){
   }
   return false;
 }
-const workRate=v=>(v.trait==='pigro'?0.6:1)*(v.joy<35?0.8:1)*(v.schooled?EDU_WORK:1)*(1+SK_WORK*jobSkill(v))*(v.job?condF(buildings.get(v.job)):1);
+const hpOf=v=>v.hp===undefined?100:v.hp;
+const workRate=v=>(hpOf(v)<100?0.6+0.4*hpOf(v)/100:1)*(v.trait==='pigro'?0.6:1)*(v.joy<35?0.8:1)*(v.schooled?EDU_WORK:1)*(1+SK_WORK*jobSkill(v))*(v.job?condF(buildings.get(v.job)):1);
 function birthTick(b){
   if(S.t<b.birthT)return;
   const bonus=S.edicts.birthBonus;
@@ -2532,7 +2537,7 @@ function inherit(v,h,jobId,wasHead){
   if(!heir)return;
   if(wasHead){h.head=heir.id;S.inherits++;logV(heir,'Diventa capofamiglia dopo la morte di '+v.name+'.');tell('heirhead','Il capofamiglia è morto: il ruolo passa al più anziano degli adulti di casa.');}
   const jb=jobId&&buildings.get(jobId);
-  if(jb&&jb.state==='done'&&BT[jb.type].slots>0&&!heir.job&&!heir.ill){
+  if(jb&&jb.state==='done'&&BT[jb.type].slots>0&&!heir.job&&!heir.ill&&(jb.type!=='surgeon'||heir.schooled)){
     setJob(heir,jb);heir.duty=false;heir.inh=true;jb.workers.push(heir.id);S.inherits++;
     logV(heir,'Eredita il posto di '+TRADENAME[jb.type]+' di '+v.name+'.');
     tell('heirjob','Il posto di lavoro di un defunto è passato a un familiare: il mestiere resta in famiglia.');
@@ -3084,7 +3089,7 @@ const BRANCHES=[{id:'vita',n:'Vita e comunità'},{id:'legno',n:'Legno, pietra e 
 const PROJ=[
   {id:'well',br:'vita',rank:1,cost:{wood:10,stone:6}},{id:'d3',br:'commercio',rank:1,cost:{wood:12}},{id:'store',br:'commercio',rank:1,cost:{wood:18,stone:8}},{id:'d4',br:'legno',rank:1,cost:{wood:8}},{id:'forester',br:'legno',rank:1,req:['d4'],cost:{wood:10}},
   {id:'church',br:'vita',rank:2,cost:{wood:20,stone:30}},{id:'d2',br:'campi',rank:2,cost:{wood:14}},{id:'granary',br:'campi',rank:2,req:['d2'],cost:{wood:16,stone:8}},{id:'carpenter',br:'legno',rank:2,req:['d4'],cost:{wood:16,stone:8}},{id:'mason',br:'legno',rank:2,cost:{wood:12,stone:16}},{id:'fisher',br:'campi',rank:2,cost:{wood:12}},{id:'hunter',br:'campi',rank:2,cost:{wood:12}},
-  {id:'watchtower',br:'difesa',rank:3,cost:{wood:22,stone:18}},{id:'mine',br:'legno',rank:3,req:['mason'],cost:{wood:20,stone:14}},{id:'mill',br:'campi',rank:3,req:['granary'],cost:{wood:20,stone:20}},{id:'school',br:'vita',rank:3,req:['church'],cost:{wood:24,stone:16}},{id:'infirmary',br:'vita',rank:3,req:['church'],cost:{wood:22,stone:16}},{id:'smithy',br:'legno',rank:3,req:['mine'],cost:{wood:20,stone:20}},{id:'cemetery',br:'vita',rank:3,req:['church'],cost:{wood:12,stone:16}},
+  {id:'watchtower',br:'difesa',rank:3,cost:{wood:22,stone:18}},{id:'mine',br:'legno',rank:3,req:['mason'],cost:{wood:20,stone:14}},{id:'mill',br:'campi',rank:3,req:['granary'],cost:{wood:20,stone:20}},{id:'school',br:'vita',rank:3,req:['church'],cost:{wood:24,stone:16}},{id:'infirmary',br:'vita',rank:3,req:['church'],cost:{wood:22,stone:16}},{id:'surgeon',br:'vita',rank:3,req:['school'],cost:{wood:20,stone:12}},{id:'smithy',br:'legno',rank:3,req:['mine'],cost:{wood:20,stone:20}},{id:'cemetery',br:'vita',rank:3,req:['church'],cost:{wood:12,stone:16}},
   {id:'bakery',br:'campi',rank:4,req:['mill'],cost:{wood:20,stone:20}},{id:'d5',br:'campi',rank:4,cost:{wood:12}},{id:'d6',br:'vita',rank:4,cost:{wood:20,stone:12}},{id:'sheepfold',br:'campi',rank:4,req:['d5'],cost:{wood:16,stone:4}},{id:'inn',br:'commercio',rank:4,req:['store'],cost:{wood:26,stone:18}},{id:'tavern',br:'commercio',rank:4,req:['inn'],cost:{wood:24,stone:16}},{id:'mercery',br:'commercio',rank:4,req:['store','d3'],cost:{wood:22,stone:16}},{id:'taxoffice',br:'commercio',rank:5,req:['mercery'],cost:{wood:20,stone:14}},{id:'barracks',br:'difesa',rank:4,req:['watchtower'],cost:{wood:30,stone:28}},
   {id:'charcoal',br:'legno',rank:4,req:['forester'],cost:{wood:14,stone:4}},{id:'smelter',br:'legno',rank:4,req:['mine','charcoal'],cost:{wood:16,stone:24}},
   {id:'retting',br:'tessile',rank:5,cost:{wood:16,stone:6,coins:20}},{id:'ropewalk',br:'tessile',rank:5,req:['retting'],cost:{wood:18,stone:6,coins:30}},
@@ -3098,10 +3103,13 @@ const owns=id=>!S.story||!PROJ_BY[id]||!!S.proj[id];
 const TOWER_R=24,TOWER_DPS=6,SIEGE_HOLD=90,SIDE_TXT={w:'ovest',n:'nord',e:'est',s:'sud'};
 // v62: forza relativa ai predoni (un predone = 1): cittadino 1/3, guerriero 1, guerriero armato 5/3 (sia punti ferita sia danno al secondo).
 // I valori qui sono quelli di un predone di forza 1 (24 pf, 4 danni/s): la banda del momento ha un moltiplicatore `pow` e i difensori scendono in campo con lo stesso moltiplicatore, così i rapporti restano sempre quelli.
-const FRATIO={citizen:1/3,warrior:1,armed:5/3,soldier:5/3};
+const FRATIO={wolf:1/6,citizen:1/3,warrior:1,armed:5/3,soldier:5/3};
 const ENEMY={raider:{hp:24,dps:4,spd:0.9},royal:{hp:90,dps:6,spd:0.9},soldier:{hp:40,dps:7,spd:1.1},
+  wolf:{hp:24*FRATIO.wolf,dps:4*FRATIO.wolf,spd:1.15},
   citizen:{hp:24*FRATIO.citizen,dps:4*FRATIO.citizen,spd:1},warrior:{hp:24*FRATIO.warrior,dps:4*FRATIO.warrior,spd:1.1},armed:{hp:24*FRATIO.armed,dps:4*FRATIO.armed,spd:1.1}};
+const WOUND_WAR=35,WOUND_CIT=60,HEAL_HOME=0.05,HEAL_CER=0.35,PREY_R=14; // v65: sotto WOUND_WAR/WOUND_CIT di salute guerrieri e cittadini non scendono in campo; guarigione al secondo a casa e vicino a un cerusico; raggio di caccia dei lupi (celle)
 const DRAFT_R=28,DRAFT_MAX=8,DRAFT_SHARE=0.2; // v62: tetto ai cittadini chiamati alle armi per ogni banda (non solo in campo insieme): così un assalto non svuota il paese
+const wolf0=()=>({next:0,seq:0,arm:0,killed:0,lost:0,eaten:0,bitten:0,dead:0,bands:{}});
 const raid0=()=>({next:0,repelled:0,killed:0,lost:0,stolen:0,bands:{},seq:0,pow:1,fallen:0,drafted:0,arm:0,last:null});
 const war0=()=>({phase:'none',at:0,wave:0,hold:0,defeats:0,killed:0});
 const nd=(t,cur,n)=>({t,cur:Math.min(cur,n),n});
@@ -3126,7 +3134,7 @@ function regnoTick(){
       S.war.phase='warn';S.war.at=S.t+3*DAY;S.msgs.push({k:'war'});
     }
   }
-  raidTick();warTick();deployTick();
+  raidTick();wolfTick();warTick();deployTick();
 }
 // progetti del Re
 function projectState(id){
@@ -3152,13 +3160,13 @@ function buyProject(id){
 const msgCount=()=>S.msgs.length,peekMsg=()=>S.msgs[0]||null,takeMsg=()=>S.msgs.shift()||null;
 function regnoInfo(st0){
   const st=st0||stats(),nx=S.rank<6?RANK_NEEDS[S.rank+1](st):(S.rank===6&&S.war.phase==='none')?WAR_NEEDS(st):null;
-  return {story:S.story,rank:S.rank,name:RANK_NAMES[S.rank],nextName:S.rank<6?RANK_NAMES[S.rank+1]:S.rank===6?RANK_NAMES[7]:null,needs:nx,warNeeds:S.rank===6,war:S.war,raid:S.raid,raiders:enemiesOf('raid').length,royals:enemiesOf('royal').length};
+  return {story:S.story,rank:S.rank,name:RANK_NAMES[S.rank],nextName:S.rank<6?RANK_NAMES[S.rank+1]:S.rank===6?RANK_NAMES[7]:null,needs:nx,warNeeds:S.rank===6,war:S.war,raid:S.raid,raiders:enemiesOf('raid').length,wolves:enemiesOf('wolf').length,wolf:S.wolf,royals:enemiesOf('royal').length};
 }
 // truppe: predoni (side 'raid'), esercito del Re ('royal') e soldati della caserma ('mine') vivono in `guests` con mil:true, così si salvano e si disegnano come i viandanti
 function enemiesOf(side){const r=[];for(const g of guests)if(g.mil&&g.side===side)r.push(g);return r;}
 function newMil(side,kind,cell,path,target,mult){
   const E=ENEMY[kind],m=mult||1;
-  return {id:nextId++,guest:true,mil:true,side,kind,hp:E.hp*m,mhp:E.hp*m,dps:E.dps*m,spd:E.spd,target,x:cx2w(cell%N),z:cy2w((cell/N)|0),cell,exit:cell,path,state:'mGo',timer:0,hold:0,moving:false,inside:false,fa:0,carry:null,res:false,horse:false,caravan:false,band:0,loot:0,home:0,tgt:0};
+  return {id:nextId++,guest:true,mil:true,side,kind,hp:E.hp*m,mhp:E.hp*m,dps:E.dps*m,pw:m,spd:E.spd,target,x:cx2w(cell%N),z:cy2w((cell/N)|0),cell,exit:cell,path,state:'mGo',timer:0,hold:0,moving:false,inside:false,fa:0,carry:null,res:false,horse:false,caravan:false,band:0,loot:0,home:0,tgt:0};
 }
 function pickTarget(){
   const c=[];for(const b of buildings.values())if(b.state==='done'&&(b.type==='store'||b.type==='granary'||b.type==='mercery'))c.push(b);
@@ -3198,6 +3206,121 @@ function spawnRaid(){
   hooks.toast('Briganti nella notte! Sono '+made+', '+how+', e arrivano da '+SIDE_TXT[side]+' verso '+BT[t.type].name.toLowerCase()+'. Guerrieri armati e torri di guardia difendono il borgo; i cittadini combattono solo se serve, ma rischiano la vita.');
   return true;
 }
+// ---- v65: i lupi. Di notte arrivano in branco (almeno 4), forza 1/6 di un brigante ciascuno (metà di un cittadino). Cercano allevamenti e pascoli (giardini con
+// allevamento o galline, ovili) e azzannano chi si è attardato fuori di sera e di notte. Torri e guerrieri li combattono come i briganti; un guerriero da solo li batte, ma si ferisce.
+function pickWolfTarget(){
+  const c=[];
+  for(const b of buildings.values()){
+    if(b.state!=='done')continue;
+    if(b.type==='sheepfold'||(b.type==='house'&&!b.pure&&(b.crop==='herd'||b.crop==='eggs')))c.push(b);
+  }
+  if(!c.length)for(const b of buildings.values())if(b.state==='done'&&b.type==='house')c.push(b);
+  return c.length?c[(Math.random()*c.length)|0]:null;
+}
+function wolfTick(){
+  const Wf=S.wolf;
+  if(S.rank<2||S.war.phase==='warn'||S.war.phase==='fight')return;
+  if(enemiesOf('wolf').length||enemiesOf('raid').length)return;
+  if(!Wf.seq&&!Wf.next&&!Wf.arm){Wf.arm=1;Wf.next=Math.round(DAY*2);}
+  Wf.next=Math.max(0,Wf.next-1);
+  if(Wf.next>0||S.ph!=='night')return; // i lupi arrivano di notte
+  if(!spawnWolves())Wf.next=15;
+}
+function spawnWolves(){
+  const t=pickWolfTarget();if(!t)return false;
+  const R=S.raid,Wf=S.wolf,pow=enemiesOf('raid').length?(R.pow||1):raidPower().pow;
+  const side=['w','n','e','s'][(Math.random()*4)|0],n=4+((Math.random()*3)|0)+(S.rank>=4?1:0),bid=++Wf.seq;let made=0;
+  for(let k=0;k<n;k++){
+    const c=edgeCell(side);if(c<0)continue;
+    const path=astar(c,t.cell,t.id);if(!path)continue;
+    const g=newMil('wolf','wolf',c,path,t.id,pow);g.band=bid;g.prey=0;g.eat=0;guests.push(g);hooks.villager(g);made++;
+  }
+  if(made<4){ // un branco ha almeno 4 lupi: se non c'è posto per tutti il branco non esce
+    for(const g of guests.filter(x=>x.mil&&x.side==='wolf'&&x.band===bid))endGuest(g);
+    return false;
+  }
+  Wf.bands[bid]={n:made,k:0,l:0};R.pow=pow;R.drafted=0;
+  Wf.next=Math.round(DAY*(2.2+Math.random()*2.5));
+  hooks.toast('Ululati nella notte! Un branco di '+made+' lupi arriva da '+SIDE_TXT[side]+': cerca '+(t.type==='sheepfold'?"l'ovile":'gli animali delle case')+' e azzanna chi è rimasto fuori. Un guerriero li batte da solo, ma ne esce ferito: serve un cerusico.');
+  return true;
+}
+// la preda: l'abitante più vicino rimasto fuori di sera o di notte (non chi è in casa, al lavoro dentro un edificio o già in battaglia)
+function preyFor(g){
+  if(S.ph!=='night'&&S.ph!=='evening')return null;
+  let best=null,bd=PREY_R*CS;
+  for(const v of villagers){
+    if(v.inside||v.state==='war')continue;
+    const d=Math.hypot(v.x-g.x,v.z-g.z);if(d<bd){bd=d;best=v;}
+  }
+  return best;
+}
+function wolfRepath(g){
+  const t=buildings.get(g.target);
+  if(!t){milLeave(g);return;}
+  const p=astar(g.cell,t.cell,t.id);
+  if(p){g.path=p;g.state='mGo';}else milLeave(g);
+}
+function wolfMaul(g,t){
+  let n=0;
+  if(t.type==='house'){const k=t.crop==='eggs'?'eggs':'meat';n=Math.min(t.goods[k]||0,2);t.goods[k]=(t.goods[k]||0)-n;}
+  else if(t.type==='sheepfold'){n=Math.min(t.buf||0,3);t.buf=(t.buf||0)-n;}
+  S.wolf.eaten+=n;
+  if(n>0)tell('wolf1','I lupi hanno sbranato degli animali: torri di guardia e guerrieri vicino agli allevamenti e ai pascoli li tengono lontani.');
+}
+function wolfBite(g,v,dt){
+  const hpMax=ENEMY.citizen.hp*(g.pw||1);
+  v.hp=hpOf(v)-100*g.dps*dt/hpMax;
+  if(!v.child)g.hp-=ENEMY.citizen.dps*(g.pw||1)*dt; // l'adulto si difende con la forza di un cittadino (1/3 di un brigante)
+  v.cool=Math.max(v.cool,1);
+  if(!v.bitten||S.t-v.bitten>20){v.bitten=S.t;S.wolf.bitten++;tell('wolf2','Un lupo ha azzannato un abitante rimasto fuori di notte: chi si attarda rischia la vita.');}
+  if(v.hp<=0){S.wolf.dead++;g.prey=0;killV(v,'wolf');wolfRepath(g);}
+}
+function updWolf(g,dt){
+  if(g.hp<=0){milGone(g,'dead');return;}
+  if(g.hold>0){g.hold-=dt;g.moving=false;return;}
+  if(g.state==='mFlee'){if(moveV(g,dt))milGone(g,'fled');return;}
+  if(g.state==='mEat'){g.moving=false;g.eat+=dt;if(g.eat>=5)milLeave(g);return;}
+  g.timer-=dt;
+  if(g.timer<=0){
+    g.timer=1.4;
+    const v=preyFor(g);
+    if(v){g.prey=v.id;const p=astar(g.cell,v.cell,0);if(p){g.path=p;g.state='mPrey';}}
+    else if(g.state==='mPrey'){g.prey=0;wolfRepath(g);}
+  }
+  if(g.state==='mPrey'){
+    const v=g.prey&&vmap.get(g.prey);
+    if(!v||v.inside||v.state==='war'){g.prey=0;wolfRepath(g);return;}
+    if(Math.hypot(v.x-g.x,v.z-g.z)>1.4){moveV(g,dt);return;}
+    g.moving=false;wolfBite(g,v,dt);return;
+  }
+  if(g.state==='mGo'){
+    if(!buildings.get(g.target)){const nt=pickWolfTarget();if(!nt){milLeave(g);return;}g.target=nt.id;wolfRepath(g);return;}
+    if(moveV(g,dt)){g.state='mEat';g.eat=0;wolfMaul(g,buildings.get(g.target));}
+  }
+}
+// ---- v65: ferite. La salute degli abitanti (v.hp, 100 se sano) cala in battaglia e per i morsi; guarisce piano a casa e in fretta entro HEAL_R celle da un cerusico (addetto istruito)
+function surgeonOpen(b){
+  if(b.type!=='surgeon'||b.state!=='done')return false;
+  for(const id of b.workers){const w=vmap.get(id);if(w&&w.schooled)return true;}
+  return false;
+}
+function surgeonFor(v){
+  const hb=v.home&&buildings.get(v.home),cell=hb?hb.cell:v.cell,cx=cell%N,cy=(cell/N)|0;
+  let best=null,bd=1e9;
+  for(const b of buildings.values()){
+    if(!surgeonOpen(b))continue;
+    const d=Math.hypot(b.cell%N-cx,(b.cell/N|0)-cy);if(d<=HEAL_R&&d<bd){bd=d;best=b;}
+  }
+  return best;
+}
+function healTick(){
+  for(const v of villagers){
+    const h=hpOf(v);if(h>=100||v.state==='war')continue;
+    const sg=surgeonFor(v),r=sg?HEAL_CER:HEAL_HOME,nh=Math.min(100,h+r);
+    if(sg)sg.healed=(sg.healed||0)+(nh-h);
+    v.hp=nh>=100?100:nh;
+  }
+}
 function milGone(g,why){
   if(g.side==='raid'){
     const R=S.raid,bd=R.bands[g.band];
@@ -3208,7 +3331,14 @@ function milGone(g,why){
       else hooks.toast('I briganti sono fuggiti col bottino. Servono più guerrieri armati e torri di guardia.');
     }
   }else if(g.side==='royal'&&why==='dead')S.war.killed++;
-  else if(g.side==='mine'){
+  else if(g.side==='wolf'){
+    const Wf=S.wolf,bd=Wf.bands[g.band];
+    if(why==='dead'){Wf.killed++;if(bd)bd.k++;}else{Wf.lost++;if(bd)bd.l++;}
+    if(bd&&bd.k+bd.l>=bd.n){
+      delete Wf.bands[g.band];
+      hooks.toast(bd.k>=Math.ceil(bd.n/2)?'Il branco di lupi è stato messo in fuga.':'Il branco di lupi si è ritirato nel bosco con la preda.');
+    }
+  }else if(g.side==='mine'){
     // un'arma torna in magazzino se il guerriero sopravvive; se muore va perduta
     if(g.armed&&why!=='dead')S.stock.weapons=(S.stock.weapons||0)+1;
     const v=g.vid&&vmap.get(g.vid);
@@ -3217,7 +3347,11 @@ function milGone(g,why){
         S.raid.fallen=(S.raid.fallen|0)+1;
         hooks.toast((g.kind==='citizen'?'Un cittadino':'Un guerriero')+' è caduto in combattimento: '+v.name+'.');
         killV(v,'raid');
-      }else{v.inside=false;v.state='idle';v.fid=0;v.x=g.x;v.z=g.z;v.cell=g.cell;v.path=[];v.moving=false;}
+      }else{
+        // v65: le ferite restano: la salute in battaglia diventa la salute dell'abitante (guarisce piano a casa, in fretta dal cerusico)
+        const f=Math.max(0,g.hp)/g.mhp;v.hp=f>=0.99?100:Math.max(1,Math.round(100*f));
+        v.inside=false;v.state='idle';v.fid=0;v.x=g.x;v.z=g.z;v.cell=g.cell;v.path=[];v.moving=false;
+      }
     }
   }
   endGuest(g);
@@ -3244,6 +3378,7 @@ function goHomeMil(g){
   g.path=p;g.state='mHome';
 }
 function updMil(g,dt){
+  if(g.side==='wolf'){updWolf(g,dt);return;}
   if(g.hp<=0){milGone(g,'dead');return;}
   if(g.hold>0){g.hold-=dt;g.moving=false;return;}
   switch(g.state){
@@ -3273,10 +3408,11 @@ function updMil(g,dt){
 // v62: i difensori sono abitanti veri. Il guerriero (mestiere della caserma) e il cittadino chiamato alle armi escono come figure militari e il loro abitante resta 'in guerra' (invisibile, fermo)
 // finché la figura è in campo; se la figura cade, l'abitante muore. Il guerriero prende un'arma dal magazzino se c'è (poi vale 5/3 di un predone), il cittadino combatte a mani nude (1/3).
 function sendFighter(v,homeId,kind,pow){
-  abortTask(v);release(v.id);
+  const job=v.job; // release() toglie il posto di lavoro: chi va in battaglia lo mantiene (v63: senza questo la caserma si riempiva di nuovi guerrieri a ogni secondo)
+  abortTask(v);release(v.id);v.job=job;
   if(kind==='warrior'&&(S.stock.weapons||0)>=1){S.stock.weapons--;kind='armed';}
   const g=newMil('mine',kind,v.cell,[],0,pow);
-  g.home=homeId;g.vid=v.id;g.armed=kind==='armed';g.x=v.x;g.z=v.z;g.state='mHunt';g.timer=0;
+  g.home=homeId;g.vid=v.id;g.armed=kind==='armed';g.x=v.x;g.z=v.z;g.state='mHunt';g.timer=0;g.hp=g.mhp*hpOf(v)/100; // chi è già ferito scende in campo con la salute che ha
   v.state='war';v.inside=true;v.moving=false;v.fid=g.id;
   guests.push(g);hooks.villager(g);
   return g;
@@ -3284,25 +3420,25 @@ function sendFighter(v,homeId,kind,pow){
 function deployTick(){
   const en=[];for(const g of guests)if(g.mil&&g.side!=='mine'&&g.hp>0)en.push(g);
   if(!en.length)return;
-  const R=S.raid,pow=enemiesOf('raid').length?(R.pow||1):1;
+  const R=S.raid,hostile=enemiesOf('raid').length>0||enemiesOf('wolf').length>0,pow=hostile?(R.pow||1):1;
   // 1) i guerrieri della caserma escono tutti (di giorno e di notte)
   for(const b of buildings.values()){
     if(b.type!=='barracks'||b.state!=='done')continue;
-    for(const id of b.workers){const v=vmap.get(id);if(!v||v.state==='war'||v.ill||v.child)continue;sendFighter(v,b.id,'warrior',pow);}
+    for(const id of b.workers){const v=vmap.get(id);if(!v||v.state==='war'||v.ill||v.child||hpOf(v)<WOUND_WAR)continue;sendFighter(v,b.id,'warrior',pow);}
   }
   // 2) i cittadini vengono chiamati solo se i difensori in campo non bastano (forza dei nemici: un predone = 1, un soldato del Re = 3) e solo quelli vicini al nemico
-  let E=0;for(const e of en)E+=e.kind==='royal'?3:1;
+  let E=0;for(const e of en)E+=e.kind==='royal'?3:e.kind==='wolf'?FRATIO.wolf:1;
   let D=0,cit=0;for(const g of guests)if(g.mil&&g.side==='mine'&&g.hp>0){D+=FRATIO[g.kind]||1;if(g.kind==='citizen')cit++;}
   let adults=0;for(const v of villagers)if(!v.child)adults++;
-  const cap=Math.min(DRAFT_MAX,Math.floor(adults*DRAFT_SHARE)),left=enemiesOf('raid').length?cap-(R.drafted|0):cap;
+  const cap=Math.min(DRAFT_MAX,Math.floor(adults*DRAFT_SHARE)),left=hostile?cap-(R.drafted|0):cap;
   for(let k=0;k<3&&D<E&&cit<cap&&k<left;k++){
     let best=null,bd=DRAFT_R*CS;
     for(const v of villagers){
-      if(v.child||v.ill||v.state==='war'||!v.home)continue;
+      if(v.child||v.ill||v.state==='war'||!v.home||hpOf(v)<WOUND_CIT)continue;
       for(const e of en){const d=Math.hypot(e.x-v.x,e.z-v.z);if(d<bd){bd=d;best=v;}}
     }
     if(!best)break;
-    sendFighter(best,best.home,'citizen',pow);D+=FRATIO.citizen;cit++;if(enemiesOf('raid').length)R.drafted=(R.drafted|0)+1;
+    sendFighter(best,best.home,'citizen',pow);D+=FRATIO.citizen;cit++;if(hostile)R.drafted=(R.drafted|0)+1;
   }
 }
 // combattimento: le torri tirano sul nemico più vicino entro TOWER_R celle; i difensori vengono alle mani con chi hanno a 1,7 passi (ognuno col proprio danno al secondo)
@@ -3322,7 +3458,10 @@ function milTick(dt){
   }
   for(const s of sol){
     let best=null,bd=1.7;for(const e of en){const d=Math.hypot(e.x-s.x,e.z-s.z);if(d<bd){bd=d;best=e;}}
-    if(best){best.hp-=(s.dps||ENEMY[s.kind].dps)*dt;s.hp-=(best.dps||ENEMY[best.kind].dps)*dt;best.hold=Math.max(best.hold,0.25);s.hold=Math.max(s.hold,0.25);}
+    if(best){best.hp-=(s.dps||ENEMY[s.kind].dps)*dt;
+      // i lupi circondano: tutti quelli a portata mordono il difensore; degli altri nemici colpisce solo quello che affronta
+      if(best.kind==='wolf'){for(const e of en)if(e.kind==='wolf'&&Math.hypot(e.x-s.x,e.z-s.z)<1.7)s.hp-=e.dps*dt;}
+      else s.hp-=(best.dps||ENEMY[best.kind].dps)*dt;best.hold=Math.max(best.hold,0.25);s.hold=Math.max(s.hold,0.25);}
   }
 }
 // guerra del Re: tre giorni dopo la dichiarazione arriva l'esercito; se tiene il centro per SIEGE_HOLD punti d'assedio il borgo perde parte delle scorte e il Re ritorna dopo due giorni
@@ -3362,6 +3501,7 @@ function regnoNormalize(){
   S.proj=(S.proj&&typeof S.proj==='object')?S.proj:{};
   S.msgs=Array.isArray(S.msgs)?S.msgs:[];
   S.raid=Object.assign(raid0(),S.raid||{});S.raid.bands=Object.assign({},S.raid.bands);
+  S.wolf=Object.assign(wolf0(),S.wolf||{});S.wolf.bands=Object.assign({},S.wolf.bands);
   S.war=Object.assign(war0(),S.war||{});S.rk=S.rk|0;
   if(legacy){
     while(S.rank<6&&needsMet(RANK_NEEDS[S.rank+1](stats())))S.rank++;
@@ -3391,6 +3531,7 @@ function finish(b){
   if(b.type==='store')tell('store','Il nuovo magazzino ha bisogno di tre addetti.');
   if(b.type==='forester')tell('forester','Il guardaboschi pianta alberi nelle zone forestali: tra poco saranno pronti da tagliare.');
   if(b.type==='mill'&&!countDone('granary'))tell('mill','Il mulino macina il grano del granaio: serve un granaio perché le fattorie portino il grano in eccedenza.');
+  if(b.type==='surgeon')tell('cer0','La bottega del cerusico è pronta: serve una persona istruita (che ha frequentato la scuola). Cura i feriti entro '+HEAL_R+' celle molto più in fretta che a casa.');
   if(b.type==='infirmary')tell('inf0','L\'ospizio è pronto: serve un erborista. Cura i malati entro 45 celle: guariscono prima e rischiano meno.');
   if(b.type==='cemetery'&&S.unburied>0){S.buried+=S.unburied;S.unburied=0;tell('burial','Il cimitero accoglie i defunti rimasti nei campi: la zona torna più serena.');}
   hooks.done(b);
@@ -3590,7 +3731,7 @@ function tick1(){
   marketTick();
   if(countDone('inn')&&Math.random()<0.06)spawnGuest();
   tradeTick();
-  regnoTick();
+  regnoTick();healTick();
   acc.farm+=1;if(acc.farm>=5){acc.farm=0;farmTick();sheepTick();tentTick();}
   S.grow+=TK;
   let openSlots=0;for(const b of buildings.values())if(b.state==='done'&&!b.sur)openSlots+=b.want-b.workers.length;
@@ -3687,7 +3828,7 @@ function roleText(v){
   }
   if(v.child)return v.age<6?'Gioca in giardino':'Gioca';
   const b=v.job&&buildings.get(v.job);
-  if(b){const R={school:'Maestro',inn:'Oste',sheepfold:'Pastore',wood:'Taglialegna',quarry:'Cavatore',mine:'Minatore',forester:'Guardaboschi',mill:'Mugnaio',farm:'Contadino',store:'Magazziniere',infirmary:'Erborista',carpenter:'Falegname',mason:'Muratore',smithy:'Fabbro',bakery:'Panettiere',weaver:'Tessitore',tailor:'Sarto',fisher:'Pescatore',hunter:'Cacciatore',tavern:'Taverniere',hall:'Musicante',mercery:'Merciaio',retting:'Maceratore',ropewalk:'Cordaio',dyehouse:'Tintore',charcoal:'Carbonaio',smelter:'Fonditore',barracks:'Guerriero',taxoffice:'Esattore'};if(R[b.type])return R[b.type]+(v.loan?' (in prestito)':'');}
+  if(b){const R={school:'Maestro',inn:'Oste',sheepfold:'Pastore',wood:'Taglialegna',quarry:'Cavatore',mine:'Minatore',forester:'Guardaboschi',mill:'Mugnaio',farm:'Contadino',store:'Magazziniere',infirmary:'Erborista',carpenter:'Falegname',mason:'Muratore',smithy:'Fabbro',bakery:'Panettiere',weaver:'Tessitore',tailor:'Sarto',fisher:'Pescatore',hunter:'Cacciatore',tavern:'Taverniere',hall:'Musicante',mercery:'Merciaio',retting:'Maceratore',ropewalk:'Cordaio',dyehouse:'Tintore',charcoal:'Carbonaio',smelter:'Fonditore',barracks:'Guerriero',surgeon:'Cerusico',taxoffice:'Esattore'};if(R[b.type])return R[b.type]+(v.loan?' (in prestito)':'');}
   if(v.loan)return 'Senza posto: troppa merce ('+TRADENAME[v.loan]+')';
   const h=v.home&&buildings.get(v.home);
   if(h){if(h.tailor)return 'Sarto';if(h.weave)return 'Tessitore';if(h.bake)return 'Panettiere';if(h.craft)return 'Artigiano';return h.dens?'Fa la spesa e le faccende di casa':h.crop==='veg'?"Cura l'orto":h.crop==='eggs'?'Alleva galline':h.crop==='wood'?'Raccoglie legna da ardere':'Alleva maiali e pecore';}
@@ -3785,7 +3926,7 @@ function importState(d){
   for(const g of guests)hooks.villager(g);
   hooks.trees();hooks.rocks();hooks.saps();hooks.ground();
 }
-return {TL,FRATIO,raidPower,weaponsWanted,WEAPON_PER_POST,startHouseWork,mergeTick,trySpawnDense,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
+return {TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWanted,WEAPON_PER_POST,startHouseWork,mergeTick,trySpawnDense,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,NEEDS,NEED_LOW,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
   TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,WAGE_JOB,EDU_JOBS,CITY_RANK,WAGE_OWE_CAP,wageJob,wageOf,wagePayer,TAX_WEEK,TAX_POUCH,WAGE,WAGE_SEC,SILVER_GOLD,TAX_MARGIN,MSELL,MSELL_KEEP,MSELL_LIM,taxOf,money,taxActive,taxStats,taxDue,taxRefuses,merceryTakes,merceryBuy,merceryBuyer,jobless,kingJob,cityMakes,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
@@ -4412,6 +4553,18 @@ const BUILD={
     for(const sx of[-.9,.9]){bx(g,.9,.07,.3,MAT.timber,sx,.3,1.85);bx(g,.07,.3,.07,MAT.timber,sx-.4,.15,1.85);bx(g,.07,.3,.07,MAT.timber,sx+.4,.15,1.85);}
     bx(g,.06,.7,.06,MAT.timber,1.5,.35,1.7);bx(g,.5,.3,.05,MAT.cloth,1.5,.8,1.7);
     return g;},
+  surgeon(b){const g=new THREE.Group();
+    bx(g,3.0,1.3,2.3,MAT.plaster,0,.65,.1);bx(g,3.1,.2,2.4,MAT.stoneD,0,.1,.1);
+    gable(g,3.2,2.4,1.0,MAT.slate,1.3);g.children[g.children.length-1].position.z+=.1;g.children[g.children.length-2].position.z+=.1;
+    bx(g,.55,1.0,.06,MAT.door,-.5,.5,1.28);
+    for(const sx of[.6,1.1])bx(g,.4,.45,.06,MAT.glass,sx,.95,1.28);
+    chim(g,1.0,2.0,-.5,.6);
+    // palo del barbiere-cerusico: strisce rosse e bianche, come l'insegna di chi curava le ferite
+    for(let k=0;k<7;k++)cyl(g,.09,.09,.2,8,k%2?MAT.red:(MAT.white||MAT.cream),1.75,.28+k*.2,1.5);
+    sph(g,.13,MAT.red,1.75,1.75,1.5,1,1,1);
+    // panca con bende e un catino
+    bx(g,.9,.12,.4,MAT.timber,-1.0,.3,1.7);cyl(g,.16,.12,.14,10,MAT.stoneD,-.8,.44,1.7);bx(g,.3,.06,.18,MAT.white||MAT.cream,-1.2,.38,1.7);
+    return g;},
   infirmary(b){const g=new THREE.Group();
     bx(g,3.2,1.4,2.4,MAT.plaster,0,.7,.2);bx(g,3.3,.2,2.5,MAT.stoneD,0,.1,.2);
     gable(g,3.4,2.5,1.0,MAT.slate,1.4);g.children[g.children.length-1].position.z+=.2;g.children[g.children.length-2].position.z+=.2;
@@ -4843,7 +4996,11 @@ Sim.hooks.villager=function(v){
   let hpb=null;
   if(v.mil){
     body.material=L(v.kind==='raider'?0x3a1d1d:v.kind==='royal'?0x4a2a6b:v.kind==='citizen'?0x7a5a3a:v.kind==='armed'?0x1f4f9a:0x2f5d9a);hood.material=L(v.kind==='raider'?0x1a0f0f:v.kind==='royal'?0xb0802e:v.kind==='citizen'?0x4a3a28:v.kind==='armed'?0xc9d3df:0x6a7a8c);
-    bx(gp,.05,.05,.95,MAT.timber,.24,.6,.18);bx(gp,.07,.18,.07,MAT.iron,.24,.6,.7);
+    if(v.kind==='wolf'){
+      // lupo: figura bassa e grigia, con muso e coda
+      body.material=L(0x6b6b70);hood.material=L(0x3a3a3f);gp.scale.set(.62,.46,.85);
+      bx(gp,.22,.2,.4,MAT.stoneD,0,.45,.55);bx(gp,.1,.1,.5,MAT.stoneD,0,.5,-.5);
+    }else{bx(gp,.05,.05,.95,MAT.timber,.24,.6,.18);bx(gp,.07,.18,.07,MAT.iron,.24,.6,.7);}
     hpb=new THREE.Sprite(new THREE.SpriteMaterial({color:v.side==='mine'?0x5fae5f:0xd9553f}));hpb.scale.set(.55,.09,1);hpb.position.y=1.5;gp.add(hpb);
   }
   if(!v.guest){const vh=new THREE.Mesh(new THREE.SphereGeometry(.6,6,5),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));vh.position.y=.55;vh.userData.vid=v.id;gp.add(vh);vpick.push(vh);}
@@ -4939,6 +5096,7 @@ const TOOLS=[
   {id:'store',label:'Magazzino',key:'9',hint:'Secondo deposito con 3 addetti e scorte fino a 80. Un po\' rumoroso.'},
   {id:'well',label:'Pozzo',key:'0',hint:'Dà acqua alle case entro 30 celle e rende la zona più piacevole.'},
   {id:'school',label:'Scuola',key:'k',hint:'I bambini dai 6 anni vengono qui al mattino (serve un maestro). Chi sa leggere e scrivere fa migliorare la casa più in fretta. Serve alle case entro 45 celle per salire al livello 4.'},
+  {id:'surgeon',label:'Cerusico',key:'',hint:'Bottega del cerusico (il barbiere-chirurgo del Medioevo): chi ne ha cura deve aver frequentato la scuola. Cura i feriti delle case entro 45 celle molto più in fretta che a casa: ferite di guerrieri, lupi e briganti.'},
   {id:'infirmary',label:'Ospizio',key:'o',hint:'Un erborista cura i malati delle case entro 45 celle: guariscono prima e rischiano meno. Frena le epidemie.'},
   {id:'church',label:'Chiesa',key:'c',hint:'Serve alle case entro 54 celle per salire dal livello 2 in su. Molto attraente.'},
   {id:'watchtower',label:'Torre di guardia',key:'',hint:'Gli arcieri tirano ai predoni e ai soldati nemici entro 24 celle. Mettila vicino ai magazzini e al centro: i predoni cercano le scorte.'},
@@ -4952,7 +5110,7 @@ const CATS=[
   {id:'zone',label:'Zone e strade',ids:['d1','d2','d3','d4','d5','d6','undistrict','road']},
   {id:'prod',label:'Produzione',ids:['wood','quarry','mine','forester','granary','mill']},
   {id:'shop',label:'Botteghe',ids:['carpenter','mason','smithy','bakery','sheepfold','charcoal','smelter','retting','ropewalk','dyehouse','weaver','tailor','fisher','hunter','mercery']},
-  {id:'serv',label:'Servizi',ids:['store','well','school','infirmary','church','inn','tavern','hall','taxoffice']},
+  {id:'serv',label:'Servizi',ids:['store','well','school','infirmary','surgeon','church','inn','tavern','hall','taxoffice']},
   {id:'deco',label:'Decorazioni',ids:['plaza','flowers','statue']},
   {id:'def',label:'Difesa',ids:['watchtower','barracks']}];
 const CATOF={};CATS.forEach(c=>c.ids.forEach(i=>{CATOF[i]=c.id;}));
@@ -5052,7 +5210,7 @@ function refreshSel(){
       +`<div>Tasse dovute in una settimana: ${Sim.money(ts.weekly)} · riscosse in tutto: ${Sim.money(ts.tax)} · mancate per cassa vuota: ${Sim.money(ts.short)}.</div>`
       +(w.length===0?'<div>Nessun esattore: servono abitanti liberi. Senza esattore non si pagano tasse.</div>':'');
   }
-  else if(t.slots&&b.type!=='inn'&&b.type!=='school'&&b.type!=='infirmary'&&b.type!=='sheepfold'){
+  else if(t.slots&&b.type!=='inn'&&b.type!=='school'&&b.type!=='infirmary'&&b.type!=='surgeon'&&b.type!=='sheepfold'){
     const res=b.type==='wood'?'wood':b.type==='mine'?'iron':'stone';
     const prod=b.buf!==undefined;
     const full=prod&&(b.buf>=Sim.BUFCAP||(S.stock[res]>=Sim.capRes(res)*0.9&&b.buf>=2));
@@ -5085,6 +5243,9 @@ function refreshSel(){
   else if(b.type==='infirmary'){const w=Sim.villagers().filter(v=>v.job===b.id);const near=Sim.villagers().filter(v=>{if(!v.ill)return false;const hb=Sim.buildings().get(v.home);return hb&&Math.hypot(hb.cell%N-b.cell%N,(hb.cell/N|0)-(b.cell/N|0))<=Sim.HEAL_R;}).length;
     info=`Erboristi: ${w.length}/${b.want} · malati nel raggio di cura: ${near} · guariti finora: ${S.cured}`;
     list=w.map(v=>`<div>Erborista: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>Cura i malati delle case entro 45 celle: guariscono più in fretta e rischiano meno di morire. Frena anche il contagio.</div>'+(w.length===0?'<div>Senza erborista l\'ospizio non cura.</div>':'');}
+  else if(b.type==='surgeon'){const w=Sim.villagers().filter(v=>v.job===b.id);const hurt=Sim.villagers().filter(v=>{if(Sim.hpOf(v)>=100)return false;const hb=Sim.buildings().get(v.home);return hb&&Math.hypot(hb.cell%N-b.cell%N,(hb.cell/N|0)-(b.cell/N|0))<=Sim.HEAL_R;}).length;
+    info=`Cerusico: ${w.length}/${b.want} · feriti nel raggio di cura: ${hurt} · punti di salute curati finora: ${Math.round(b.healed||0)}`;
+    list=w.map(v=>`<div>Cerusico: ${esc(Sim.roleText(v))}${v.schooled?'':' (non istruito)'}</div>`).join('')+'<div>Il cerusico deve essere una persona istruita, che ha frequentato la scuola: senza una scuola e abitanti che sanno leggere la bottega resta vuota.</div><div>Cura i feriti delle case entro '+Sim.HEAL_R+' celle: guariscono in circa un giorno invece che in una settimana.</div>'+(Sim.surgeonOpen(b)?'':'<div>Per ora non cura: manca un addetto istruito.</div>');}
   else if(b.type==='cemetery'){info=`Sepolti: ${S.buried} · defunti senza sepoltura: ${S.unburied||0}`;list='<div>I defunti ricevono sepoltura qui: senza un cimitero i morti rendono la zona meno piacevole.</div>';}
   if(b.state==='done'&&Sim.maintainable(b)){const cv=Math.round(Sim.condOf(b));info+=` · condizione ${cv}/100 (${Sim.condLabel(b)})`+(cv<Sim.REPAIR_BELOW?(S.stock.tools>0?' · in attesa di riparazione':' · servono attrezzi nel Magazzino'):'');}
   if(b.state==='done'&&!b.owner&&Sim.WAGE_JOB[b.type])info+=` · stipendio ${Sim.wageJob(b.type)} arg/giorno${Sim.EDU_JOBS.has(b.type)?' (istruiti; senza scuola 2)':''}`;
@@ -5404,6 +5565,7 @@ function alertLine(inf){
   if(W.phase==='warn'){const d=Math.max(1,Math.ceil((W.at-S.t)/Sim.DAY));return {t:`Il Re ci ha dichiarato guerra! L'esercito arriverà tra ${d} ${d===1?'giorno':'giorni'}: torri di guardia e caserme intorno al centro del borgo!`,war:true};}
   if(W.phase==='fight')return {t:'L\'esercito del Re assedia il centro del borgo: difendilo!',war:true};
   if(inf.raiders)return {t:'Briganti! Guerrieri e torri difendono i magazzini.',war:true};
+  if(inf.wolves)return {t:'Lupi! Un branco cerca gli allevamenti e chi è rimasto fuori. Guerrieri e torri lo respingono.',war:true};
   return null;
 }
 // consigli urgenti: la prima condizione vera vince (ordine = priorità)
@@ -5411,6 +5573,7 @@ const ADVICE=[
   [(st)=>st.pop>=4&&st.hungry>=2,'Molte famiglie hanno fame. Servono ortaggi, uova, pesce o grano: i giardini delle case, una zona agricola o un pescatore aiutano.'],
   [(st)=>st.houses>=3&&st.fireNeed>0&&st.fire<st.fireNeed*0.4,'La legna da ardere scarseggia e le case al freddo si ammalano. Un giardino della legna, o il mercato, ne danno.'],
   [(st)=>st.plague,'Epidemia! I malati restano a letto. Un pozzo e legna in casa frenano il contagio'+(owns('infirmary')?', e un ospizio con un erborista cura i malati.':'.')],
+  [(st)=>owns('surgeon')&&!(st.built.surgeon)&&Sim.villagers().filter(v=>Sim.hpOf(v)<60).length>=2,'Ci sono dei feriti: una bottega del cerusico, con una persona istruita, li cura in fretta.'],
   [(st)=>owns('infirmary')&&st.sick>=3&&!(st.built.infirmary),'Ci sono troppi malati. Un ospizio con un erborista li cura più in fretta.'],
   [(st)=>st.unhappy>=3,'Alcuni sono scontenti. Apri il pannello della gente (clic su Abitanti, poi Felicità): dice cosa manca, tra cibo, casa, acqua e chiesa.'],
   [(st)=>st.sites>0&&S.stock.wood<8,'Il legno è finito e i cantieri aspettano. Servono più taglialegna: costruiscine un altro vicino a un bosco.'],
@@ -5646,8 +5809,8 @@ function renderCard(){
   const sexT=r.sex==='M'?'Uomo':'Donna',ageT=child?(r.sex==='M'?'Bambino':'Bambina'):sexT;
   let h=`<h2>${esc(r.name)} ${esc(r.fam)}</h2><div class="sub">${ageT}, ${age} anni${dead?(r.cause==='left'?' · partito/a dal paese ':' · morto/a ')+Sim.dateStr(r.died):''}</div>`;
   h+='<h4>Mestiere</h4>';
-  if(dead)h+=`<p>${r.trade?Sim.TRADENAME[r.trade]:'Nessun mestiere'}${r.inh?' <span class="tag">ereditato</span>':''}</p><p>${r.cause?({age:'Morto di vecchiaia.',cold:'Morto di freddo.',hunger:'Morto di fame.',ill:'Morto di malattia.',raid:'Caduto difendendo il borgo dai briganti.',left:'Ha lasciato il paese perché infelice.'})[r.cause]||'':''}</p>`;
-  else{h+=`<p>${child?(age<6?'Gioca in giardino':'Gioca e studia'):esc(Sim.roleText(v))}${v.trade&&!child?` · mestiere: ${Sim.TRADENAME[v.trade]}`:''}${v.inh?' <span class="tag">ereditato</span>':''}</p>`;}
+  if(dead)h+=`<p>${r.trade?Sim.TRADENAME[r.trade]:'Nessun mestiere'}${r.inh?' <span class="tag">ereditato</span>':''}</p><p>${r.cause?({age:'Morto di vecchiaia.',cold:'Morto di freddo.',hunger:'Morto di fame.',ill:'Morto di malattia.',raid:'Caduto difendendo il borgo dai briganti.',wolf:'Sbranato dai lupi.',left:'Ha lasciato il paese perché infelice.'})[r.cause]||'':''}</p>`;
+  else{h+=`<p>${child?(age<6?'Gioca in giardino':'Gioca e studia'):esc(Sim.roleText(v))}${v.hp!==undefined&&v.hp<100?' · ferito ('+Math.round(v.hp)+'%)':''}${v.trade&&!child?` · mestiere: ${Sim.TRADENAME[v.trade]}`:''}${v.inh?' <span class="tag">ereditato</span>':''}</p>`;}
   if(!dead&&v.job){const jb=Sim.buildings().get(v.job);if(jb&&!jb.owner&&!v.child)h+=`<p>Stipendio: ${Sim.wageOf(v,jb)} d'argento al giorno${Sim.EDU_JOBS.has(jb.type)?(v.schooled?' (lavoro da istruiti)':' (lavoro da istruiti, ma non sa leggere e scrivere: stipendio da artigiano)'):''} · guadagnato in tutto: ${Sim.money(v.pay|0)}</p>`;}
   if(!dead&&v.job){const cd=Math.round(Sim.commuteOf(v));h+=`<p>Casa-lavoro: ${cd} celle${cd>Sim.COMMUTE_OK?' <span class="tag bad">troppo lontano: scontento</span>':''}</p>`;}
   if(!dead)h+=villagerNeedsHtml(v);
@@ -5715,7 +5878,7 @@ function popPeople(st){
   h+='<h4>Mestieri degli adulti</h4>'+Object.keys(jc).sort((a,b)=>jc[b]-jc[a]).map(k=>popRow(Sim.TRADENAME[k]||BT[k].name,jc[k])).join('')+popRow('A casa (giardino, bottega, commissioni)',home);
   h+='<h4>Case</h4>'+[1,2,3,4,5].filter(l=>st.levels[l]).map(l=>popRow(Sim.LVNAME[l-1],st.levels[l])).join('');
   const d=S2.deathsBy;
-  h+='<h4>Nascite, arrivi e partenze</h4>'+popRow('Nati in paese',S2.births)+popRow('Viandanti diventati abitanti',S2.settled)+popRow('Partiti perché infelici',S2.left)+popRow('Morti in tutto',S2.deaths)+popRow('di vecchiaia · freddo · fame · malattia · in battaglia',`${d.age} · ${d.cold} · ${d.hunger} · ${d.ill} · ${d.raid||0}`)+popRow('Trasferimenti tra case',S2.moves);
+  h+='<h4>Nascite, arrivi e partenze</h4>'+popRow('Nati in paese',S2.births)+popRow('Viandanti diventati abitanti',S2.settled)+popRow('Partiti perché infelici',S2.left)+popRow('Morti in tutto',S2.deaths)+popRow('di vecchiaia · freddo · fame · malattia · in battaglia',`${d.age} · ${d.cold} · ${d.hunger} · ${d.ill} · ${d.raid||0}`)+popRow('sbranati dai lupi',d.wolf||0)+popRow('Trasferimenti tra case',S2.moves);
   const list=vs.slice().sort((a,b)=>a.fam.localeCompare(b.fam)||b.age-a.age);
   h+=`<h4>Tutti gli abitanti (${vs.length}) · a destra la felicità</h4><div class="popList">`+(list.map(v=>popRow(`<span class="lk" data-v="${v.id}">${esc(v.name)} ${esc(v.fam)}</span> · ${v.age|0} anni · ${esc(stableRole(v))}`,v.joy)).join('')||'<div class="row"><span>Nessun abitante.</span></div>')+'</div>';
   return h;
