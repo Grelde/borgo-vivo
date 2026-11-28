@@ -119,6 +119,29 @@ body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--seri
 .prCost span{display:inline-flex;align-items:center;gap:4px}
 .prCost span.no{color:#8c2f23;font-weight:bold}
 .prC .btn:disabled{opacity:.45;cursor:default}
+#projects .edBox{width:min(1000px,100%)}
+#prScroll{overflow:auto;border:1px solid rgba(90,60,25,.4);border-radius:5px;background:rgba(255,246,214,.25);max-height:min(54vh,500px);-webkit-overflow-scrolling:touch}
+#prIn{position:relative;min-width:max-content;padding:0 6px 6px}
+.prGrid{position:relative;z-index:1;display:grid;grid-template-columns:112px repeat(6,minmax(132px,1fr));gap:8px 10px;align-items:stretch}
+#prLines{position:absolute;left:0;top:0;z-index:0;pointer-events:none;overflow:visible}
+#prLines path{fill:none;stroke:rgba(90,60,25,.6);stroke-width:2;stroke-dasharray:5 4}
+#prLines path.on{stroke:#5f7f2e;stroke-dasharray:none}
+.prColH{position:sticky;top:0;z-index:3;padding:6px 4px;text-align:center;font-family:Georgia,serif;font-size:13px;color:#4a2f12;background:#e3d19c;border-bottom:1px solid rgba(90,60,25,.5)}
+.prColH.lock{opacity:.6}
+.prCorner{position:sticky;top:0;left:0;z-index:4;background:#e3d19c;border-bottom:1px solid rgba(90,60,25,.5)}
+.prRowH{position:sticky;left:0;z-index:2;display:flex;align-items:center;font-family:Georgia,serif;font-size:13px;color:#4a2f12;background:#e3d19c;padding:4px 6px;border-radius:4px}
+.prCell{display:flex;flex-direction:column;justify-content:center;gap:8px;min-height:20px}
+.prN{display:block;width:100%;box-sizing:border-box;text-align:left;min-height:44px;padding:6px 8px;border:1px solid rgba(90,60,25,.6);border-radius:5px;background:rgba(255,246,214,.92);color:#3a1f0c;font:inherit;cursor:pointer}
+.prN b{display:block;font-family:Georgia,serif;font-size:14px;line-height:1.2}
+.prN small{display:block;margin-top:2px;font-size:11px;line-height:1.25;opacity:.85}
+.prN.own{background:rgba(190,215,150,.9)}
+.prN.ok{border:2px solid #b8861f;box-shadow:0 0 0 2px rgba(214,173,78,.35)}
+.prN.lk{border-style:dashed;opacity:.55}
+.prN.rq{border-style:dashed;opacity:.72}
+.prN.sel{outline:3px solid #8c2f23;outline-offset:1px}
+#prDet{margin-top:10px}
+#prDet .rq2{display:block;font-size:12px;margin-top:3px}
+#prDet .rq2 .no{color:#8c2f23;font-weight:bold}
 @media (max-width:560px){.prC{grid-template-columns:1fr}.prC .btn{min-height:44px}}
 @media (max-width:560px){.edC{grid-template-columns:44px 1fr}.edC .ic{width:42px;height:42px;font-size:22px}.edC .btn{grid-column:1/-1}}
 #camctl{position:absolute;top:104px;right:16px;display:flex;flex-direction:column;gap:5px}
@@ -286,7 +309,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v51</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v52</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -322,7 +345,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
     <div class="edBox"><h2>Rotte commerciali</h2><p class="sub">Quattro città vicine mandano carovane alla Merceria: apri le rotte con i denari.</p><div id="trList"></div><button class="btn x" id="trClose" type="button">Chiudi</button></div>
   </div>
   <div id="projects" hidden role="dialog" aria-label="Progetti del Re">
-    <div class="edBox"><h2>Progetti del Re</h2><p class="sub" id="prSub"></p><div id="prList"></div><button class="btn x" id="prClose" type="button">Chiudi</button></div>
+    <div class="edBox"><h2>Progetti del Re</h2><p class="sub" id="prSub"></p><div id="prScroll"><div id="prIn"></div></div><div id="prDet" class="prC"></div><button class="btn x" id="prClose" type="button">Chiudi</button></div>
   </div>
   <div id="envoy" hidden role="dialog" aria-label="Messaggio del messo">
     <div class="edBox"><div class="evSeal">📜</div><h2 id="evTitle"></h2><div class="evFrom" id="evFrom"></div><div class="evText" id="evText"></div><div class="evNew" id="evNew"></div><div class="evBtns" id="evBtns"></div></div>
@@ -341,7 +364,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
     <button class="btn" id="rotBtn" title="Ruota l'edificio (R): la freccia gialla indica l'ingresso" style="display:none">⟳</button>
     <button class="btn" id="edictBtn" title="Emana Editto: decreti del borgo">📜</button>
     <button class="btn" id="tradeBtn" title="Rotte commerciali e denari">💰</button>
-    <button class="btn" id="projBtn" title="Progetti del Re: compra i progetti dei nuovi edifici">🏛️</button>
+    <button class="btn" id="projBtn" title="Albero dei progetti del Re: scegli e compra i blueprint dei nuovi edifici">🏛️</button>
     <button class="btn" id="saveBtn" title="Salvataggi (Ctrl+S salva nel posto 1)">💾</button>
     <button class="btn on" id="zoneBtn" title="Zone di caccia e pesca (J): icona arco e freccia = caccia, icona pesce = pesca">🏹</button>
     <button class="btn" id="attrBtn" title="Mappa dell'attrattiva (V): verde piacevole, rosso rumoroso">☺</button>
@@ -2717,15 +2740,18 @@ function tradeTick(){
 // In modalità storia (S.story) si parte con pochi strumenti: gli altri sono "progetti" che il Re concede a ogni nuovo titolo e che si comprano con risorse e, più avanti, anche con denari.
 // Fuori dalla modalità storia (test) tutto è disponibile e non arrivano né messi né nemici. S.msgs è la coda delle pergamene del messo (le legge l'interfaccia).
 const RANK_NAMES=['Accampamento','Casale','Villaggio','Borgo','Borgo fortificato','Terra murata','Città','Capitale del Regno'];
+// v52: albero della conoscenza. Ogni progetto sta in un ramo (br) e può avere prerequisiti (req): per comprarlo bisogna già possedere quei progetti oltre ad avere il titolo giusto.
+const BRANCHES=[{id:'vita',n:'Vita e comunità'},{id:'legno',n:'Legno, pietra e ferro'},{id:'campi',n:'Campi e cibo'},{id:'tessile',n:'Tessile'},{id:'commercio',n:'Commercio e ospitalità'},{id:'difesa',n:'Difesa'},{id:'decoro',n:'Decoro e feste'}];
 const PROJ=[
-  {id:'well',rank:1,cost:{wood:10,stone:6}},{id:'d3',rank:1,cost:{wood:12}},{id:'store',rank:1,cost:{wood:18,stone:8}},{id:'d4',rank:1,cost:{wood:8}},{id:'forester',rank:1,cost:{wood:10}},
-  {id:'church',rank:2,cost:{wood:20,stone:30}},{id:'d2',rank:2,cost:{wood:14}},{id:'granary',rank:2,cost:{wood:16,stone:8}},{id:'carpenter',rank:2,cost:{wood:16,stone:8}},{id:'mason',rank:2,cost:{wood:12,stone:16}},{id:'fisher',rank:2,cost:{wood:12}},{id:'hunter',rank:2,cost:{wood:12}},
-  {id:'watchtower',rank:3,cost:{wood:22,stone:18}},{id:'mine',rank:3,cost:{wood:20,stone:14}},{id:'mill',rank:3,cost:{wood:20,stone:20}},{id:'school',rank:3,cost:{wood:24,stone:16}},{id:'infirmary',rank:3,cost:{wood:22,stone:16}},{id:'smithy',rank:3,cost:{wood:20,stone:20}},{id:'cemetery',rank:3,cost:{wood:12,stone:16}},
-  {id:'bakery',rank:4,cost:{wood:20,stone:20}},{id:'d5',rank:4,cost:{wood:12}},{id:'sheepfold',rank:4,cost:{wood:16,stone:4}},{id:'inn',rank:4,cost:{wood:26,stone:18}},{id:'mercery',rank:4,cost:{wood:22,stone:16}},{id:'barracks',rank:4,cost:{wood:30,stone:28}},{id:'tavern',rank:4,cost:{wood:24,stone:16}},
-  {id:'weaver',rank:5,cost:{wood:20,stone:10,coins:30}},{id:'tailor',rank:5,cost:{wood:20,stone:10,coins:30}},{id:'hall',rank:5,cost:{wood:30,stone:30,coins:60}},{id:'plaza',rank:5,cost:{stone:30,coins:40}},
-  {id:'flowers',rank:6,cost:{wood:4,coins:10}},{id:'statue',rank:6,cost:{stone:16,coins:50}}
+  {id:'well',br:'vita',rank:1,cost:{wood:10,stone:6}},{id:'d3',br:'commercio',rank:1,cost:{wood:12}},{id:'store',br:'commercio',rank:1,cost:{wood:18,stone:8}},{id:'d4',br:'legno',rank:1,cost:{wood:8}},{id:'forester',br:'legno',rank:1,req:['d4'],cost:{wood:10}},
+  {id:'church',br:'vita',rank:2,cost:{wood:20,stone:30}},{id:'d2',br:'campi',rank:2,cost:{wood:14}},{id:'granary',br:'campi',rank:2,req:['d2'],cost:{wood:16,stone:8}},{id:'carpenter',br:'legno',rank:2,req:['d4'],cost:{wood:16,stone:8}},{id:'mason',br:'legno',rank:2,cost:{wood:12,stone:16}},{id:'fisher',br:'campi',rank:2,cost:{wood:12}},{id:'hunter',br:'campi',rank:2,cost:{wood:12}},
+  {id:'watchtower',br:'difesa',rank:3,cost:{wood:22,stone:18}},{id:'mine',br:'legno',rank:3,req:['mason'],cost:{wood:20,stone:14}},{id:'mill',br:'campi',rank:3,req:['granary'],cost:{wood:20,stone:20}},{id:'school',br:'vita',rank:3,req:['church'],cost:{wood:24,stone:16}},{id:'infirmary',br:'vita',rank:3,req:['church'],cost:{wood:22,stone:16}},{id:'smithy',br:'legno',rank:3,req:['mine'],cost:{wood:20,stone:20}},{id:'cemetery',br:'vita',rank:3,req:['church'],cost:{wood:12,stone:16}},
+  {id:'bakery',br:'campi',rank:4,req:['mill'],cost:{wood:20,stone:20}},{id:'d5',br:'campi',rank:4,cost:{wood:12}},{id:'sheepfold',br:'campi',rank:4,req:['d5'],cost:{wood:16,stone:4}},{id:'inn',br:'commercio',rank:4,req:['store'],cost:{wood:26,stone:18}},{id:'tavern',br:'commercio',rank:4,req:['inn'],cost:{wood:24,stone:16}},{id:'mercery',br:'commercio',rank:4,req:['store','d3'],cost:{wood:22,stone:16}},{id:'barracks',br:'difesa',rank:4,req:['watchtower'],cost:{wood:30,stone:28}},
+  {id:'weaver',br:'tessile',rank:5,cost:{wood:20,stone:10,coins:30}},{id:'tailor',br:'tessile',rank:5,req:['weaver'],cost:{wood:20,stone:10,coins:30}},{id:'plaza',br:'decoro',rank:5,cost:{stone:30,coins:40}},{id:'hall',br:'decoro',rank:5,req:['plaza'],cost:{wood:30,stone:30,coins:60}},
+  {id:'flowers',br:'decoro',rank:6,req:['plaza'],cost:{wood:4,coins:10}},{id:'statue',br:'decoro',rank:6,req:['plaza'],cost:{stone:16,coins:50}}
 ];
 const PROJ_BY=Object.fromEntries(PROJ.map(p=>[p.id,p]));
+const PROJ_NAMES=Object.fromEntries(PROJ.map(p=>[p.id,({d2:'Zona agricola',d3:'Zona di mercato',d4:'Zona forestale',d5:'Zona di pascolo'})[p.id]||(BT[p.id]?BT[p.id].name:p.id)]));
 const owns=id=>!S.story||!PROJ_BY[id]||!!S.proj[id];
 const TOWER_R=24,TOWER_DPS=6,SIEGE_HOLD=90,SIDE_TXT={w:'ovest',n:'nord',e:'est',s:'sud'};
 const ENEMY={raider:{hp:24,dps:4,spd:0.9},royal:{hp:90,dps:6,spd:0.9},soldier:{hp:40,dps:7,spd:1.1}};
@@ -2761,13 +2787,15 @@ function projectState(id){
   const owned=!!S.proj[id]||!S.story,locked=S.rank<p.rank,miss=[];
   for(const r of ['wood','stone','iron'])if(p.cost[r]&&uncommitted(r)<p.cost[r])miss.push(r);
   if(p.cost.coins&&S.coins<p.cost.coins)miss.push('coins');
-  return {known:true,owned,locked,afford:!miss.length,miss,rank:p.rank,cost:p.cost};
+  const need=(p.req||[]).filter(q=>!(S.proj[q]||!S.story));
+  return {known:true,owned,locked,need,afford:!miss.length,miss,rank:p.rank,br:p.br,req:p.req||[],cost:p.cost};
 }
 function buyProject(id){
   const p=PROJ_BY[id];if(!p)return {ok:false,msg:'Progetto sconosciuto.'};
   const ps=projectState(id);
   if(ps.owned)return {ok:false,msg:'Questo progetto è già tuo.'};
   if(ps.locked)return {ok:false,msg:'Il Re concede questo progetto solo al titolo di '+RANK_NAMES[p.rank]+'.'};
+  if(ps.need.length)return {ok:false,msg:'Prima serve il progetto precedente nell\'albero: '+ps.need.map(q=>PROJ_NAMES[q]||q).join(' e ')+'.',need:ps.need};
   if(!ps.afford){const nm={wood:'legno',stone:'pietra',iron:'ferro',coins:'denari'};return {ok:false,msg:'Non basta: servono '+ps.miss.map(r=>p.cost[r]+' di '+nm[r]).join(' e ')+' (parte del materiale è già destinata ai cantieri).'};}
   for(const r of ['wood','stone','iron'])if(p.cost[r])S.stock[r]-=p.cost[r];
   if(p.cost.coins)S.coins-=p.cost.coins;
@@ -3194,7 +3222,7 @@ function importState(d){
   for(const g of guests)hooks.villager(g);
   hooks.trees();hooks.rocks();hooks.saps();hooks.ground();
 }
-return {owns,PROJ,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
+return {owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
   TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
@@ -4827,30 +4855,80 @@ function pollEnvoy(){
 }
 
 // ---- progetti del Re: si comprano con risorse e, dai titoli alti, anche con denari ----
-function openProjects(v){$('projects').hidden=!v;if(v)renderProjects();}
+let prSel=null,prKey='';
+function openProjects(v){
+  $('projects').hidden=!v;
+  if(v){
+    if(!prSel||!Sim.projectState(prSel).known){
+      const all=Sim.PROJ.map(p=>[p,Sim.projectState(p.id)]);
+      const pick=all.find(([p,q])=>!q.owned&&!q.locked&&!q.need.length&&q.afford)||all.find(([p,q])=>!q.owned&&!q.locked&&!q.need.length)||all[0];
+      prSel=pick[0].id;
+    }
+    prKey='';renderProjects(true);
+  }
+}
 const prChip=(k,n,q)=>{const no=q.miss.includes(k)?' no':'';return k==='coins'?`<span class="${no.trim()}"><i class="sw" style="background:#d6ad4e"></i>${n} denari</span>`:`<span class="${no.trim()}"><i class="sw ${k==='wood'?'w':k==='stone'?'s':'p'}"></i>${n} ${k==='wood'?'legno':k==='stone'?'pietra':'ferro'}</span>`;};
-function renderProjects(){
-  const inf=Sim.regnoInfo();let h='';
-  $('prSub').textContent=`Hai ${Math.floor(S.stock.wood)} di legno, ${Math.floor(S.stock.stone)} di pietra e ${Math.floor(S.coins)} denari. Un progetto acquistato resta tuo: costruiscilo quando vuoi.`;
-  for(let r=1;r<=6;r++){
-    const ps=Sim.PROJ.filter(p=>p.rank===r);if(!ps.length)continue;
-    const lock=inf.rank<r;
-    h+=`<div class="prRank${lock?' lock':''}">${Sim.RANK_NAMES[r]}${lock?' · il Re li concederà più avanti':''}</div>`;
-    for(const p of ps){
-      const q=Sim.projectState(p.id),cost=Object.keys(p.cost).map(k=>prChip(k,p.cost[k],q)).join('');
-      const btn=q.owned?'<b>✓ Tuo</b>':lock?'<span>🔒</span>':`<button class="btn" type="button" data-p="${p.id}"${q.afford?'':' disabled'}>Acquista</button>`;
-      h+=`<div class="prC${q.owned?' own':''}${lock?' lock':''}"><div><b>${esc(prName(p.id))}</b><span class="d">${esc(prHint(p.id))}</span><div class="prCost">${cost}</div></div><div>${btn}</div></div>`;
+const prNodeCls=q=>q.owned?'own':q.locked?'lk':q.need.length?'rq':q.afford?'ok':'av';
+const prNodeTxt=q=>q.owned?'✓ Tuo':q.locked?'🔒 Titolo del Re':q.need.length?'⛓ Prima: '+q.need.map(prName).join(', '):q.afford?'Acquistabile':'Mancano risorse';
+function renderProjects(force){
+  const inf=Sim.regnoInfo(),sts={};
+  for(const p of Sim.PROJ)sts[p.id]=Sim.projectState(p.id);
+  $('prSub').textContent=`Ogni blueprint si sblocca con il titolo del Re (colonne) e con i blueprint che lo precedono nel suo ramo (linee). Hai ${Math.floor(S.stock.wood)} di legno, ${Math.floor(S.stock.stone)} di pietra e ${Math.floor(S.coins)} denari. Un progetto acquistato resta tuo.`;
+  const key=inf.rank+'|'+prSel+'|'+Sim.PROJ.map(p=>{const q=sts[p.id];return(q.owned?'o':q.locked?'l':q.need.length?'r':q.afford?'a':'n')+q.miss.join('');}).join(',');
+  if(!force&&key===prKey)return;prKey=key;
+  const sc=$('prScroll'),sl=sc.scrollLeft,stp=sc.scrollTop;
+  let h='<div class="prGrid"><div class="prCorner"></div>';
+  for(let r=1;r<=6;r++)h+=`<div class="prColH${inf.rank<r?' lock':''}">${esc(Sim.RANK_NAMES[r])}${inf.rank<r?' 🔒':''}</div>`;
+  for(const br of Sim.BRANCHES){
+    h+=`<div class="prRowH">${esc(br.n)}</div>`;
+    for(let r=1;r<=6;r++){
+      h+='<div class="prCell">';
+      for(const p of Sim.PROJ)if(p.br===br.id&&p.rank===r){
+        const q=sts[p.id];
+        h+=`<button type="button" class="prN ${prNodeCls(q)}${prSel===p.id?' sel':''}" data-n="${p.id}"><b>${esc(prName(p.id))}</b><small>${esc(prNodeTxt(q))}</small></button>`;
+      }
+      h+='</div>';
     }
   }
-  $('prList').innerHTML=h;
+  h+='</div><svg id="prLines" xmlns="http://www.w3.org/2000/svg"></svg>';
+  $('prIn').innerHTML=h;
+  sc.scrollLeft=sl;sc.scrollTop=stp;
+  prDetail(sts);prDraw();
 }
-$('prList').addEventListener('click',ev=>{
-  const bt=ev.target.closest&&ev.target.closest('[data-p]');if(!bt)return;
-  const res=Sim.buyProject(bt.getAttribute('data-p'));toast(res.msg,!res.ok);renderProjects();refreshPalette();showLevel();
+function prDetail(sts){
+  const box=$('prDet'),p=Sim.PROJ.find(x=>x.id===prSel);
+  if(!p){box.className='prC';box.innerHTML='<div>Tocca un blueprint per vedere il costo e acquistarlo.</div>';return;}
+  const q=sts[p.id],cost=Object.keys(p.cost).map(k=>prChip(k,p.cost[k],q)).join('');
+  const req=(p.req||[]).length?`<span class="d rq2">Richiede: ${p.req.map(id=>`<span class="${sts[id]&&sts[id].owned?'':'no'}">${sts[id]&&sts[id].owned?'✓':'✗'} ${esc(prName(id))}</span>`).join(' · ')}</span>`:'';
+  const br=Sim.BRANCHES.find(x=>x.id===p.br);
+  const btn=q.owned?'<b>✓ Tuo</b>':q.locked?`<span>🔒 Titolo di ${esc(Sim.RANK_NAMES[p.rank])}</span>`:`<button class="btn" type="button" data-p="${p.id}"${(q.afford&&!q.need.length)?'':' disabled'}>Acquista</button>`;
+  box.className='prC'+(q.owned?' own':q.locked?' lock':'');
+  box.innerHTML=`<div><b>${esc(prName(p.id))}</b><span class="d">${esc(br?br.n:'')} · ${esc(Sim.RANK_NAMES[p.rank])}${prHint(p.id)?' — '+esc(prHint(p.id)):''}</span>${req}<div class="prCost">${cost}</div></div><div>${btn}</div>`;
+}
+function prDraw(){
+  const inn=$('prIn'),svg=$('prLines');if(!inn||!svg||$('projects').hidden||typeof inn.querySelector!=='function')return;
+  const R=inn.getBoundingClientRect();svg.style.width=inn.scrollWidth+'px';svg.style.height=inn.scrollHeight+'px';
+  let d='';
+  for(const p of Sim.PROJ)for(const qid of(p.req||[])){
+    const a=inn.querySelector(`[data-n="${qid}"]`),b=inn.querySelector(`[data-n="${p.id}"]`);if(!a||!b)continue;
+    const A=a.getBoundingClientRect(),B=b.getBoundingClientRect(),own=Sim.projectState(qid).owned;
+    let path;
+    if(Math.abs(A.left-B.left)<4){const x1=A.left+A.width/2-R.left,y1=A.bottom-R.top,x2=B.left+B.width/2-R.left,y2=B.top-R.top;path=`M${x1} ${y1}L${x2} ${y2}`;}
+    else{const x1=A.right-R.left,y1=A.top+A.height/2-R.top,x2=B.left-R.left,y2=B.top+B.height/2-R.top,m=(x1+x2)/2;path=`M${x1} ${y1}C${m} ${y1} ${m} ${y2} ${x2} ${y2}`;}
+    d+=`<path d="${path}"${own?' class="on"':''}/>`;
+  }
+  svg.innerHTML=d;
+}
+$('projects').addEventListener('click',ev=>{
+  const t=ev.target,bt=t.closest&&t.closest('[data-p]');
+  if(bt){const res=Sim.buyProject(bt.getAttribute('data-p'));toast(res.msg,!res.ok);renderProjects(true);refreshPalette();showLevel();return;}
+  const n=t.closest&&t.closest('[data-n]');
+  if(n){prSel=n.getAttribute('data-n');renderProjects(true);return;}
+  if(t===$('projects'))openProjects(false);
 });
+new ResizeObserver(()=>{if(!$('projects').hidden)prDraw();}).observe($('app'));
 $('prClose').addEventListener('click',()=>openProjects(false));
 $('projBtn').addEventListener('click',()=>openProjects($('projects').hidden));
-$('projects').addEventListener('click',ev=>{if(ev.target===$('projects'))openProjects(false);});
 // la palette mostra solo gli strumenti posseduti
 let palKey='';
 function refreshPalette(){
@@ -4860,7 +4938,7 @@ function refreshPalette(){
   if(!CATS.find(c=>c.id===curCat)||!CATS.find(c=>c.id===curCat).ids.some(owns))curCat='tools';
   setCat(curCat);if(!owns(tool))setTool('select');
 }
-function newProjects(){return Sim.PROJ.some(p=>{const q=Sim.projectState(p.id);return !q.owned&&!q.locked&&q.afford;});}
+function newProjects(){return Sim.PROJ.some(p=>{const q=Sim.projectState(p.id);return !q.owned&&!q.locked&&!q.need.length&&q.afford;});}
 
 // ---------- bisogni di una casa (felicità) ----------
 function needsHtml(b){

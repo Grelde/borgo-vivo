@@ -2348,15 +2348,18 @@ function tradeTick(){
 // In modalità storia (S.story) si parte con pochi strumenti: gli altri sono "progetti" che il Re concede a ogni nuovo titolo e che si comprano con risorse e, più avanti, anche con denari.
 // Fuori dalla modalità storia (test) tutto è disponibile e non arrivano né messi né nemici. S.msgs è la coda delle pergamene del messo (le legge l'interfaccia).
 const RANK_NAMES=['Accampamento','Casale','Villaggio','Borgo','Borgo fortificato','Terra murata','Città','Capitale del Regno'];
+// v52: albero della conoscenza. Ogni progetto sta in un ramo (br) e può avere prerequisiti (req): per comprarlo bisogna già possedere quei progetti oltre ad avere il titolo giusto.
+const BRANCHES=[{id:'vita',n:'Vita e comunità'},{id:'legno',n:'Legno, pietra e ferro'},{id:'campi',n:'Campi e cibo'},{id:'tessile',n:'Tessile'},{id:'commercio',n:'Commercio e ospitalità'},{id:'difesa',n:'Difesa'},{id:'decoro',n:'Decoro e feste'}];
 const PROJ=[
-  {id:'well',rank:1,cost:{wood:10,stone:6}},{id:'d3',rank:1,cost:{wood:12}},{id:'store',rank:1,cost:{wood:18,stone:8}},{id:'d4',rank:1,cost:{wood:8}},{id:'forester',rank:1,cost:{wood:10}},
-  {id:'church',rank:2,cost:{wood:20,stone:30}},{id:'d2',rank:2,cost:{wood:14}},{id:'granary',rank:2,cost:{wood:16,stone:8}},{id:'carpenter',rank:2,cost:{wood:16,stone:8}},{id:'mason',rank:2,cost:{wood:12,stone:16}},{id:'fisher',rank:2,cost:{wood:12}},{id:'hunter',rank:2,cost:{wood:12}},
-  {id:'watchtower',rank:3,cost:{wood:22,stone:18}},{id:'mine',rank:3,cost:{wood:20,stone:14}},{id:'mill',rank:3,cost:{wood:20,stone:20}},{id:'school',rank:3,cost:{wood:24,stone:16}},{id:'infirmary',rank:3,cost:{wood:22,stone:16}},{id:'smithy',rank:3,cost:{wood:20,stone:20}},{id:'cemetery',rank:3,cost:{wood:12,stone:16}},
-  {id:'bakery',rank:4,cost:{wood:20,stone:20}},{id:'d5',rank:4,cost:{wood:12}},{id:'sheepfold',rank:4,cost:{wood:16,stone:4}},{id:'inn',rank:4,cost:{wood:26,stone:18}},{id:'mercery',rank:4,cost:{wood:22,stone:16}},{id:'barracks',rank:4,cost:{wood:30,stone:28}},{id:'tavern',rank:4,cost:{wood:24,stone:16}},
-  {id:'weaver',rank:5,cost:{wood:20,stone:10,coins:30}},{id:'tailor',rank:5,cost:{wood:20,stone:10,coins:30}},{id:'hall',rank:5,cost:{wood:30,stone:30,coins:60}},{id:'plaza',rank:5,cost:{stone:30,coins:40}},
-  {id:'flowers',rank:6,cost:{wood:4,coins:10}},{id:'statue',rank:6,cost:{stone:16,coins:50}}
+  {id:'well',br:'vita',rank:1,cost:{wood:10,stone:6}},{id:'d3',br:'commercio',rank:1,cost:{wood:12}},{id:'store',br:'commercio',rank:1,cost:{wood:18,stone:8}},{id:'d4',br:'legno',rank:1,cost:{wood:8}},{id:'forester',br:'legno',rank:1,req:['d4'],cost:{wood:10}},
+  {id:'church',br:'vita',rank:2,cost:{wood:20,stone:30}},{id:'d2',br:'campi',rank:2,cost:{wood:14}},{id:'granary',br:'campi',rank:2,req:['d2'],cost:{wood:16,stone:8}},{id:'carpenter',br:'legno',rank:2,req:['d4'],cost:{wood:16,stone:8}},{id:'mason',br:'legno',rank:2,cost:{wood:12,stone:16}},{id:'fisher',br:'campi',rank:2,cost:{wood:12}},{id:'hunter',br:'campi',rank:2,cost:{wood:12}},
+  {id:'watchtower',br:'difesa',rank:3,cost:{wood:22,stone:18}},{id:'mine',br:'legno',rank:3,req:['mason'],cost:{wood:20,stone:14}},{id:'mill',br:'campi',rank:3,req:['granary'],cost:{wood:20,stone:20}},{id:'school',br:'vita',rank:3,req:['church'],cost:{wood:24,stone:16}},{id:'infirmary',br:'vita',rank:3,req:['church'],cost:{wood:22,stone:16}},{id:'smithy',br:'legno',rank:3,req:['mine'],cost:{wood:20,stone:20}},{id:'cemetery',br:'vita',rank:3,req:['church'],cost:{wood:12,stone:16}},
+  {id:'bakery',br:'campi',rank:4,req:['mill'],cost:{wood:20,stone:20}},{id:'d5',br:'campi',rank:4,cost:{wood:12}},{id:'sheepfold',br:'campi',rank:4,req:['d5'],cost:{wood:16,stone:4}},{id:'inn',br:'commercio',rank:4,req:['store'],cost:{wood:26,stone:18}},{id:'tavern',br:'commercio',rank:4,req:['inn'],cost:{wood:24,stone:16}},{id:'mercery',br:'commercio',rank:4,req:['store','d3'],cost:{wood:22,stone:16}},{id:'barracks',br:'difesa',rank:4,req:['watchtower'],cost:{wood:30,stone:28}},
+  {id:'weaver',br:'tessile',rank:5,cost:{wood:20,stone:10,coins:30}},{id:'tailor',br:'tessile',rank:5,req:['weaver'],cost:{wood:20,stone:10,coins:30}},{id:'plaza',br:'decoro',rank:5,cost:{stone:30,coins:40}},{id:'hall',br:'decoro',rank:5,req:['plaza'],cost:{wood:30,stone:30,coins:60}},
+  {id:'flowers',br:'decoro',rank:6,req:['plaza'],cost:{wood:4,coins:10}},{id:'statue',br:'decoro',rank:6,req:['plaza'],cost:{stone:16,coins:50}}
 ];
 const PROJ_BY=Object.fromEntries(PROJ.map(p=>[p.id,p]));
+const PROJ_NAMES=Object.fromEntries(PROJ.map(p=>[p.id,({d2:'Zona agricola',d3:'Zona di mercato',d4:'Zona forestale',d5:'Zona di pascolo'})[p.id]||(BT[p.id]?BT[p.id].name:p.id)]));
 const owns=id=>!S.story||!PROJ_BY[id]||!!S.proj[id];
 const TOWER_R=24,TOWER_DPS=6,SIEGE_HOLD=90,SIDE_TXT={w:'ovest',n:'nord',e:'est',s:'sud'};
 const ENEMY={raider:{hp:24,dps:4,spd:0.9},royal:{hp:90,dps:6,spd:0.9},soldier:{hp:40,dps:7,spd:1.1}};
@@ -2392,13 +2395,15 @@ function projectState(id){
   const owned=!!S.proj[id]||!S.story,locked=S.rank<p.rank,miss=[];
   for(const r of ['wood','stone','iron'])if(p.cost[r]&&uncommitted(r)<p.cost[r])miss.push(r);
   if(p.cost.coins&&S.coins<p.cost.coins)miss.push('coins');
-  return {known:true,owned,locked,afford:!miss.length,miss,rank:p.rank,cost:p.cost};
+  const need=(p.req||[]).filter(q=>!(S.proj[q]||!S.story));
+  return {known:true,owned,locked,need,afford:!miss.length,miss,rank:p.rank,br:p.br,req:p.req||[],cost:p.cost};
 }
 function buyProject(id){
   const p=PROJ_BY[id];if(!p)return {ok:false,msg:'Progetto sconosciuto.'};
   const ps=projectState(id);
   if(ps.owned)return {ok:false,msg:'Questo progetto è già tuo.'};
   if(ps.locked)return {ok:false,msg:'Il Re concede questo progetto solo al titolo di '+RANK_NAMES[p.rank]+'.'};
+  if(ps.need.length)return {ok:false,msg:'Prima serve il progetto precedente nell\'albero: '+ps.need.map(q=>PROJ_NAMES[q]||q).join(' e ')+'.',need:ps.need};
   if(!ps.afford){const nm={wood:'legno',stone:'pietra',iron:'ferro',coins:'denari'};return {ok:false,msg:'Non basta: servono '+ps.miss.map(r=>p.cost[r]+' di '+nm[r]).join(' e ')+' (parte del materiale è già destinata ai cantieri).'};}
   for(const r of ['wood','stone','iron'])if(p.cost[r])S.stock[r]-=p.cost[r];
   if(p.cost.coins)S.coins-=p.cost.coins;
@@ -2825,7 +2830,7 @@ function importState(d){
   for(const g of guests)hooks.villager(g);
   hooks.trees();hooks.rocks();hooks.saps();hooks.ground();
 }
-return {owns,PROJ,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
+return {owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
   TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,

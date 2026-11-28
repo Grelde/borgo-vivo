@@ -115,6 +115,29 @@ body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--seri
 .prCost span{display:inline-flex;align-items:center;gap:4px}
 .prCost span.no{color:#8c2f23;font-weight:bold}
 .prC .btn:disabled{opacity:.45;cursor:default}
+#projects .edBox{width:min(1000px,100%)}
+#prScroll{overflow:auto;border:1px solid rgba(90,60,25,.4);border-radius:5px;background:rgba(255,246,214,.25);max-height:min(54vh,500px);-webkit-overflow-scrolling:touch}
+#prIn{position:relative;min-width:max-content;padding:0 6px 6px}
+.prGrid{position:relative;z-index:1;display:grid;grid-template-columns:112px repeat(6,minmax(132px,1fr));gap:8px 10px;align-items:stretch}
+#prLines{position:absolute;left:0;top:0;z-index:0;pointer-events:none;overflow:visible}
+#prLines path{fill:none;stroke:rgba(90,60,25,.6);stroke-width:2;stroke-dasharray:5 4}
+#prLines path.on{stroke:#5f7f2e;stroke-dasharray:none}
+.prColH{position:sticky;top:0;z-index:3;padding:6px 4px;text-align:center;font-family:Georgia,serif;font-size:13px;color:#4a2f12;background:#e3d19c;border-bottom:1px solid rgba(90,60,25,.5)}
+.prColH.lock{opacity:.6}
+.prCorner{position:sticky;top:0;left:0;z-index:4;background:#e3d19c;border-bottom:1px solid rgba(90,60,25,.5)}
+.prRowH{position:sticky;left:0;z-index:2;display:flex;align-items:center;font-family:Georgia,serif;font-size:13px;color:#4a2f12;background:#e3d19c;padding:4px 6px;border-radius:4px}
+.prCell{display:flex;flex-direction:column;justify-content:center;gap:8px;min-height:20px}
+.prN{display:block;width:100%;box-sizing:border-box;text-align:left;min-height:44px;padding:6px 8px;border:1px solid rgba(90,60,25,.6);border-radius:5px;background:rgba(255,246,214,.92);color:#3a1f0c;font:inherit;cursor:pointer}
+.prN b{display:block;font-family:Georgia,serif;font-size:14px;line-height:1.2}
+.prN small{display:block;margin-top:2px;font-size:11px;line-height:1.25;opacity:.85}
+.prN.own{background:rgba(190,215,150,.9)}
+.prN.ok{border:2px solid #b8861f;box-shadow:0 0 0 2px rgba(214,173,78,.35)}
+.prN.lk{border-style:dashed;opacity:.55}
+.prN.rq{border-style:dashed;opacity:.72}
+.prN.sel{outline:3px solid #8c2f23;outline-offset:1px}
+#prDet{margin-top:10px}
+#prDet .rq2{display:block;font-size:12px;margin-top:3px}
+#prDet .rq2 .no{color:#8c2f23;font-weight:bold}
 @media (max-width:560px){.prC{grid-template-columns:1fr}.prC .btn{min-height:44px}}
 @media (max-width:560px){.edC{grid-template-columns:44px 1fr}.edC .ic{width:42px;height:42px;font-size:22px}.edC .btn{grid-column:1/-1}}
 #camctl{position:absolute;top:104px;right:16px;display:flex;flex-direction:column;gap:5px}
@@ -318,7 +341,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
     <div class="edBox"><h2>Rotte commerciali</h2><p class="sub">Quattro città vicine mandano carovane alla Merceria: apri le rotte con i denari.</p><div id="trList"></div><button class="btn x" id="trClose" type="button">Chiudi</button></div>
   </div>
   <div id="projects" hidden role="dialog" aria-label="Progetti del Re">
-    <div class="edBox"><h2>Progetti del Re</h2><p class="sub" id="prSub"></p><div id="prList"></div><button class="btn x" id="prClose" type="button">Chiudi</button></div>
+    <div class="edBox"><h2>Progetti del Re</h2><p class="sub" id="prSub"></p><div id="prScroll"><div id="prIn"></div></div><div id="prDet" class="prC"></div><button class="btn x" id="prClose" type="button">Chiudi</button></div>
   </div>
   <div id="envoy" hidden role="dialog" aria-label="Messaggio del messo">
     <div class="edBox"><div class="evSeal">📜</div><h2 id="evTitle"></h2><div class="evFrom" id="evFrom"></div><div class="evText" id="evText"></div><div class="evNew" id="evNew"></div><div class="evBtns" id="evBtns"></div></div>
@@ -337,7 +360,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
     <button class="btn" id="rotBtn" title="Ruota l'edificio (R): la freccia gialla indica l'ingresso" style="display:none">⟳</button>
     <button class="btn" id="edictBtn" title="Emana Editto: decreti del borgo">📜</button>
     <button class="btn" id="tradeBtn" title="Rotte commerciali e denari">💰</button>
-    <button class="btn" id="projBtn" title="Progetti del Re: compra i progetti dei nuovi edifici">🏛️</button>
+    <button class="btn" id="projBtn" title="Albero dei progetti del Re: scegli e compra i blueprint dei nuovi edifici">🏛️</button>
     <button class="btn" id="saveBtn" title="Salvataggi (Ctrl+S salva nel posto 1)">💾</button>
     <button class="btn on" id="zoneBtn" title="Zone di caccia e pesca (J): icona arco e freccia = caccia, icona pesce = pesca">🏹</button>
     <button class="btn" id="attrBtn" title="Mappa dell'attrattiva (V): verde piacevole, rosso rumoroso">☺</button>

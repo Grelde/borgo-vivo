@@ -1,5 +1,17 @@
 # Changelog
 
+## v52 – 2026-11-28
+Funzione nuova: albero della conoscenza. Il pannello 🏛️ diventa l'albero dove si scelgono i blueprint degli edifici che il Re permette di sbloccare.
+- **Albero:** 7 rami (Vita e comunità; Legno, pietra e ferro; Campi e cibo; Tessile; Commercio e ospitalità; Difesa; Decoro e feste) per riga, 6 titoli del Re per colonna. Ogni blueprint è un blocco; le linee collegano un blueprint ai prerequisiti. Blocco verde = tuo, bordo dorato = acquistabile adesso, tratteggiato = bloccato dal titolo (🔒) o da un prerequisito (⛓ «Prima: …»). Linea verde piena = prerequisito già tuo.
+- **Scelta e acquisto:** si tocca un blocco e sotto compaiono ramo, titolo, descrizione, prerequisiti (✓/✗), costo e il pulsante Acquista. Il pannello scorre in orizzontale (intestazioni dei titoli e nomi dei rami restano fissi) e si apre già sul primo blueprint acquistabile. Il pannello non si ricostruisce a ogni fotogramma: mantiene selezione e scorrimento.
+- **Prerequisiti (nuova regola):** per comprare un blueprint servono il titolo del Re, i blueprint che lo precedono e le risorse, in quest'ordine di controllo. Catene: zona forestale → guardaboschi e falegnameria; bottega del muratore → miniera → fucina; zona agricola → granaio → mulino → forno; zona di pascolo → ovile; magazzino → locanda → taverna; magazzino + zona di mercato → merceria; chiesa → scuola, ospizio e cimitero; torre di guardia → caserma; telaio → sartoria; piazza → sala delle feste, aiuola e statua. Gli altri blueprint non hanno prerequisiti. Un acquisto rifiutato non costa nulla; il messaggio dice cosa manca.
+- **Strada dei titoli sempre percorribile:** tutto ciò che il Re chiede per un titolo (e i prerequisiti di quegli edifici) è concesso entro il titolo precedente (controllato da `tests/albero.js`).
+- **Salvataggi:** nessun cambio di formato (`SAVE_FMT` resta 1). Un blueprint già posseduto resta tuo anche se il suo prerequisito non lo è (salvataggi della v50); fuori dalla modalità storia (test) nessun prerequisito blocca.
+- Il badge sul pulsante 🏛️ si accende solo per blueprint davvero acquistabili ora (titolo, prerequisiti e risorse).
+- Dati: `Sim.BRANCHES`, `Sim.PROJ_NAMES`; ogni progetto ha `br` e, se serve, `req`; `projectState` aggiunge `need`, `br` e `req`.
+- Test: nuovo `tests/albero.js` (39 controlli: struttura senza cicli, ordine degli acquisti, messaggi, titolo prima dei prerequisiti, salvataggi vecchi). Tutti gli altri test continuano a passare.
+- Non verificato in un browser WebGL: aspetto dell'albero, linee di collegamento (calcolate dalle posizioni dei blocchi, provate solo con un DOM finto), scorrimento e tocco su telefono.
+
 ## v51 – 2026-11-28
 Funzione nuova: tintoria (completa il punto 2 delle filiere: lino, canapa, corde, tessuti).
 - **Coltura «tintorie»** (robbia e guado) fra le scelte della fattoria, accanto a grano, lino e canapa; i campi diventano rosati. I contadini portano le piante alla tintoria (senza tintoria raccolgono grano).

@@ -1621,30 +1621,80 @@ function pollEnvoy(){
 }
 
 // ---- progetti del Re: si comprano con risorse e, dai titoli alti, anche con denari ----
-function openProjects(v){$('projects').hidden=!v;if(v)renderProjects();}
+let prSel=null,prKey='';
+function openProjects(v){
+  $('projects').hidden=!v;
+  if(v){
+    if(!prSel||!Sim.projectState(prSel).known){
+      const all=Sim.PROJ.map(p=>[p,Sim.projectState(p.id)]);
+      const pick=all.find(([p,q])=>!q.owned&&!q.locked&&!q.need.length&&q.afford)||all.find(([p,q])=>!q.owned&&!q.locked&&!q.need.length)||all[0];
+      prSel=pick[0].id;
+    }
+    prKey='';renderProjects(true);
+  }
+}
 const prChip=(k,n,q)=>{const no=q.miss.includes(k)?' no':'';return k==='coins'?`<span class="${no.trim()}"><i class="sw" style="background:#d6ad4e"></i>${n} denari</span>`:`<span class="${no.trim()}"><i class="sw ${k==='wood'?'w':k==='stone'?'s':'p'}"></i>${n} ${k==='wood'?'legno':k==='stone'?'pietra':'ferro'}</span>`;};
-function renderProjects(){
-  const inf=Sim.regnoInfo();let h='';
-  $('prSub').textContent=`Hai ${Math.floor(S.stock.wood)} di legno, ${Math.floor(S.stock.stone)} di pietra e ${Math.floor(S.coins)} denari. Un progetto acquistato resta tuo: costruiscilo quando vuoi.`;
-  for(let r=1;r<=6;r++){
-    const ps=Sim.PROJ.filter(p=>p.rank===r);if(!ps.length)continue;
-    const lock=inf.rank<r;
-    h+=`<div class="prRank${lock?' lock':''}">${Sim.RANK_NAMES[r]}${lock?' · il Re li concederà più avanti':''}</div>`;
-    for(const p of ps){
-      const q=Sim.projectState(p.id),cost=Object.keys(p.cost).map(k=>prChip(k,p.cost[k],q)).join('');
-      const btn=q.owned?'<b>✓ Tuo</b>':lock?'<span>🔒</span>':`<button class="btn" type="button" data-p="${p.id}"${q.afford?'':' disabled'}>Acquista</button>`;
-      h+=`<div class="prC${q.owned?' own':''}${lock?' lock':''}"><div><b>${esc(prName(p.id))}</b><span class="d">${esc(prHint(p.id))}</span><div class="prCost">${cost}</div></div><div>${btn}</div></div>`;
+const prNodeCls=q=>q.owned?'own':q.locked?'lk':q.need.length?'rq':q.afford?'ok':'av';
+const prNodeTxt=q=>q.owned?'✓ Tuo':q.locked?'🔒 Titolo del Re':q.need.length?'⛓ Prima: '+q.need.map(prName).join(', '):q.afford?'Acquistabile':'Mancano risorse';
+function renderProjects(force){
+  const inf=Sim.regnoInfo(),sts={};
+  for(const p of Sim.PROJ)sts[p.id]=Sim.projectState(p.id);
+  $('prSub').textContent=`Ogni blueprint si sblocca con il titolo del Re (colonne) e con i blueprint che lo precedono nel suo ramo (linee). Hai ${Math.floor(S.stock.wood)} di legno, ${Math.floor(S.stock.stone)} di pietra e ${Math.floor(S.coins)} denari. Un progetto acquistato resta tuo.`;
+  const key=inf.rank+'|'+prSel+'|'+Sim.PROJ.map(p=>{const q=sts[p.id];return(q.owned?'o':q.locked?'l':q.need.length?'r':q.afford?'a':'n')+q.miss.join('');}).join(',');
+  if(!force&&key===prKey)return;prKey=key;
+  const sc=$('prScroll'),sl=sc.scrollLeft,stp=sc.scrollTop;
+  let h='<div class="prGrid"><div class="prCorner"></div>';
+  for(let r=1;r<=6;r++)h+=`<div class="prColH${inf.rank<r?' lock':''}">${esc(Sim.RANK_NAMES[r])}${inf.rank<r?' 🔒':''}</div>`;
+  for(const br of Sim.BRANCHES){
+    h+=`<div class="prRowH">${esc(br.n)}</div>`;
+    for(let r=1;r<=6;r++){
+      h+='<div class="prCell">';
+      for(const p of Sim.PROJ)if(p.br===br.id&&p.rank===r){
+        const q=sts[p.id];
+        h+=`<button type="button" class="prN ${prNodeCls(q)}${prSel===p.id?' sel':''}" data-n="${p.id}"><b>${esc(prName(p.id))}</b><small>${esc(prNodeTxt(q))}</small></button>`;
+      }
+      h+='</div>';
     }
   }
-  $('prList').innerHTML=h;
+  h+='</div><svg id="prLines" xmlns="http://www.w3.org/2000/svg"></svg>';
+  $('prIn').innerHTML=h;
+  sc.scrollLeft=sl;sc.scrollTop=stp;
+  prDetail(sts);prDraw();
 }
-$('prList').addEventListener('click',ev=>{
-  const bt=ev.target.closest&&ev.target.closest('[data-p]');if(!bt)return;
-  const res=Sim.buyProject(bt.getAttribute('data-p'));toast(res.msg,!res.ok);renderProjects();refreshPalette();showLevel();
+function prDetail(sts){
+  const box=$('prDet'),p=Sim.PROJ.find(x=>x.id===prSel);
+  if(!p){box.className='prC';box.innerHTML='<div>Tocca un blueprint per vedere il costo e acquistarlo.</div>';return;}
+  const q=sts[p.id],cost=Object.keys(p.cost).map(k=>prChip(k,p.cost[k],q)).join('');
+  const req=(p.req||[]).length?`<span class="d rq2">Richiede: ${p.req.map(id=>`<span class="${sts[id]&&sts[id].owned?'':'no'}">${sts[id]&&sts[id].owned?'✓':'✗'} ${esc(prName(id))}</span>`).join(' · ')}</span>`:'';
+  const br=Sim.BRANCHES.find(x=>x.id===p.br);
+  const btn=q.owned?'<b>✓ Tuo</b>':q.locked?`<span>🔒 Titolo di ${esc(Sim.RANK_NAMES[p.rank])}</span>`:`<button class="btn" type="button" data-p="${p.id}"${(q.afford&&!q.need.length)?'':' disabled'}>Acquista</button>`;
+  box.className='prC'+(q.owned?' own':q.locked?' lock':'');
+  box.innerHTML=`<div><b>${esc(prName(p.id))}</b><span class="d">${esc(br?br.n:'')} · ${esc(Sim.RANK_NAMES[p.rank])}${prHint(p.id)?' — '+esc(prHint(p.id)):''}</span>${req}<div class="prCost">${cost}</div></div><div>${btn}</div>`;
+}
+function prDraw(){
+  const inn=$('prIn'),svg=$('prLines');if(!inn||!svg||$('projects').hidden||typeof inn.querySelector!=='function')return;
+  const R=inn.getBoundingClientRect();svg.style.width=inn.scrollWidth+'px';svg.style.height=inn.scrollHeight+'px';
+  let d='';
+  for(const p of Sim.PROJ)for(const qid of(p.req||[])){
+    const a=inn.querySelector(`[data-n="${qid}"]`),b=inn.querySelector(`[data-n="${p.id}"]`);if(!a||!b)continue;
+    const A=a.getBoundingClientRect(),B=b.getBoundingClientRect(),own=Sim.projectState(qid).owned;
+    let path;
+    if(Math.abs(A.left-B.left)<4){const x1=A.left+A.width/2-R.left,y1=A.bottom-R.top,x2=B.left+B.width/2-R.left,y2=B.top-R.top;path=`M${x1} ${y1}L${x2} ${y2}`;}
+    else{const x1=A.right-R.left,y1=A.top+A.height/2-R.top,x2=B.left-R.left,y2=B.top+B.height/2-R.top,m=(x1+x2)/2;path=`M${x1} ${y1}C${m} ${y1} ${m} ${y2} ${x2} ${y2}`;}
+    d+=`<path d="${path}"${own?' class="on"':''}/>`;
+  }
+  svg.innerHTML=d;
+}
+$('projects').addEventListener('click',ev=>{
+  const t=ev.target,bt=t.closest&&t.closest('[data-p]');
+  if(bt){const res=Sim.buyProject(bt.getAttribute('data-p'));toast(res.msg,!res.ok);renderProjects(true);refreshPalette();showLevel();return;}
+  const n=t.closest&&t.closest('[data-n]');
+  if(n){prSel=n.getAttribute('data-n');renderProjects(true);return;}
+  if(t===$('projects'))openProjects(false);
 });
+new ResizeObserver(()=>{if(!$('projects').hidden)prDraw();}).observe($('app'));
 $('prClose').addEventListener('click',()=>openProjects(false));
 $('projBtn').addEventListener('click',()=>openProjects($('projects').hidden));
-$('projects').addEventListener('click',ev=>{if(ev.target===$('projects'))openProjects(false);});
 // la palette mostra solo gli strumenti posseduti
 let palKey='';
 function refreshPalette(){
@@ -1654,7 +1704,7 @@ function refreshPalette(){
   if(!CATS.find(c=>c.id===curCat)||!CATS.find(c=>c.id===curCat).ids.some(owns))curCat='tools';
   setCat(curCat);if(!owns(tool))setTool('select');
 }
-function newProjects(){return Sim.PROJ.some(p=>{const q=Sim.projectState(p.id);return !q.owned&&!q.locked&&q.afford;});}
+function newProjects(){return Sim.PROJ.some(p=>{const q=Sim.projectState(p.id);return !q.owned&&!q.locked&&!q.need.length&&q.afford;});}
 
 // ---------- bisogni di una casa (felicità) ----------
 function needsHtml(b){
