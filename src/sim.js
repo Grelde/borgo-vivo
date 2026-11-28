@@ -18,22 +18,25 @@ const BT={
   forester:{name:'Guardaboschi',w:6,h:6,cost:{wood:6,stone:0},time:7,slots:2,want:1},
   store:{name:'Magazzino',w:6,h:6,cost:{wood:12,stone:4,planks:4},time:12,slots:3,want:3},
   granary:{name:'Granaio',w:6,h:6,cost:{wood:10,stone:2},time:9,slots:0,want:0},
-  mill:{name:'Mulino',w:6,h:6,cost:{wood:10,stone:8,planks:4},time:12,slots:2,want:1},
+  mill:{name:'Mulino',w:6,h:6,cost:{wood:10,stone:5,planks:4,lime:3},time:12,slots:2,want:1},
   inn:{name:'Locanda',w:9,h:6,cost:{wood:14,stone:8,planks:6},time:14,slots:2,want:1},
   // v32: ovile costruibile dal giocatore, con pastori (gli ovili fondati dalle famiglie restano senza addetti propri: li servono i membri della casa)
   sheepfold:{name:'Ovile',w:6,h:6,cost:{wood:8,stone:0},time:9,slots:2,want:1},
   // v32: edifici di lavoro. Ogni addetto compie cicli di WS[tipo].t secondi: una bottega vera rende più della bottega di un giardino.
   carpenter:{name:'Falegnameria',w:6,h:6,cost:{wood:10,stone:2},time:10,slots:3,want:2},
   mason:{name:'Bottega del muratore',w:6,h:6,cost:{wood:8,stone:8},time:12,slots:3,want:2},
-  smithy:{name:'Fucina del fabbro',w:6,h:6,cost:{wood:10,stone:8,planks:2},time:12,slots:2,want:1},
-  bakery:{name:'Forno del panettiere',w:6,h:6,cost:{wood:10,stone:8,planks:2},time:12,slots:2,want:1},
+  smithy:{name:'Fucina del fabbro',w:6,h:6,cost:{wood:10,stone:2,planks:2,bricks:6},time:12,slots:2,want:1},
+  bakery:{name:'Forno del panettiere',w:6,h:6,cost:{wood:10,stone:2,planks:2,bricks:6},time:12,slots:2,want:1},
   weaver:{name:'Telaio del tessitore',w:6,h:6,cost:{wood:10,stone:4,planks:2},time:11,slots:2,want:1},
   tailor:{name:'Sartoria',w:6,h:6,cost:{wood:10,stone:4,planks:2},time:11,slots:2,want:1},
   retting:{name:'Maceratoio',w:6,h:6,cost:{wood:10,stone:4,planks:0},time:9,slots:2,want:1,need:'water'},
   ropewalk:{name:'Cordaio',w:6,h:6,cost:{wood:10,stone:2,planks:2},time:10,slots:2,want:1},
   dyehouse:{name:'Tintoria',w:6,h:6,cost:{wood:10,stone:4,planks:2},time:10,slots:2,want:1,need:'water'},
   charcoal:{name:'Carbonaia',w:6,h:6,cost:{wood:10,stone:2,planks:0},time:8,slots:2,want:1,need:'forest'},
-  smelter:{name:'Fonderia',w:6,h:6,cost:{wood:8,stone:14,planks:2},time:11,slots:2,want:1},
+  smelter:{name:'Fonderia',w:6,h:6,cost:{wood:8,stone:4,planks:2,bricks:8,lime:2},time:11,slots:2,want:1},
+  claypit:{name:"Cava d'argilla",w:6,h:6,cost:{wood:10,stone:2},time:8,slots:2,want:1,need:'water'},
+  brickworks:{name:'Fornace',w:6,h:6,cost:{wood:12,stone:10,planks:2},time:11,slots:2,want:1},
+  limekiln:{name:'Calcinaio',w:6,h:6,cost:{wood:10,stone:10},time:10,slots:2,want:1},
   fisher:{name:'Capanna del pescatore',w:6,h:6,cost:{wood:8,stone:0},time:8,slots:2,want:1,need:'water'},
   hunter:{name:'Capanna del cacciatore',w:6,h:6,cost:{wood:8,stone:0},time:8,slots:2,want:1,need:'forest'},
   // v38: la Merceria vende i prodotti lavorati delle botteghe (attrezzi, pane, tessuto, abiti): le botteghe li portano qui, le famiglie vengono a prenderli
@@ -49,7 +52,7 @@ const BT={
   // v65: il cerusico (barbiere-chirurgo medievale) cura i feriti; l'addetto deve aver frequentato la scuola (sa leggere e scrivere)
   surgeon:{name:'Bottega del cerusico',w:6,h:6,cost:{wood:14,stone:8,planks:4},time:12,slots:1,want:1},
   cemetery:{name:'Cimitero',w:9,h:4,cost:{wood:6,stone:10},time:12,slots:0,want:0},
-  church:{name:'Chiesa',w:9,h:9,cost:{wood:10,stone:24,planks:8},time:20,slots:0,want:0},
+  church:{name:'Chiesa',w:9,h:9,cost:{wood:10,stone:16,planks:8,lime:8},time:20,slots:0,want:0},
   // v55: tenda dei senza casa (la costruiscono da soli vicino al centro; si smonta, con metà dei materiali recuperati, quando la famiglia si trasferisce in una casa)
   tent:{name:'Tenda',w:2,h:2,cost:{wood:4,stone:0},time:6,slots:0,want:0,auto:true},
   well:{name:'Pozzo',w:2,h:2,cost:{wood:2,stone:6},time:6,slots:0,want:0},
@@ -58,7 +61,7 @@ const BT={
   stall:{name:'Banco del mercato',w:2,h:2,cost:{wood:0,stone:0},time:0,slots:0,want:0},
   // v48: difesa. La torre tira sui nemici entro TOWER_R celle (TOWER_DPS al secondo). v62: la caserma ha dei guerrieri (abitanti col mestiere di guerriero) che escono incontro ai nemici; armati con le armi del magazzino valgono 5/3 di un predone.
   watchtower:{name:'Torre di guardia',w:4,h:4,cost:{wood:22,stone:18},time:14,slots:0,want:0},
-  barracks:{name:'Caserma',w:6,h:6,cost:{wood:26,stone:22,planks:4},time:16,slots:3,want:2}
+  barracks:{name:'Caserma',w:6,h:6,cost:{wood:26,stone:12,planks:4,bricks:6,lime:4},time:16,slots:3,want:2}
 };
 // attrattiva: [forza, raggio in celle]. Positivo = piacevole, negativo = rumore e disagio.
 const ATTR={church:[4,36],well:[2.5,24],stall:[1.2,18],wood:[-3,24],quarry:[-4.5,33],mine:[-5,36],farm:[-1.5,18],forester:[0.6,18],granary:[-0.8,15],mill:[-1.5,21],inn:[1,21],sheepfold:[-0.8,15],school:[1,18],infirmary:[0.5,15],cemetery:[-0.5,15],plaza:[3.2,30],flowers:[0.9,12],statue:[2,21],carpenter:[-1.2,18],mason:[-1.2,18],smithy:[-1.8,21],bakery:[0.4,15],weaver:[-0.3,12],tailor:[0.2,12],mercery:[0.8,18],fisher:[-0.3,12],hunter:[-0.4,12],tavern:[1.6,24],hall:[2.6,30],taxoffice:[-0.5,15]};
@@ -80,7 +83,7 @@ const DIS={
   flux:{n:'Dissenteria',dur:[30,60],mort:0.0007},
   plague:{n:'Peste',dur:[70,120],mort:0.0035}
 };
-const TRADENAME={wood:'taglialegna',quarry:'cavatore',mine:'minatore',forester:'guardaboschi',farm:'contadino',store:'magazziniere',mill:'mugnaio',school:'maestro',inn:'oste',sheepfold:'pastore',infirmary:'erborista',carpenter:'falegname',mason:'muratore',smithy:'fabbro',bakery:'panettiere',weaver:'tessitore',tailor:'sarto',fisher:'pescatore',hunter:'cacciatore',tavern:'taverniere',hall:'musicante',mercery:'merciaio',retting:'maceratore',ropewalk:'cordaio',dyehouse:'tintore',charcoal:'carbonaio',smelter:'fonditore',barracks:'guerriero',surgeon:'cerusico',taxoffice:'esattore'};
+const TRADENAME={wood:'taglialegna',quarry:'cavatore',mine:'minatore',forester:'guardaboschi',farm:'contadino',store:'magazziniere',mill:'mugnaio',school:'maestro',inn:'oste',sheepfold:'pastore',infirmary:'erborista',carpenter:'falegname',mason:'muratore',smithy:'fabbro',bakery:'panettiere',weaver:'tessitore',tailor:'sarto',fisher:'pescatore',hunter:'cacciatore',tavern:'taverniere',hall:'musicante',mercery:'merciaio',claypit:'argillaio',brickworks:'fornaciaio',limekiln:'calcinaio',retting:'maceratore',ropewalk:'cordaio',dyehouse:'tintore',charcoal:'carbonaio',smelter:'fonditore',barracks:'guerriero',surgeon:'cerusico',taxoffice:'esattore'};
 // tratti di carattere (negativi): ogni abitante ne ha al massimo uno; i figli lo ereditano da un genitore con probabilità 35%
 const TRAITS={pigro:{n:'Pigro',d:'Lavora più lentamente e controvoglia.'},cagionevole:{n:'Cagionevole',d:'Si ammala più facilmente.'},brontolone:{n:'Brontolone',d:'Si lamenta di tutto: è sempre meno felice degli altri.'},litigioso:{n:'Litigioso',d:'Litiga con chi vive in casa e ne abbassa la felicità.'}};
 const TRAITK=Object.keys(TRAITS);
@@ -157,9 +160,9 @@ const heldCenter=r=>Math.max(0,S.stock[r]-S.wh[r]-S.xf[r]);
 // Magazzino: materiali da costruzione + prodotti degli artigiani (fabbro, tessitore, sarto). Granaio: cibo che non viene dai giardini (fattorie, mulino, forno, pesca, caccia).
 // Il centro cittadino resta com'era: 80 per ogni materiale, non configurabile. Le scorte restano un contatore per merce (S.stock); la loro suddivisione fra edifici è calcolata da layout().
 const GRAN_TOTAL=1000;
-const STORE_KEYS=['wood','stone','iron','planks','tools','cloth','clothes','rope','charcoal','bars','weapons'];
+const STORE_KEYS=['wood','stone','iron','planks','tools','cloth','clothes','rope','charcoal','bars','weapons','clay','bricks','lime'];
 const GRAN_KEYS=['grain','flour','bread','fish','meat'];
-const CENTER_KEYS=['wood','stone','iron','planks','charcoal','bars'];
+const CENTER_KEYS=['wood','stone','iron','planks','charcoal','bars','clay','bricks','lime'];
 const ALLKEYS=STORE_KEYS.concat(GRAN_KEYS);
 const keysOf=b=>b.type==='granary'?GRAN_KEYS:(b.center?CENTER_KEYS:STORE_KEYS);
 const totalOf=b=>b.type==='granary'?GRAN_TOTAL:(b.center?Infinity:STORE_CAP);
@@ -290,7 +293,7 @@ function init(sd,mode,diff,opt){
   gate.fill(0);gatedSet.clear();
   occ.fill(0);field.fill(0);lastStep.fill(0);wear.fill(0);plev.fill(0);phit.fill(0);pexp.fill(0);attr.fill(0);sapT.fill(0);
   buildings.clear();stCache=null;villagers=[];vmap.clear();reg.clear();resv.clear();plantResv.clear();nextId=1;guests.length=0;
-  S.t=0;S.festA=[];S.fests=0;festSeq=0;S.edicts=EDICT0();S.births=0;S.deaths=0;S.buried=0;S.unburied=0;S.extra={};S.wh={wood:0,stone:0,iron:0};S.xf={wood:0,stone:0,iron:0};S.stock={wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,rope:0,charcoal:0,bars:0,weapons:0};S.inflight={wood:0,stone:0,iron:0};S.grow=0;S.left=0;S.att={joy:0,unemp:0,a:0,bonus:0};S.barters=0;S.helps=0;S.visits=0;S.settled=0;S.season=0;S.year=1;S.frozen=false;acc.a1=0;acc.a05=0;acc.farm=0;acc.attr=99;for(const k in told)delete told[k];
+  S.t=0;S.festA=[];S.fests=0;festSeq=0;S.edicts=EDICT0();S.births=0;S.deaths=0;S.buried=0;S.unburied=0;S.extra={};S.wh={wood:0,stone:0,iron:0};S.xf={wood:0,stone:0,iron:0};S.stock={wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,rope:0,charcoal:0,bars:0,weapons:0,clay:0,bricks:0,lime:0};S.inflight={wood:0,stone:0,iron:0};S.grow=0;S.left=0;S.att={joy:0,unemp:0,a:0,bonus:0};S.barters=0;S.helps=0;S.visits=0;S.settled=0;S.season=0;S.year=1;S.frozen=false;acc.a1=0;acc.a05=0;acc.farm=0;acc.attr=99;for(const k in told)delete told[k];
   S.deathsBy={age:0,cold:0,hunger:0,ill:0};S.plague={on:false,since:0,dead:0};S.inherits=0;S.cured=0;S.sickTot=0;S.moves=0;S.made={};S.delivered=0;S.coins=COINS0;S.fin=mkFin();S.taxDay=-1;S.routes=mkRoutes();S.tradeOpt={sell:true,buy:true};S.tlog=[];S.trade={sold:0,bought:0,visits:0};
   S.story=!!(opt&&opt.story);S.rank=0;S.proj={};S.msgs=[];S.raid=raid0();S.wolf=wolf0();S.war=war0();S.rk=0;
   let okT=false,att=0;const base=(sd||7)|0;
@@ -319,7 +322,7 @@ function addBuilding(type,x,y,done,o){
   const t=BT[type];o=o||{};stCache=null;
   const rot=o.rot|0;let w,h;
   if(o.w){w=o.w;h=o.h;}else{[w,h]=dimsOf(t,rot);}
-  const b={id:nextId++,type,x,y,w,h,rot,state:done?'done':'site',got:{wood:0,stone:0,planks:0},fly:{wood:0,stone:0,planks:0},cost:done?null:costOf(type),prog:done?1:0,workers:[],want:(type==='sheepfold'&&o&&o.owner)?0:t.want,
+  const b={id:nextId++,type,x,y,w,h,rot,state:done?'done':'site',got:mkMat(),fly:mkMat(),cost:done?null:costOf(type),prog:done?1:0,workers:[],want:(type==='sheepfold'&&o&&o.owner)?0:t.want,
     cell:(y+(h>>1))*N+(x+(w>>1)),entrance:-1,zone:null};
   if(type==='house'){
     const goods={};for(const g of GOODS)goods[g]=0;const ate={};for(const g of TYPES)ate[g]=-999;
@@ -473,9 +476,16 @@ function addCemetery(cid){
 }
 // v32: gli edifici con assi nel costo le chiedono alla falegnameria; senza una falegnameria completata le assi si pagano in legno (2 legni per asse), così nessun cantiere si blocca.
 const PLANK_CAP=24,PLANK_WOOD=2;
+// v57: materiali di cantiere. Legno e pietra sempre; assi dalla falegnameria, mattoni dalla fornace, calce dal calcinaio. Senza la bottega che li produce si pagano in legno o pietra (più cari).
+const MATS=['wood','stone','planks','bricks','lime'];
+const mkMat=()=>({wood:0,stone:0,planks:0,bricks:0,lime:0});
+const BRICK_STONE=1.5;
 function costOf(type){
-  const c=BT[type].cost;if(!c.planks)return {wood:c.wood,stone:c.stone,planks:0};
-  return countDone('carpenter')?{wood:c.wood,stone:c.stone,planks:c.planks}:{wood:c.wood+PLANK_WOOD*c.planks,stone:c.stone,planks:0};
+  const c=BT[type].cost;let wood=c.wood,stone=c.stone,planks=c.planks||0,bricks=c.bricks||0,lime=c.lime||0;
+  if(planks&&!countDone('carpenter')){wood+=PLANK_WOOD*planks;planks=0;}
+  if(bricks&&!countDone('brickworks')){stone+=Math.ceil(bricks*BRICK_STONE);bricks=0;}
+  if(lime&&!countDone('limekiln')){stone+=Math.ceil(lime*BRICK_STONE);lime=0;}
+  return {wood,stone,planks,bricks,lime};
 }
 const costRes=b=>b.cost||costOf(b.type);
 // v56: un cantiere è un edificio in costruzione (state 'site') oppure una casa con un lavoro in corso (b.work: miglioramento o giardino): stessi costruttori, stessi trasporti
@@ -486,7 +496,7 @@ function uncommitted(res){
   for(const b of buildings.values())if(isSite(b)){const c=costRes(b);v-=(c[res]||0)-b.got[res]-b.fly[res];}
   return v;
 }
-function afford(type){const c=costOf(type);return uncommitted('wood')>=c.wood&&uncommitted('stone')>=c.stone&&uncommitted('planks')>=c.planks;}
+function afford(type){const c=costOf(type);return MATS.every(k=>uncommitted(k)>=(c[k]||0));}
 function place(type,x,y,rot){
   const m=canPlace(type,x,y,rot);if(m)return {ok:false,msg:m};
   if(!afford(type))return {ok:false,msg:'Risorse insufficienti (parte del materiale è già destinata ad altri cantieri)'};
@@ -507,9 +517,9 @@ function release(vid){
 function removeBuilding(id,noRefund){
   const b=buildings.get(id);if(!b)return;
   const t=BT[b.type];
-  if(b.state==='site'||b.work){S.stock.wood+=b.got.wood;S.stock.stone+=b.got.stone;S.stock.planks+=b.got.planks||0;if(b.work&&b.work.cells)for(const i of b.work.cells)if(occ[i]===b.id)occ[i]=0;}
+  if(b.state==='site'||b.work){for(const k of MATS)S.stock[k]+=b.got[k]|0;if(b.work&&b.work.cells)for(const i of b.work.cells)if(occ[i]===b.id)occ[i]=0;}
   if(b.state==='site'){}
-  else if(!b.center&&!noRefund){S.stock.wood+=Math.floor(t.cost.wood/2);S.stock.stone+=Math.floor(t.cost.stone/2);S.stock.planks+=Math.floor((t.cost.planks||0)/2);}
+  else if(!b.center&&!noRefund){S.stock.wood+=Math.floor(t.cost.wood/2);S.stock.stone+=Math.floor(t.cost.stone/2);for(const k of ['planks','bricks','lime'])S.stock[k]+=Math.floor((t.cost[k]||0)/2);}
   for(const vid of b.workers.slice())release(vid);
   for(const v of villagers){
     if(v.home===id)v.home=null;
@@ -684,7 +694,7 @@ const CART_LOAD=3,HAND_LOAD=1;
 function haulCap(v){const jb=v.job&&buildings.get(v.job);return jb&&jb.type==='store'?CART_LOAD:HAND_LOAD;}
 function haulTo(v,s,own){
   const t=costRes(s);let r=null,need=0;
-  for(const k of ['wood','stone','planks']){const nd=(t[k]||0)-s.got[k]-s.fly[k];if(nd>0&&S.stock[k]>0){r=k;need=nd;break;}}
+  for(const k of MATS){const nd=(t[k]||0)-(s.got[k]|0)-(s.fly[k]|0);if(nd>0&&S.stock[k]>0){r=k;need=nd;break;}}
   if(!r)return false;
   const st=nearestStore(v.cell);if(!st||!route(v,st.cell,st.id))return false;
   const n=Math.max(1,Math.min(haulCap(v),need,Math.floor(S.stock[r])));
@@ -727,12 +737,12 @@ function helpFamily(v){
   if(!route(v,best.gc,best.id))return false;
   v.helpH=best.id;v.state='toHelp';return true;
 }
-function siteReady(st){const c=costRes(st);return st.got.wood>=c.wood&&st.got.stone>=c.stone&&st.got.planks>=(c.planks||0);}
+function siteReady(st){const c=costRes(st);return MATS.every(k=>(st.got[k]|0)>=(c[k]||0));}
 // v46: la costruzione avanza solo fin dove sono arrivati i materiali (quota di materiali consegnati sul totale)
-const siteNeed=st=>{const c=costRes(st);return (c.wood||0)+(c.stone||0)+(c.planks||0);};
-const siteGot=st=>st.got.wood+st.got.stone+(st.got.planks||0);
+const siteNeed=st=>{const c=costRes(st);return MATS.reduce((a,k)=>a+(c[k]||0),0);};
+const siteGot=st=>MATS.reduce((a,k)=>a+(st.got[k]|0),0);
 const siteCap=st=>Math.min(1,siteGot(st)/Math.max(1,siteNeed(st)));
-const siteFly=st=>st.fly.wood+st.fly.stone+(st.fly.planks||0);
+const siteFly=st=>MATS.reduce((a,k)=>a+(st.fly[k]|0),0);
 const siteIdle=st=>!siteReady(st)&&st.prog>=siteCap(st)-1e-6;// niente da costruire coi materiali che ci sono
 // costruttori di un cantiere: chi costruisce, chi ci sta andando e chi è andato al magazzino a prendere i materiali per il suo cantiere
 // contati una volta a ogni passo (BA); chi diventa costruttore nello stesso passo si aggiunge subito (findBuild)
@@ -880,14 +890,15 @@ function woolSrc(b){let best=null;for(const o of buildings.values())if(o.type===
 function clothSrc(b){let best=null,bn=0;for(const o of buildings.values()){let n=0;if(o.type==='weaver'&&o.state==='done')n=o.out.cloth;else if(merceryOpen(o))n=o.shelf.cloth;if(n>=1&&cellDist(o.cell,b.cell)<BAND&&n>bn){best=o;bn=n;}}return best;}
 // v48: fibra del maceratoio (flaxf = lino, hempf = canapa), presa dalla bottega vicina senza trasporto, come la lana
 function fibreSrc(b,k){let best=null,bn=0;for(const o of buildings.values())if(o.type==='retting'&&o.state==='done'&&o.out[k]>=1&&cellDist(o.cell,b.cell)<BAND&&o.out[k]>bn){best=o;bn=o.out[k];}return best;}
-const RET_CAP=24,CHAR_CAP=30,BAR_CAP=30;
+const RET_CAP=24,CHAR_CAP=30,BAR_CAP=30,CLAY_CAP=40,BRICK_CAP=40,LIME_CAP=30;
 const charcoalWanted=()=>S.stock.charcoal<6&&countDone('smelter')>0;
 const inpTot=o=>(o.inp.flax|0)+(o.inp.hemp|0)+(o.inp.dye|0);
 // dove un contadino porta il raccolto: lino e canapa al maceratoio, piante tintorie alla tintoria
 const sinkOf=b=>b.crop==='dye'?'dyehouse':(b.crop==='flax'||b.crop==='hemp')?'retting':null;
 function retInfo(type){type=type||'retting';let any=false,room=false;for(const o of buildings.values())if(o.type===type&&o.state==='done'){any=true;if(inpTot(o)<RET_CAP)room=true;}return {any,room};}
 function dyedSrc(b){let best=null,bn=0;for(const o of buildings.values())if(o.type==='dyehouse'&&o.state==='done'&&o.out.dyed>=1&&cellDist(o.cell,b.cell)<BAND&&o.out.dyed>bn){best=o;bn=o.out.dyed;}return best;}
-function planksWanted(){for(const b of buildings.values())if(isSite(b)){const c=costRes(b);if((c.planks||0)-b.got.planks-b.fly.planks>0)return true;}return false;}
+function matWanted(k){for(const b of buildings.values())if(isSite(b)){const c=costRes(b);if((c[k]||0)-(b.got[k]|0)-(b.fly[k]|0)>0)return true;}return false;}
+const planksWanted=()=>matWanted('planks');
 // v62: armi. Ogni guerriero schierato ne usa una; il fabbro ne forgia finché le scorte non arrivano a WEAPON_TARGET per posto di guerriero (o le si importa da Rocca Alta e Campomaggio).
 const WEAPON_PER_POST=2;
 const warriorPosts=()=>{let n=0;for(const b of buildings.values())if(b.type==='barracks'&&b.state==='done')n+=b.want;return n;};
@@ -903,6 +914,9 @@ const WS={
   surgeon:{t:10,can:b=>true,run:b=>{}},
   charcoal:{t:10,why:'Serve legno nel magazzino (la carbonaia lavora quando ce n\'è in abbondanza o la fonderia ha bisogno di carbone) o il magazzino del carbone è pieno',can:b=>S.stock.wood>=3&&S.stock.charcoal<CHAR_CAP&&stockRoom('charcoal')>=2&&(S.stock.wood>=30||charcoalWanted()),run:b=>{S.stock.wood-=3;S.stock.charcoal=Math.min(CHAR_CAP,S.stock.charcoal+2);}},
   smelter:{t:11,why:'Servono ferro (minerale della miniera) e carbone (carbonaia) nel magazzino, o il magazzino delle barre è pieno',can:b=>S.stock.iron>=2&&S.stock.charcoal>=1&&S.stock.bars<BAR_CAP&&stockRoom('bars')>=2,run:b=>{S.stock.iron-=2;S.stock.charcoal--;S.stock.bars=Math.min(BAR_CAP,S.stock.bars+2);}},
+  claypit:{t:8,why:"Il magazzino dell'argilla è pieno",can:b=>S.stock.clay<CLAY_CAP&&stockRoom('clay')>=3,run:b=>{S.stock.clay=Math.min(CLAY_CAP,S.stock.clay+3);}},
+  brickworks:{t:10,why:'Servono argilla (cava) e combustibile (carbone, o legno in abbondanza) nel magazzino, o il magazzino dei mattoni è pieno',can:b=>S.stock.clay>=2&&(S.stock.charcoal>=1||S.stock.wood>=30)&&S.stock.bricks<BRICK_CAP&&stockRoom('bricks')>=3,run:b=>{S.stock.clay-=2;if(S.stock.charcoal>=1)S.stock.charcoal--;else S.stock.wood-=3;S.stock.bricks=Math.min(BRICK_CAP,S.stock.bricks+3);}},
+  limekiln:{t:10,why:'Servono pietra in abbondanza (o un cantiere che chiede calce) e combustibile (carbone, o legno in abbondanza), o il magazzino della calce è pieno',can:b=>S.stock.stone>=3&&(S.stock.stone>=25||matWanted('lime'))&&(S.stock.charcoal>=1||S.stock.wood>=30)&&S.stock.lime<LIME_CAP&&stockRoom('lime')>=2,run:b=>{S.stock.stone-=3;if(S.stock.charcoal>=1)S.stock.charcoal--;else S.stock.wood-=3;S.stock.lime=Math.min(LIME_CAP,S.stock.lime+2);}},
   bakery:{t:8,why:'Serve farina dal mulino o le scorte di pane sono piene',can:b=>S.stock.flour>=1&&b.out.bread<OUTCAP,run:b=>{S.stock.flour--;b.out.bread+=3;}},
   weaver:{t:9,why:'Serve lana (ovile con i pastori) o fibra di lino (fattoria con lino e maceratoio)',can:b=>b.out.cloth<OUTCAP&&(!!fibreSrc(b,'flaxf')||!!woolSrc(b)),run:b=>{const f=fibreSrc(b,'flaxf');if(f){f.out.flaxf--;b.out.cloth+=3;return;}const o=woolSrc(b);if(o){o.buf--;b.out.cloth+=2;}}},
   retting:{t:8,why:'Servono steli di lino o canapa dalle fattorie (scegli la coltura nel pannello della fattoria) o la fibra pronta è troppa',can:b=>b.inp.flax+b.inp.hemp>=1&&b.out.flaxf+b.out.hempf<OUTCAP,run:b=>{const k=b.inp.flax>=b.inp.hemp?'flax':'hemp';b.inp[k]--;b.out[k+'f']++;}},
@@ -2296,10 +2310,10 @@ function diseaseTick(){
 // v56: lavori su una casa già abitata. kind 'up' = miglioramento di livello (la casa resta abitata mentre i costruttori lavorano).
 function startHouseWork(b,kind,cost,time,extra){
   b.work=Object.assign({kind,time,st:0},extra||{});
-  b.cost={wood:cost.wood||0,stone:cost.stone||0,planks:0};b.got={wood:0,stone:0,planks:0};b.fly={wood:0,stone:0,planks:0};b.prog=0;
+  b.cost=Object.assign(mkMat(),{wood:cost.wood||0,stone:cost.stone||0});b.got=mkMat();b.fly=mkMat();b.prog=0;
   hooks.regarden(b);
 }
-function endWork(b){b.work=null;b.cost=null;b.prog=1;b.got={wood:0,stone:0,planks:0};b.fly={wood:0,stone:0,planks:0};}
+function endWork(b){b.work=null;b.cost=null;b.prog=1;b.got=mkMat();b.fly=mkMat();}
 function workDone(b){
   const w=b.work;endWork(b);
   if(w.kind==='up'){
@@ -2700,10 +2714,10 @@ const RANK_NAMES=['Accampamento','Casale','Villaggio','Borgo','Borgo fortificato
 const BRANCHES=[{id:'vita',n:'Vita e comunità'},{id:'legno',n:'Legno, pietra e ferro'},{id:'campi',n:'Campi e cibo'},{id:'tessile',n:'Tessile'},{id:'commercio',n:'Commercio e ospitalità'},{id:'difesa',n:'Difesa'},{id:'decoro',n:'Decoro e feste'}];
 const PROJ=[
   {id:'well',br:'vita',rank:1,cost:{wood:10,stone:6}},{id:'d3',br:'commercio',rank:1,cost:{wood:12}},{id:'store',br:'commercio',rank:1,cost:{wood:18,stone:8}},{id:'d4',br:'legno',rank:1,cost:{wood:8}},{id:'forester',br:'legno',rank:1,req:['d4'],cost:{wood:10}},
-  {id:'church',br:'vita',rank:2,cost:{wood:20,stone:30}},{id:'d2',br:'campi',rank:2,cost:{wood:14}},{id:'granary',br:'campi',rank:2,req:['d2'],cost:{wood:16,stone:8}},{id:'carpenter',br:'legno',rank:2,req:['d4'],cost:{wood:16,stone:8}},{id:'mason',br:'legno',rank:2,cost:{wood:12,stone:16}},{id:'fisher',br:'campi',rank:2,cost:{wood:12}},{id:'hunter',br:'campi',rank:2,cost:{wood:12}},
-  {id:'watchtower',br:'difesa',rank:3,cost:{wood:22,stone:18}},{id:'mine',br:'legno',rank:3,req:['mason'],cost:{wood:20,stone:14}},{id:'mill',br:'campi',rank:3,req:['granary'],cost:{wood:20,stone:20}},{id:'school',br:'vita',rank:3,req:['church'],cost:{wood:24,stone:16}},{id:'infirmary',br:'vita',rank:3,req:['church'],cost:{wood:22,stone:16}},{id:'surgeon',br:'vita',rank:3,req:['school'],cost:{wood:20,stone:12}},{id:'smithy',br:'legno',rank:3,req:['mine'],cost:{wood:20,stone:20}},{id:'cemetery',br:'vita',rank:3,req:['church'],cost:{wood:12,stone:16}},
+  {id:'church',br:'vita',rank:2,cost:{wood:20,stone:30}},{id:'d2',br:'campi',rank:2,cost:{wood:14}},{id:'granary',br:'campi',rank:2,req:['d2'],cost:{wood:16,stone:8}},{id:'carpenter',br:'legno',rank:2,req:['d4'],cost:{wood:16,stone:8}},{id:'mason',br:'legno',rank:2,cost:{wood:12,stone:16}},{id:'claypit',br:'legno',rank:2,req:['mason'],cost:{wood:10,stone:6}},{id:'fisher',br:'campi',rank:2,cost:{wood:12}},{id:'hunter',br:'campi',rank:2,cost:{wood:12}},
+  {id:'watchtower',br:'difesa',rank:3,cost:{wood:22,stone:18}},{id:'brickworks',br:'legno',rank:3,req:['claypit'],cost:{wood:16,stone:12}},{id:'limekiln',br:'legno',rank:3,req:['mason'],cost:{wood:14,stone:14}},{id:'mine',br:'legno',rank:3,req:['mason'],cost:{wood:20,stone:14}},{id:'mill',br:'campi',rank:3,req:['granary'],cost:{wood:20,stone:20}},{id:'school',br:'vita',rank:3,req:['church'],cost:{wood:24,stone:16}},{id:'infirmary',br:'vita',rank:3,req:['church'],cost:{wood:22,stone:16}},{id:'surgeon',br:'vita',rank:3,req:['school'],cost:{wood:20,stone:12}},{id:'smithy',br:'legno',rank:3,req:['mine','brickworks'],cost:{wood:20,stone:20}},{id:'cemetery',br:'vita',rank:3,req:['church'],cost:{wood:12,stone:16}},
   {id:'bakery',br:'campi',rank:4,req:['mill'],cost:{wood:20,stone:20}},{id:'d5',br:'campi',rank:4,cost:{wood:12}},{id:'d6',br:'vita',rank:4,cost:{wood:20,stone:12}},{id:'sheepfold',br:'campi',rank:4,req:['d5'],cost:{wood:16,stone:4}},{id:'inn',br:'commercio',rank:4,req:['store'],cost:{wood:26,stone:18}},{id:'tavern',br:'commercio',rank:4,req:['inn'],cost:{wood:24,stone:16}},{id:'mercery',br:'commercio',rank:4,req:['store','d3'],cost:{wood:22,stone:16}},{id:'taxoffice',br:'commercio',rank:5,req:['mercery'],cost:{wood:20,stone:14}},{id:'barracks',br:'difesa',rank:4,req:['watchtower'],cost:{wood:30,stone:28}},
-  {id:'charcoal',br:'legno',rank:4,req:['forester'],cost:{wood:14,stone:4}},{id:'smelter',br:'legno',rank:4,req:['mine','charcoal'],cost:{wood:16,stone:24}},
+  {id:'charcoal',br:'legno',rank:4,req:['forester'],cost:{wood:14,stone:4}},{id:'smelter',br:'legno',rank:4,req:['mine','charcoal','brickworks'],cost:{wood:16,stone:24}},
   {id:'retting',br:'tessile',rank:5,cost:{wood:16,stone:6,coins:20}},{id:'ropewalk',br:'tessile',rank:5,req:['retting'],cost:{wood:18,stone:6,coins:30}},
   {id:'weaver',br:'tessile',rank:5,cost:{wood:20,stone:10,coins:30}},{id:'tailor',br:'tessile',rank:5,req:['weaver'],cost:{wood:20,stone:10,coins:30}},{id:'plaza',br:'decoro',rank:5,cost:{stone:30,coins:40}},{id:'hall',br:'decoro',rank:5,req:['plaza'],cost:{wood:30,stone:30,coins:60}},
   {id:'dyehouse',br:'tessile',rank:6,req:['retting','weaver'],cost:{wood:20,stone:10,coins:40}},
@@ -3395,7 +3409,7 @@ function step(dt){
   acc.a05+=dt;if(acc.a05>=0.5){acc.a05-=0.5;decay();}
   acc.a1+=dt;if(acc.a1>=1){acc.a1-=1;acc.attr+=1;tick1();}
 }
-const RESNAME={wood:'il legno',stone:'la pietra',planks:'le assi'};
+const RESNAME={wood:'il legno',stone:'la pietra',planks:'le assi',bricks:'i mattoni',lime:'la calce'};
 function roleText(v){
   if(v.ill&&(v.state==='sleep'||v.state==='eat'||v.state==='wait'||v.state==='idle'))return 'Malato ('+DIS[v.ill.k].n.toLowerCase()+'): a letto';
   switch(v.state){
@@ -3440,7 +3454,7 @@ function roleText(v){
   }
   if(v.child)return v.age<6?'Gioca in giardino':'Gioca';
   const b=v.job&&buildings.get(v.job);
-  if(b){const R={school:'Maestro',inn:'Oste',sheepfold:'Pastore',wood:'Taglialegna',quarry:'Cavatore',mine:'Minatore',forester:'Guardaboschi',mill:'Mugnaio',farm:'Contadino',store:'Magazziniere',infirmary:'Erborista',carpenter:'Falegname',mason:'Muratore',smithy:'Fabbro',bakery:'Panettiere',weaver:'Tessitore',tailor:'Sarto',fisher:'Pescatore',hunter:'Cacciatore',tavern:'Taverniere',hall:'Musicante',mercery:'Merciaio',retting:'Maceratore',ropewalk:'Cordaio',dyehouse:'Tintore',charcoal:'Carbonaio',smelter:'Fonditore',barracks:'Guerriero',surgeon:'Cerusico',taxoffice:'Esattore'};if(R[b.type])return R[b.type]+(v.loan?' (in prestito)':'');}
+  if(b){const R={school:'Maestro',inn:'Oste',sheepfold:'Pastore',wood:'Taglialegna',quarry:'Cavatore',mine:'Minatore',forester:'Guardaboschi',mill:'Mugnaio',farm:'Contadino',store:'Magazziniere',infirmary:'Erborista',carpenter:'Falegname',mason:'Muratore',smithy:'Fabbro',bakery:'Panettiere',weaver:'Tessitore',tailor:'Sarto',fisher:'Pescatore',hunter:'Cacciatore',tavern:'Taverniere',hall:'Musicante',mercery:'Merciaio',retting:'Maceratore',ropewalk:'Cordaio',dyehouse:'Tintore',charcoal:'Carbonaio',smelter:'Fonditore',claypit:'Argillaio',brickworks:'Fornaciaio',limekiln:'Calcinaio',barracks:'Guerriero',surgeon:'Cerusico',taxoffice:'Esattore'};if(R[b.type])return R[b.type]+(v.loan?' (in prestito)':'');}
   if(v.loan)return 'Senza posto: troppa merce ('+TRADENAME[v.loan]+')';
   const h=v.home&&buildings.get(v.home);
   if(h){if(h.tailor)return 'Sarto';if(h.weave)return 'Tessitore';if(h.bake)return 'Panettiere';if(h.craft)return 'Artigiano';return h.dens?'Fa la spesa e le faccende di casa':h.crop==='veg'?"Cura l'orto":h.crop==='eggs'?'Alleva galline':h.crop==='wood'?'Raccoglie legna da ardere':'Alleva maiali e pecore';}
@@ -3517,7 +3531,7 @@ function importState(d){
   seed=d.seed;for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;jit[i]=hash(x,y+500)*0.15;}
   for(const k of Object.keys(S))delete S[k];
   Object.assign(S,Sx);lastStep.fill(S.t||0);
-  S.extra=(S.extra&&typeof S.extra==='object')?S.extra:{};S.edicts=Object.assign(EDICT0(),S.edicts);S.stock=Object.assign({wood:0,stone:0,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,rope:0,charcoal:0,bars:0,weapons:0},S.stock);
+  S.extra=(S.extra&&typeof S.extra==='object')?S.extra:{};S.edicts=Object.assign(EDICT0(),S.edicts);S.stock=Object.assign({wood:0,stone:0,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,rope:0,charcoal:0,bars:0,weapons:0,clay:0,bricks:0,lime:0},S.stock);
   for(const k of ['wh','xf','inflight'])S[k]=Object.assign({wood:0,stone:0,iron:0},S[k]);
   S.coins=Number.isFinite(S.coins)?S.coins:COINS0;S.fin=Object.assign(mkFin(),S.fin);S.taxDay=Number.isFinite(S.taxDay)?S.taxDay:-1;{const rt=Array.isArray(S.routes)?S.routes:[];S.routes=mkRoutes().map(r=>Object.assign(r,rt.find(x=>x&&x.id===r.id)||{}));}S.tradeOpt=Object.assign({sell:true,buy:true},S.tradeOpt);S.tlog=Array.isArray(S.tlog)?S.tlog:[];S.trade=Object.assign({sold:0,bought:0,visits:0},S.trade);
   S.mode=S.mode==='river'?'river':'lake';S.diff=DIFFS[S.diff]?S.diff:'facile';S.repairs=S.repairs|0;S.ruined=S.ruined|0;
@@ -3528,6 +3542,8 @@ function importState(d){
   resv.clear();for(const [k,r] of rv)resv.set(k,r);
   plantResv.clear();for(const i of pr)plantResv.add(i);
   buildings.clear();for(const b of bl)buildings.set(b.id,b);
+  // v57: i salvataggi vecchi non hanno mattoni e calce nei cantieri
+  for(const b of buildings.values()){if(b.got)for(const k of MATS)b.got[k]=b.got[k]|0;if(b.fly)for(const k of MATS)b.fly[k]=b.fly[k]|0;}
   villagers=vl;vmap.clear();for(const v of vl)vmap.set(v.id,v);
   guests.length=0;for(const g of gl)guests.push(g);
   nextId=d.nextId;stCache=null;connCache.clear();connStamp=-1;occStamp++;
@@ -3542,7 +3558,7 @@ return {TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWa
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,NEEDS,NEED_LOW,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
   TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,WAGE_JOB,EDU_JOBS,CITY_RANK,WAGE_OWE_CAP,wageJob,wageOf,wagePayer,TAX_WEEK,TAX_POUCH,WAGE,WAGE_SEC,SILVER_GOLD,TAX_MARGIN,MSELL,MSELL_KEEP,MSELL_LIM,taxOf,money,taxActive,taxStats,taxDue,taxRefuses,merceryTakes,merceryBuy,merceryBuyer,jobless,kingJob,cityMakes,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
-  setFarmCrop,fibreCrop,sinkOf,CHAR_CAP,BAR_CAP,retInfo,RET_CAP,DIFFS,diffOf,maintStats,condOf,condLabel,maintainable,REPAIR_BELOW,WORN_AT,
+  setFarmCrop,fibreCrop,sinkOf,CHAR_CAP,BAR_CAP,CLAY_CAP,BRICK_CAP,LIME_CAP,MATS,retInfo,RET_CAP,DIFFS,diffOf,maintStats,condOf,condLabel,maintainable,REPAIR_BELOW,WORN_AT,
   STORE_KEYS,GRAN_KEYS,GRAN_TOTAL,CENTER_CAP,setPolicy,storeInfo,stockRoom,capRes,reconcileStock,extraTotal,festTakeFood,
   _t:{jobNeed,jobSurplus,rebalanceJobs,JOBRES,JOB_MARGIN,JOB_DWELL,tradeTick,doTrade,chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
   grids:{tree,rock,ore,water,sap,sapT,road,dist,occ,wear,plev,field,door,attr,cen},guests:()=>guests,buildings:()=>buildings,villagers:()=>villagers};

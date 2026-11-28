@@ -1,5 +1,15 @@
 # Changelog
 
+## v68 – 2026-11-28
+Funzione nuova: filiera del muratore (argilla → mattoni, pietra → calce) e due nuovi materiali di cantiere che collegano la filiera alle costruzioni successive.
+- **Cava d'argilla** (vicino all'acqua, 2 posti): +3 argilla ogni ciclo, scorta massima 40. **Fornace** (2 posti, 2 assi): 2 argille + carbone (o 3 legni se il legno è ≥30) → 3 mattoni, massimo 40. **Calcinaio** (2 posti): 3 pietre + combustibile → 2 calce quando la pietra è ≥25 o un cantiere chiede calce, massimo 30.
+- **Mattoni e calce sono materiali di cantiere** (come le assi): fucina 6 mattoni, forno 6 mattoni, fonderia 8 mattoni + 2 calce, mulino 3 calce, chiesa 8 calce, caserma 6 mattoni + 4 calce. Senza fornace/calcinaio completati si pagano in pietra (1,5 pietre per pezzo, arrotondate per eccesso): nessun cantiere si blocca e le vecchie partite funzionano. Demolendo un cantiere i pezzi consegnati tornano in magazzino.
+- **Livelli nell'albero dei blueprint (regola da ora per ogni novità: ogni cosa ha un titolo e dipende solo da cose di titolo uguale o inferiore):** muratore (2) → cava d'argilla (2) → fornace (3); muratore → calcinaio (3); **fucina (3) richiede miniera + fornace; fonderia (4) richiede miniera + carbonaia + fornace**. Le dipendenze tra rami diversi (forno, chiesa, mulino, caserma → mattoni/calce) restano espresse dal costo di cantiere, perché `tests/albero.js` vieta i prerequisiti fra rami.
+- Merci nuove: argilla, mattoni, calce nel centro e nei Magazzini (accettazione e massimali configurabili) e nel salvataggio (vecchi salvataggi: chiavi a zero).
+- Interfaccia: costi e avanzamento dei cantieri mostrano mattoni e calce, modelli 3D di cava, fornace e calcinaio, voci nel menù Botteghe.
+- Test: nuovo `tests/laterizi.js`; `tests/storage.js` aggiornato.
+- Non verificato in un browser WebGL: aspetto dei tre modelli, dei pannelli e dei nuovi colori del cantiere.
+
 ## v67 – 2026-11-28
 Funzione nuova: i lupi, le ferite che restano e la Bottega del cerusico. In più, correzione di un difetto della v63.
 - **Lupi:** dal titolo di Villaggio, di notte, arriva un **branco di almeno 4 lupi** (4-8, uno in più dal titolo 4) ogni 2-5 giorni circa (`S.wolf`, `wolfTick`, `spawnWolves`). Ogni lupo ha **1/6 della forza di un brigante** (la metà di un cittadino) in punti ferita e danno, con lo stesso moltiplicatore `pow` delle bande del momento. Non vengono mentre ci sono briganti o la guerra del Re.

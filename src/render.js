@@ -786,6 +786,28 @@ const BUILD={
     for(let k=0;k<3;k++)cyl(g,.22,.22,.14,10,MAT.cream,-.2+k*.4,.15,1.3,Math.PI/2,0);
     bx(g,.5,.35,.4,MAT.timber,2.6,.2,1.1);cyl(g,.12,.12,.4,8,MAT.hay,2.6,.5,1.1);
     return g;},
+  claypit(b){const g=new THREE.Group();
+    bx(g,1.8,1.0,1.5,MAT.logD,-1.1,.5,-.9);for(const y of[.2,.5,.8])bx(g,1.86,.05,1.56,MAT.timber,-1.1,y,-.9);
+    gab(g,2.0,1.7,.65,MAT.thatch,1.0,-1.1,-.9);bx(g,.5,.8,.06,MAT.door,-1.1,.4,-.12);
+    // buca d'argilla con acqua, mucchi di argilla e carriola
+    bx(g,2.0,.12,1.6,MAT.soil,1.0,.06,.6);bx(g,1.4,.04,1.0,MAT.water,1.0,.14,.6);
+    for(const [x,z] of[[2.0,-.6],[2.4,.0],[2.2,.8]])sph(g,.45,MAT.rust,x,.15,z,1.2,.6,1);
+    bx(g,.6,.2,.4,MAT.log,-.1,.3,1.3);cyl(g,.14,.14,.06,8,MAT.timber,.3,.14,1.3,0,Math.PI/2);
+    return g;},
+  brickworks(b){const g=new THREE.Group();
+    bx(g,2.0,1.0,1.7,MAT.plaster,-1.0,.5,-.9);bx(g,2.1,.1,1.8,MAT.timber,-1.0,1.0,-.9);gab(g,2.3,1.8,.7,MAT.tile,1.1,-1.0,-.9);bx(g,.5,.8,.06,MAT.door,-1.2,.4,-.04);
+    // fornace a cupola di mattoni con la bocca accesa e cataste di mattoni
+    cyl(g,.8,1.0,1.6,10,MAT.rust,.9,.8,-.7);cyl(g,.45,.8,.5,10,MAT.rust,.9,1.85,-.7);chim(g,.9,2.3,-.7,.8);bx(g,.4,.4,.06,MAT.fire,.9,.35,-.02);
+    for(let k=0;k<3;k++)for(let m=0;m<3;m++)bx(g,.5,.16,.25,MAT.tile,-1.4+k*.6,.1+m*.17,1.2);
+    for(let k=0;k<2;k++)bx(g,.5,.16,.25,MAT.rust,1.1+k*.6,.1,1.2);
+    return g;},
+  limekiln(b){const g=new THREE.Group();
+    bx(g,1.8,1.0,1.5,MAT.stoneD,-1.2,.5,-.9);gab(g,2.0,1.7,.65,MAT.slate,1.0,-1.2,-.9);bx(g,.5,.8,.06,MAT.door,-1.2,.4,-.12);
+    // forno a pozzo di pietra con camino e sacchi di calce
+    cyl(g,.7,.9,1.8,10,MAT.stone,.8,.9,-.7);cyl(g,.5,.6,.2,10,MAT.stoneD,.8,1.9,-.7);bx(g,.45,.35,.06,MAT.fire,.8,.3,-.02);
+    for(const [x,z] of[[.5,1.2],[1.0,1.3],[1.5,1.1]])sph(g,.3,MAT.flour,x,.25,z,1,1.1,1);
+    for(let k=0;k<3;k++)bx(g,.4,.14,.3,MAT.stone,-1.6+k*.45,.08,1.3);
+    return g;},
   charcoal(b){const g=new THREE.Group();
     bx(g,1.8,1.0,1.5,MAT.logD,-1.0,.5,-.9);for(const y of[.2,.5,.8])bx(g,1.86,.05,1.56,MAT.timber,-1.0,y,-.9);
     gab(g,2.0,1.7,.65,MAT.thatch,1.0,-1.0,-.9);bx(g,.5,.8,.06,MAT.door,-1.0,.4,-.12);
@@ -1137,6 +1159,9 @@ const TOOLS=[
   {id:'bakery',label:'Forno del panettiere',key:'',hint:'Trasforma la farina del mulino in pane (3 pagnotte per farina ogni 8 s) e lo porta alle famiglie.'},
   {id:'weaver',label:'Telaio del tessitore',key:'',hint:'Trasforma la lana degli ovili in tessuto (2 per lana ogni 9 s) o la fibra di lino del maceratoio (3 per fibra). Serve un ovile con i pastori, oppure lino e maceratoio.'},
   {id:'retting',label:'Maceratoio',key:'',hint:'Sulla riva di un lago o di un fiume. Macera gli steli di lino e canapa portati dalle fattorie (1 fibra per stelo ogni 8 s). La coltura si sceglie nel pannello della fattoria.'},
+  {id:'claypit',label:"Cava d'argilla",key:'',hint:"Sulla riva di un lago o di un fiume. Scava argilla (3 ogni 8 s per addetto) per la fornace dei mattoni."},
+  {id:'brickworks',label:'Fornace',key:'',hint:"Cuoce 2 argilla con carbone (o 3 legni, se il legno è abbondante) in 3 mattoni. I mattoni servono a costruire fucina, fonderia, forno e caserma: senza fornace si pagano in pietra, più cara."},
+  {id:'limekiln',label:'Calcinaio',key:'',hint:"Cuoce 3 pietre con carbone (o 3 legni) in 2 calce. La calce serve a costruire fonderia, mulino, chiesa e caserma. Lavora quando la pietra è abbondante o un cantiere chiede calce."},
   {id:'charcoal',label:'Carbonaia',key:'',hint:'Vicino a un bosco fitto. Trasforma il legno del magazzino in carbone (2 ogni 3 legni, ogni 10 s). Lavora quando il legno è abbondante (30 o più) o quando la fonderia ha bisogno di carbone.'},
   {id:'smelter',label:'Fonderia',key:'',hint:'Fonde 2 ferro della miniera con 1 carbone in 2 barre di ferro (ogni 11 s). Il fabbro ricava 5 attrezzi da una barra invece di 3 da un ferro. Le barre si vendono a caro prezzo ai mercanti.'},
   {id:'ropewalk',label:'Cordaio',key:'',hint:'Torce la fibra di canapa del maceratoio in corde (3 per fibra ogni 9 s). Le corde si vendono ai mercanti e rinforzano le riparazioni degli edifici.'},
@@ -1171,7 +1196,7 @@ const CATS=[
   {id:'tools',label:'Strumenti',ids:['select','pan','demolish']},
   {id:'zone',label:'Zone e strade',ids:['d1','d2','d3','d4','d5','d6','undistrict','road']},
   {id:'prod',label:'Produzione',ids:['wood','quarry','mine','forester','granary','mill']},
-  {id:'shop',label:'Botteghe',ids:['carpenter','mason','smithy','bakery','sheepfold','charcoal','smelter','retting','ropewalk','dyehouse','weaver','tailor','fisher','hunter','mercery']},
+  {id:'shop',label:'Botteghe',ids:['carpenter','mason','claypit','brickworks','limekiln','smithy','bakery','sheepfold','charcoal','smelter','retting','ropewalk','dyehouse','weaver','tailor','fisher','hunter','mercery']},
   {id:'serv',label:'Servizi',ids:['store','well','school','infirmary','surgeon','church','inn','tavern','hall','taxoffice']},
   {id:'deco',label:'Decorazioni',ids:['plaza','flowers','statue']},
   {id:'def',label:'Difesa',ids:['watchtower','barracks']}];
@@ -1181,7 +1206,7 @@ let curCat='tools';
 function setCat(c){curCat=c;for(const k in toolBtns)toolBtns[k].style.display=CATOF[k]===c&&Sim.owns(k)?'':'none';for(const k in catBtns)catBtns[k].classList.toggle('on',k===c);}
 for(const c of CATS){const b=document.createElement('button');b.className='btn sm';b.type='button';b.textContent=c.label;b.addEventListener('click',()=>setCat(c.id));$('cats').appendChild(b);catBtns[c.id]=b;}
 let tool='select';const toolBtns={};let drag=null,hover=null,pend=false;
-const costHTML=c=>(c.wood?`<span><i class="sw w"></i>${c.wood}</span>`:'')+(c.stone?`<span><i class="sw s"></i>${c.stone}</span>`:'')+(c.planks?`<span><i class="sw p"></i>${c.planks}</span>`:'');
+const costHTML=c=>(c.wood?`<span><i class="sw w"></i>${c.wood}</span>`:'')+(c.stone?`<span><i class="sw s"></i>${c.stone}</span>`:'')+(c.planks?`<span><i class="sw p"></i>${c.planks}</span>`:'')+(c.bricks?`<span><i class="sw b"></i>${c.bricks}</span>`:'')+(c.lime?`<span><i class="sw l"></i>${c.lime}</span>`:'');
 for(const t of TOOLS){
   const b=document.createElement('button');b.className='btn';b.type='button';
   b.innerHTML=`<span class="nm">${t.label}${t.key?`<kbd>${t.key.toUpperCase()}</kbd>`:''}</span><span class="cs">${BT[t.id]?costHTML(BT[t.id].cost):''}</span>`;
@@ -1207,7 +1232,7 @@ function refreshSel(){
   let name=t.name,info='',list='';
   const VM=id=>Sim.villagers().find(v=>v.id===id);
   const stt=Sim.stats();
-  if(b.state==='site'){const sc=b.cost||Sim.costOf(b.type),need=sc.wood+sc.stone+(sc.planks||0),got=b.got.wood+b.got.stone+(b.got.planks||0);info=(b.prog>0?`In costruzione: ${Math.round(b.prog*100)}%`:`Cantiere: materiali portati ${got}/${need}${sc.planks?` (assi ${b.got.planks}/${sc.planks})`:''}`)+(()=>{const nb=Sim.villagers().filter(v=>v.state==='build'&&v.target===b.id).length;const full=Sim.siteReady(b);return full?` · operai al lavoro: ${nb}${nb?'':' (servono operai)'}`:'';})()+(S.ph==='work'?'':' · i lavori riprendono al mattino');}
+  if(b.state==='site'){const sc=b.cost||Sim.costOf(b.type),need=Sim.MATS.reduce((a,k)=>a+(sc[k]||0),0),got=Sim.MATS.reduce((a,k)=>a+(b.got[k]|0),0);info=(b.prog>0?`In costruzione: ${Math.round(b.prog*100)}%`:`Cantiere: materiali portati ${got}/${need}${[['planks','assi'],['bricks','mattoni'],['lime','calce']].filter(([k])=>sc[k]).map(([k,n])=>` (${n} ${b.got[k]|0}/${sc[k]})`).join('')}`)+(()=>{const nb=Sim.villagers().filter(v=>v.state==='build'&&v.target===b.id).length;const full=Sim.siteReady(b);return full?` · operai al lavoro: ${nb}${nb?'':' (servono operai)'}`:'';})()+(S.ph==='work'?'':' · i lavori riprendono al mattino');}
   else if(b.type==='house'){
     name=Sim.LVNAME[b.level-1];const cap=Sim.CAPS[b.level-1],fl=b.flags,gd=b.goods,fn=Sim.fuelNeed();
     const hd=b.head&&VM(b.head);
@@ -1252,6 +1277,9 @@ function refreshSel(){
       bakery:`Un panettiere trasforma 1 farina in 3 pagnotte ogni ${spec.t} s e le porta alle famiglie. Farina nei mulini: ${S.stock.flour}.`,
       weaver:`Un tessitore trasforma 1 lana in 2 pezze di tessuto ogni ${spec.t} s, o 1 fibra di lino in 3 pezze. La lana viene dagli ovili vicini, la fibra dal maceratoio. Le pezze vanno ai sarti e alle case con il telaio.`,
       retting:`Un maceratore trasforma 1 stelo di lino o canapa in 1 fibra ogni ${spec.t} s. Steli in attesa: lino ${(b.inp||{}).flax|0}, canapa ${(b.inp||{}).hemp|0} (max ${Sim.RET_CAP}) · fibra pronta: lino ${b.out.flaxf|0}, canapa ${b.out.hempf|0}. Il lino va ai telai, la canapa ai cordai. Gli steli li portano i contadini delle fattorie che coltivano lino o canapa.`,
+      claypit:`Un argillaio scava 3 argille ogni ${spec.t} s. Argilla nel magazzino: ${S.stock.clay|0}/${Sim.CLAY_CAP}. Serve alla fornace.`,
+      brickworks:`Un fornaciaio cuoce 2 argille e 1 carbone (o 3 legni se il legno è almeno 30) in 3 mattoni ogni ${spec.t} s. Argilla ${S.stock.clay|0} · mattoni ${S.stock.bricks|0}/${Sim.BRICK_CAP}. I mattoni sono materiale di cantiere di fucina, fonderia, forno e caserma.`,
+      limekiln:`Un calcinaio cuoce 3 pietre e 1 carbone (o 3 legni) in 2 calce ogni ${spec.t} s, quando la pietra è almeno 25 o un cantiere chiede calce. Calce ${S.stock.lime|0}/${Sim.LIME_CAP}. La calce è materiale di cantiere di fonderia, mulino, chiesa e caserma.`,
       charcoal:`Un carbonaio trasforma 3 legni del magazzino in 2 carboni ogni ${spec.t} s. Legno ${S.stock.wood} · carbone ${S.stock.charcoal|0}/${Sim.CHAR_CAP}. Con meno di 30 legni lavora solo se una fonderia ha bisogno di carbone, così i cantieri non restano senza legno.`,
       smelter:`Un fonditore fonde 2 ferro e 1 carbone in 2 barre ogni ${spec.t} s. Ferro ${S.stock.iron} · carbone ${S.stock.charcoal|0} · barre ${S.stock.bars|0}/${Sim.BAR_CAP}. Il fabbro usa le barre per fare 5 attrezzi ciascuna; senza barre torna al ferro grezzo (3 attrezzi).`,
       dyehouse:`Un tintore tinge 1 pezza di tessuto con 1 pianta tintoria ogni ${spec.t} s. Piante in attesa: ${(b.inp||{}).dye|0} (max ${Sim.RET_CAP}) · pezze tinte pronte: ${b.out.dyed|0}. Il tessuto lo prende dal telaio vicino; il sarto con una pezza tinta cuce 3 abiti invece di 2. Le piante le portano i contadini delle fattorie con la coltura tintorie.`,
@@ -1323,7 +1351,7 @@ function refreshSel(){
 }
 function selB(){return sel&&Sim.buildings().get(sel);}
 // v36: pannello di accettazione e massimali di Magazzino e Granaio (le righe si creano una volta per edificio, poi si aggiornano solo i numeri)
-const STKNAME={weapons:'Armi',wood:'Legno',stone:'Pietra',iron:'Ferro',planks:'Assi',tools:'Attrezzi',cloth:'Tessuto',clothes:'Abiti',rope:'Corde',charcoal:'Carbone',bars:'Barre di ferro',grain:'Grano',flour:'Farina',bread:'Pane',fish:'Pesce',meat:'Carne'};
+const STKNAME={weapons:'Armi',wood:'Legno',stone:'Pietra',iron:'Ferro',planks:'Assi',tools:'Attrezzi',cloth:'Tessuto',clothes:'Abiti',rope:'Corde',charcoal:'Carbone',bars:'Barre di ferro',clay:'Argilla',bricks:'Mattoni',lime:'Calce',grain:'Grano',flour:'Farina',bread:'Pane',fish:'Pesce',meat:'Carne'};
 let stkCfgFor=null;
 function updStoreCfg(b){
   const box=$('selStore');
@@ -1478,7 +1506,7 @@ const anchor=(type,c)=>{const [w,h]=Sim.dimsOf(BT[type],rot);return {x:c.cx-Math
 const isDist=id=>TOOL[id]&&TOOL[id].dt!==undefined;
 const keys={};
 const ptrs=new Map(),TOFF=64;let gest=null,lockPtr=false;
-function updPbar(){const on=pend&&BT[tool]&&!zoneEdit;$('pbar').hidden=!on;if(!on)return;const c=Sim.costOf(tool),p=[];if(c.wood)p.push('legno '+c.wood);if(c.stone)p.push('pietra '+c.stone);if(c.planks)p.push('assi '+c.planks);$('pName').textContent=BT[tool].name+(p.length?' · '+p.join(', '):'');$('pRot').style.display=NOGATE[tool]?'none':'';}
+function updPbar(){const on=pend&&BT[tool]&&!zoneEdit;$('pbar').hidden=!on;if(!on)return;const c=Sim.costOf(tool),p=[];if(c.wood)p.push('legno '+c.wood);if(c.stone)p.push('pietra '+c.stone);if(c.planks)p.push('assi '+c.planks);if(c.bricks)p.push('mattoni '+c.bricks);if(c.lime)p.push('calce '+c.lime);$('pName').textContent=BT[tool].name+(p.length?' · '+p.join(', '):'');$('pRot').style.display=NOGATE[tool]?'none':'';}
 $('pOk').addEventListener('click',()=>{if(!hover||!BT[tool])return;const a=anchor(tool,hover),r=Sim.place(tool,a.x,a.y,rot);if(!r.ok)toast(r.msg,true);});
 $('pRot').addEventListener('click',()=>rotate());
 $('pNo').addEventListener('click',()=>{pend=false;hover=null;updPbar();});
@@ -2237,7 +2265,7 @@ function frame2(now){
     if(ud&&ud.sails)ud.sails.rotation.z-=dt*0.7;
     if(ud&&ud.gv){const n=Math.min(ud.gv.length,S.buried|0);if(ud.shown!==n){ud.shown=n;ud.gv.forEach((m,i)=>{m.visible=i<n;});}}
     if(ud&&ud.logs){ud.logs.scale.y=0.15+0.85*Math.min(1,S.stock.wood/Math.min(capNow,160));ud.stones.scale.y=0.2+0.8*Math.min(1,S.stock.stone/Math.min(capStoneNow,160));}
-    if(b.state==='site'){const sc2=b.cost||Sim.costOf(b.type),tot=sc2.wood+sc2.stone+(sc2.planks||0),fr=(b.got.wood+b.got.stone+(b.got.planks||0))/Math.max(1,tot);e.body.scale.y=0.1+0.9*(fr*0.25+b.prog*0.75);}
+    if(b.state==='site'){const sc2=b.cost||Sim.costOf(b.type),tot=Sim.MATS.reduce((a,k)=>a+(sc2[k]||0),0),fr=Sim.MATS.reduce((a,k)=>a+(b.got[k]|0),0)/Math.max(1,tot);e.body.scale.y=0.1+0.9*(fr*0.25+b.prog*0.75);}
     else if(e.pop>0){e.pop-=dt;e.body.scale.y=1+Math.sin(Math.max(0,e.pop)/0.4*Math.PI)*0.08;if(e.pop<=0)e.body.scale.y=1;}
   }
   const homeIn=new Map();for(const v of Sim.villagers()){if(v.home&&(v.inside||hiddenIn(v))){const hb=Sim.buildings().get(v.home);if(hb&&hb.type==='house')homeIn.set(v.home,(homeIn.get(v.home)||0)+1);}}
