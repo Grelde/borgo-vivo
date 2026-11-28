@@ -1,5 +1,16 @@
 # Changelog
 
+## v87 – 2026-11-28
+Funzione nuova: gli editti si sbloccano nell'albero dei progetti. Revisione dell'albero rispetto alle novità di v68-v86.
+- **Editti nell'albero:** nuovo ramo «Editti del Re» con 5 progetti. Blocco immigrazione (Villaggio, 6 legno + 4 pietra), Obbligo di legna (Villaggio, 8 legno), Incentivo alle nascite (Borgo, 10 legno + 6 pietra), Istruzione obbligatoria (Borgo, 12 legno + 8 pietra), Quarantena (Borgo fortificato, 14 legno + 10 pietra, richiede il blocco dell'immigrazione). Comprato il progetto, l'editto si emana e si ritira quando si vuole dal pannello 📜, come prima.
+- **Sempre disponibile:** solo il divieto di avanzamento delle case (`noUpgrade`): non è nell'albero e si emana fin dall'inizio.
+- **Pannello 📜:** gli editti non ancora tuoi compaiono bloccati con il motivo (titolo del Re, prerequisito o «acquistalo nell'albero») e il pulsante «Nell'albero» apre 🏛️ già su quel progetto. Ritirare un editto è sempre permesso. `Sim.setEdict` rifiuta (e restituisce `false`) un editto non posseduto in modalità storia; fuori dalla storia (test) tutto resta emanabile.
+- **Il pulsante 🏛️ non si accende per gli editti** (solo per edifici acquistabili), per non suggerire acquisti a ogni titolo.
+- **Salvataggi precedenti (flag `S.edp`):** chi carica una partita fatta prima della v87 tiene gli editti dei titoli già raggiunti e quelli in vigore, e il Rabdomante e il bosco protetto; gli altri si comprano. Le partite nuove partono con tutto da comprare. `SAVE_FMT` resta 1.
+- **Revisione dell'albero (controllo di copertura):** tutti gli edifici e strumenti delle novità (muratore, fonderia, conserve, tasse, scuola, cerusico, zona ad alta densità…) erano già nell'albero. Fuori c'erano il **Rabdomante (v76)** e il **Bosco protetto (v85)**, sempre disponibili. Il Rabdomante ora è un progetto del titolo Casale (ramo Vita e comunità, 6 legno, nessun prerequisito) e i messaggi che lo nominano dicono dove trovarlo. Il Bosco protetto è un progetto del titolo Villaggio (ramo Legno, pietra e ferro, 6 legno, richiede la zona forestale); «Togli protezione» si possiede insieme ad esso (`OWN_VIA`). Le altre novità non sono blueprint: pesca di famiglia, ingresso a piedi, bussola e layer, caccia nel bosco; l'assunzione di un istruito da fuori (v75) è un'azione a pagamento in denari e resta com'è.
+- **Test:** `tests/albero.js` passa a 81 controlli: editti (acquisto, titolo, prerequisito, ritiro, salvataggi vecchi e nuovi, fuori dalla storia), Rabdomante e una **verifica permanente di copertura** che legge la palette in `src/render.js`: se una novità viene aggiunta come strumento senza essere nell'albero, il test fallisce.
+- Non verificato in un browser WebGL: aspetto della riga «Editti del Re» e delle carte bloccate nel pannello 📜 (controllati solo l'HTML generato e la logica).
+
 ## v86.1 – 2026-11-28
 Ritocco ai giardini: niente più giardini a striscia larga una cella.
 - Il giardino cresce preferendo le celle che si appoggiano a quelle già fatte e che chiudono blocchi 2x2; alla fine almeno il 75% delle celle deve far parte di un blocco 2x2, altrimenti si riprova (fino a 5 volte con semi diversi). Prima circa 3 giardini su 4 nelle prove avevano zone a striscia.

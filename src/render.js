@@ -1592,14 +1592,20 @@ const EDICTS=[
   {k:'quarantine',ic:'🚷',t:'Quarantena',d:'Si chiudono porte e mercati: niente viandanti né nuovi arrivi, niente banchi e baratti. Il contagio rallenta molto.',fx:'Il commercio si ferma finché resta in vigore.'},
   {k:'woodDuty',ic:'🪵',t:'Obbligo di legna da ardere',d:'Ogni famiglia deve tenere in casa il doppio della scorta di legna e comprarla al mercato in ogni stagione; le case col giardino della legna ne tengono fino a 32.',fx:'Case più calde e sane, ma i giardini rendono un po\' meno.'}];
 function renderEdicts(){
-  const E=S.edicts||{};
-  $('edList').innerHTML=EDICTS.map(e=>`<div class="edC${E[e.k]?' on':''}"><div class="ic">${e.ic}</div><div><b>${e.t}</b><span class="d">${e.d}</span><span class="fx">${E[e.k]?'In vigore · ':''}${e.fx}</span></div><button class="btn" type="button" data-ed="${e.k}">${E[e.k]?'Ritira':'Emana'}</button><div class="seal">✠</div></div>`).join('')+
-  '<div class="edC lock"><div class="ic">🔒</div><div><b>Altri editti</b><span class="d">Nuovi decreti si sbloccheranno man mano che il borgo cresce.</span></div></div>';
+  const E=S.edicts||{},inf=Sim.regnoInfo();
+  $('edList').innerHTML=EDICTS.map(e=>{
+    const pid='e_'+e.k,q=Sim.PROJ.some(x=>x.id===pid)?Sim.projectState(pid):null;
+    if(q&&!q.owned){
+      const why=q.locked?`Il Re concede questo editto al titolo di ${esc(Sim.RANK_NAMES[q.rank])}`:q.need.length?`Prima serve: ${q.need.map(prName).join(', ')}`:'Puoi acquistarlo nell\'albero dei progetti';
+      return `<div class="edC lock"><div class="ic">🔒</div><div><b>${e.t}</b><span class="d">${e.d}</span><span class="fx">${why}.</span></div><button class="btn" type="button" data-edp="${pid}">Nell'albero</button><div class="seal">✠</div></div>`;
+    }
+    return `<div class="edC${E[e.k]?' on':''}"><div class="ic">${e.ic}</div><div><b>${e.t}</b><span class="d">${e.d}</span><span class="fx">${E[e.k]?'In vigore · ':''}${e.fx}</span></div><button class="btn" type="button" data-ed="${e.k}">${E[e.k]?'Ritira':'Emana'}</button><div class="seal">✠</div></div>`;
+  }).join('')+(inf.story?'<div class="edC lock"><div class="ic">🏛️</div><div><b>Gli altri editti</b><span class="d">Si sbloccano nell\'albero dei progetti del Re (🏛️), ramo «Editti del Re». Il divieto di avanzamento delle case è sempre a tua disposizione.</span></div></div>':'');
 }
 function openEdicts(v){$('edicts').hidden=!v;$('edictBtn').classList.toggle('on',!!v);if(v)renderEdicts();}
 $('edictBtn').addEventListener('click',()=>openEdicts($('edicts').hidden));
 $('edClose').addEventListener('click',()=>openEdicts(false));
-$('edicts').addEventListener('click',ev=>{if(ev.target===$('edicts')){openEdicts(false);return;}const bt=ev.target.closest&&ev.target.closest('[data-ed]');if(!bt)return;const k=bt.getAttribute('data-ed');const on=!(S.edicts&&S.edicts[k]);Sim.setEdict(k,on);const e=EDICTS.find(x=>x.k===k);toast(on?`Editto emanato: ${e.t}`:`Editto ritirato: ${e.t}`);renderEdicts();});
+$('edicts').addEventListener('click',ev=>{if(ev.target===$('edicts')){openEdicts(false);return;}const gp=ev.target.closest&&ev.target.closest('[data-edp]');if(gp){openEdicts(false);prSel=gp.getAttribute('data-edp');openProjects(true);return;}const bt=ev.target.closest&&ev.target.closest('[data-ed]');if(!bt)return;const k=bt.getAttribute('data-ed');const on=!(S.edicts&&S.edicts[k]);if(!Sim.setEdict(k,on)){toast('Questo editto non è ancora tuo: compralo tra i Progetti del Re (🏛️).',true);return;}const e=EDICTS.find(x=>x.k===k);toast(on?`Editto emanato: ${e.t}`:`Editto ritirato: ${e.t}`);renderEdicts();});
 addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!$('edicts').hidden)openEdicts(false);});
 
 // ---------- commercio: registro delle rotte (v44) ----------
@@ -1881,8 +1887,8 @@ document.querySelectorAll('#speed .btn[data-s]').forEach(b=>b.addEventListener('
 // ---------- il Regno: guida della storia, messo del Re, progetti (v48) ----------
 // Niente più obiettivi a livelli: gli abitanti dicono cosa serve e il Re concede un nuovo titolo (con nuovi progetti) quando il borgo è cresciuto.
 const ZONE_PRJ={d2:'Zona agricola',d3:'Zona di mercato',d4:'Zona forestale',d5:'Zona di pascolo'};
-const prName=id=>ZONE_PRJ[id]||(BT[id]?BT[id].name:id);
-const prHint=id=>{const t=TOOL[id];return t?t.hint:'';};
+const prName=id=>(Sim.EXTRA_NAMES&&Sim.EXTRA_NAMES[id])||ZONE_PRJ[id]||(BT[id]?BT[id].name:id);
+const prHint=id=>{const t=TOOL[id];if(t)return t.hint;const e=EDICTS.find(x=>'e_'+x.k===id);return e?e.d+' '+e.fx:'';};
 const owns=id=>Sim.owns(id);
 // consigli degli abitanti: il primo passo non ancora fatto è la frase letta nel pannello (GUIDE[titolo])
 const GUIDE=[
@@ -2132,7 +2138,7 @@ function refreshPalette(){
   if(!CATS.find(c=>c.id===curCat)||!CATS.find(c=>c.id===curCat).ids.some(owns))curCat='tools';
   setCat(curCat);if(!owns(tool))setTool('select');
 }
-function newProjects(){return Sim.PROJ.some(p=>{const q=Sim.projectState(p.id);return !q.owned&&!q.locked&&!q.need.length&&q.afford;});}
+function newProjects(){return Sim.PROJ.some(p=>{if(p.ed)return false;const q=Sim.projectState(p.id);return !q.owned&&!q.locked&&!q.need.length&&q.afford;});}
 
 // ---------- bisogni di una casa (felicità) ----------
 function needsHtml(b){

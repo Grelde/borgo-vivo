@@ -1,4 +1,4 @@
-# Borgo Vivo — macro argomenti (stato a v85)
+# Borgo Vivo — macro argomenti (stato a v87)
 
 Prototipo: city builder medievale, un solo file HTML (Three.js). Sorgente di riferimento: il repository GitHub `Grelde/borgo-vivo` (`src/`, build con `./build.sh`, gioco in `index.html`). I documenti `claude/borgo-vivo-v*.html` nel Progetto sono solo istantanee. La v21 unisce la linea "popolazione" (malattie, eredità, editti, scheda, legna per casa) con la linea "giardini puri" (35% di giardini che non diventano mai allevamento/bottega; solo le case col giardino della legna la raccolgono, le altre la comprano al mercato).
 
@@ -64,7 +64,7 @@ Famiglie in arrivo (v83): con almeno 8 abitanti compaiono richieste (`S.pet`, al
 Scheda abitante: clic su un abitante o sul suo nome nel pannello casa: età, istruzione, mestiere (ereditato o no), salute, casa, genitori/figli, storia datata; resta consultabile anche dopo la morte (registro `Sim.reg`).
 Pannello Abitanti e Felicità (v28): clic sul chip Abitanti o Felicità del cruscotto apre una pergamena con due schede che si aggiorna da sola. Abitanti: totali, bambini, adulti, istruiti, malati, occupati; età, mestieri, livelli delle case; nascite, arrivi, partenze, morti per causa; elenco di tutti gli abitanti (clic = scheda). Felicità: media, scontenti, tratti; distribuzione; bisogni medi delle case; problemi per casa; suggerimento sul punto più debole; i dieci più scontenti con il motivo.
 Festa di paese (v37): si indice cliccando la piazza (min. 6 abitanti). Preparativi di 6 giorni (`FEST.prep`) in cui il paese raccoglie 8 legni dal magazzino e 16 pezzi di cibo dalle case con più di 2 pezzi; sotto il 50% la festa slitta (fino a 3 giorni). Dopopranzo del giorno di scadenza gli abitanti si radunano attorno alla piazza fino a notte; felicità +12 (festa) e +8 (2 giorni dopo) entro 45 celle, in proporzione ai preparativi; pausa di 12 giorni. Stato per piazza in `b.fest`; addobbi 3D in `animFest` (render).
-Editti: nessun avanzamento case, blocco immigrazione, incentivo alle nascite, istruzione obbligatoria, quarantena (blocca anche mercato e viandanti), obbligo di legna.
+Editti: nessun avanzamento case, blocco immigrazione, incentivo alle nascite, istruzione obbligatoria, quarantena (blocca anche mercato e viandanti), obbligo di legna. Dalla v77 (modalità storia) tutti si sbloccano nell'albero dei progetti (ramo «Editti del Re», id `e_<chiave>`) tranne il divieto di avanzamento delle case, sempre disponibile.
 Da fare: tratti positivi, effetti di criminalità/liti, altri effetti della festa (nascite, liti; la taverna e la sala delle feste alzano la felicità dalla v32), coppie/matrimoni espliciti, cognomi che passano per linea paterna, bilanciare le nascite (oggi i bambini sono molti), scheda con parenti più lontani, lutti e orfani nella storia.
 
 ## 5. Interfaccia e grafica

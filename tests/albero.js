@@ -90,5 +90,78 @@ r=Sim.buyProject('mill');ok(!r.ok&&/già tuo/.test(r.msg),'e non si compra due v
 Math.random=mulberry(11);Sim.init(11,'lake');
 ok(Sim.PROJ.every(p=>Sim.projectState(p.id).need.length===0),'fuori dalla modalità storia nessun prerequisito manca');
 
+console.log('7) editti nell\'albero (v87)');
+const EDP=Sim.PROJ.filter(p=>p.ed);
+story(12);
+ok(EDP.length===5&&EDP.every(p=>p.br==='editti'&&p.id==='e_'+p.ed),'cinque editti nel ramo «Editti del Re», id e_<chiave>');
+ok(Object.keys(S.edicts).every(k=>k==='noUpgrade'||EDP.some(p=>p.ed===k)),'ogni editto, tranne il divieto di avanzamento, ha il suo progetto');
+ok(!EDP.some(p=>p.ed==='noUpgrade'),'il divieto di avanzamento delle case non è nell\'albero');
+ok(EDP.every(p=>Sim.PROJ_NAMES[p.id]&&/^Editto: /.test(Sim.PROJ_NAMES[p.id])),'nomi leggibili «Editto: …»');
+ok(Sim.setEdict('noUpgrade',true)&&S.edicts.noUpgrade===true,'il divieto di avanzamento si emana subito, senza comprare nulla');
+ok(Sim.setEdict('noUpgrade',false)&&S.edicts.noUpgrade===false,'e si ritira');
+for(const p of EDP){ok(!Sim.setEdict(p.ed,true)&&S.edicts[p.ed]===false,'senza il progetto non si emana: '+p.ed);}
+ok(Sim.setEdict('nonEsiste',true)===false,'un editto sconosciuto è ignorato');
+S.rank=1;r=Sim.buyProject('e_noImmig');ok(!r.ok&&/Villaggio/.test(r.msg),'prima il titolo del Re: '+r.msg);
+S.rank=2;S.stock.wood=0;r=Sim.buyProject('e_noImmig');ok(!r.ok&&/Non basta/.test(r.msg),'servono le risorse: '+r.msg);
+S.stock.wood=500;S.stock.stone=500;
+const w1=S.stock.wood;r=Sim.buyProject('e_noImmig');ok(r.ok&&/editto/i.test(r.msg)&&S.stock.wood===w1-6,'il blocco immigrazione costa 6 legno: '+r.msg);
+ok(Sim.setEdict('noImmig',true)&&S.edicts.noImmig===true,'ora si emana');
+ok(Sim.setEdict('noImmig',false)&&S.edicts.noImmig===false,'e si ritira');
+ok(!Sim.setEdict('woodDuty',true),'gli altri restano bloccati');
+r=Sim.buyProject('e_quarantine');ok(!r.ok&&/Borgo fortificato/.test(r.msg),'la quarantena è del titolo Borgo fortificato: '+r.msg);
+S.rank=4;S.proj={};r=Sim.buyProject('e_quarantine');ok(!r.ok&&r.need&&r.need[0]==='e_noImmig','la quarantena vuole il blocco dell\'immigrazione: '+r.msg);
+Sim.buyProject('e_noImmig');r=Sim.buyProject('e_quarantine');ok(r.ok,'poi si compra');
+ok(Sim.setEdict('quarantine',true)&&S.edicts.quarantine,'e si emana');
+// ritirare è sempre permesso, anche se (per un salvataggio strano) l'editto è attivo e non è tuo
+S.edicts.woodDuty=true;ok(Sim.setEdict('woodDuty',false)&&!S.edicts.woodDuty,'un editto attivo ma non posseduto si può sempre ritirare');
+// il badge del pulsante non dipende dagli editti (controllato in render): qui verifichiamo solo che projectState esponga il tipo
+ok(Sim.projectState('e_noImmig').ed==='noImmig'&&Sim.projectState('well').ed===null,'projectState dice se è un editto');
+// la strada dei titoli non dipende da nessun editto
+ok(!EDP.some(p=>Object.values(NEED_BLDG).flat().includes(p.id)),'nessun titolo del Re richiede un editto');
+
+console.log('8) salvataggi precedenti: gli editti già disponibili non si perdono');
+story(13);S.rank=3;S.edicts.quarantine=true;S.edicts.noUpgrade=true;
+const old=JSON.parse(JSON.stringify(Sim.exportState()));delete old.S.edp;old.S.proj={well:true};
+Math.random=mulberry(77);Sim.importState(old);
+ok(S.edp===1,'il salvataggio viene marcato come migrato');
+ok(Sim.owns('dowse'),'il Rabdomante, prima sempre disponibile, resta tuo');
+ok(Sim.owns('nocut')&&Sim.owns('cutok'),'il bosco protetto (e togliere la protezione), prima sempre disponibili, restano tuoi');
+ok(['e_noImmig','e_woodDuty','e_birthBonus','e_schoolMandatory'].every(id=>Sim.owns(id)),'editti dei titoli già raggiunti (fino a Borgo) concessi');
+ok(Sim.owns('e_quarantine')&&S.edicts.quarantine===true,'e quello in vigore resta tuo e in vigore');
+ok(S.edicts.noUpgrade===true,'il divieto di avanzamento resta com\'era');
+const again=JSON.parse(JSON.stringify(Sim.exportState()));Math.random=mulberry(78);Sim.importState(again);
+ok(Sim.owns('e_quarantine')&&S.edp===1,'un secondo caricamento non cambia nulla');
+// un salvataggio nuovo (con il flag) non regala niente
+story(14);S.rank=5;const fresh=JSON.parse(JSON.stringify(Sim.exportState()));Math.random=mulberry(79);Sim.importState(fresh);
+ok(EDP.every(p=>!Sim.owns(p.id)),'un salvataggio della v87 non concede editti non comprati');
+// fuori dalla modalità storia tutto resta emanabile (test e prove)
+Math.random=mulberry(15);Sim.init(15,'lake');
+ok(EDP.every(p=>Sim.setEdict(p.ed,true)),'fuori dalla modalità storia ogni editto si emana');
+
+console.log('8b) Rabdomante');
+story(17);ok(!Sim.owns('dowse'),'all\'inizio il Rabdomante non è tuo');
+S.rank=0;r=Sim.buyProject('dowse');ok(!r.ok&&/Casale/.test(r.msg),'è un progetto del titolo Casale: '+r.msg);
+S.rank=1;const wd=S.stock.wood;r=Sim.buyProject('dowse');ok(r.ok&&S.stock.wood===wd-6&&Sim.owns('dowse'),'costa 6 legno e non ha prerequisiti');
+ok(Sim.PROJ_NAMES.dowse==='Rabdomante'&&Sim.projectState('dowse').br==='vita','si chiama Rabdomante, ramo Vita e comunità');
+console.log('8c) Bosco protetto');
+story(18);ok(!Sim.owns('nocut')&&!Sim.owns('cutok'),'all\'inizio né il bosco protetto né «Togli protezione» sono tuoi');
+S.rank=2;r=Sim.buyProject('nocut');ok(!r.ok&&r.need&&r.need[0]==='d4','il bosco protetto vuole la zona forestale: '+r.msg);
+Sim.buyProject('d4');const wn=S.stock.wood;r=Sim.buyProject('nocut');ok(r.ok&&S.stock.wood===wn-6,'costa 6 legno');
+ok(Sim.owns('nocut')&&Sim.owns('cutok'),'e con esso si possiede anche «Togli protezione»');
+ok(Sim.PROJ_NAMES.nocut==='Bosco protetto'&&Sim.projectState('nocut').br==='legno','nome e ramo giusti');
+console.log('9) copertura: ogni strumento della palette sta nell\'albero (tranne quelli iniziali)');
+{
+  const src=require('fs').readFileSync(__dirname+'/../src/render.js','utf8');
+  const a=src.indexOf('const TOOLS=['),b=src.indexOf('const TOOL=Object.fromEntries');
+  const tools=[...src.slice(a,b).matchAll(/\{id:'([a-z0-9]+)',label:/g)].map(m=>m[1]);
+  const START=['select','pan','demolish','d1','undistrict','road','wood','quarry'];
+  const free=tools.filter(t=>!Sim.PROJ.some(p=>p.id===t)&&!(Sim.OWN_VIA[t]&&Sim.PROJ.some(p=>p.id===Sim.OWN_VIA[t])));
+  ok(tools.length>=50,'letti gli strumenti della palette ('+tools.length+')');
+  ok(free.every(t=>START.includes(t)),'strumenti fuori dall\'albero oltre a quelli iniziali: '+free.filter(t=>!START.includes(t)).join(', ')+' (ogni novità va messa nell\'albero con titolo e ramo)');
+  ok(START.every(t=>tools.includes(t)),'gli strumenti iniziali esistono davvero');
+  story(16);ok(START.every(t=>Sim.owns(t)),'e all\'inizio della storia sono tuoi');
+  ok(tools.filter(t=>!START.includes(t)).every(t=>!Sim.owns(t)),'tutti gli altri all\'inizio non sono tuoi');
+}
+
 console.log(fail?`FALLITI ${fail} su ${n}`:`OK: ${n} controlli`);
 process.exit(fail?1:0);

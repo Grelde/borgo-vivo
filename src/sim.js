@@ -485,7 +485,7 @@ function init(sd,mode,diff,opt){
   buildings.clear();stCache=null;villagers=[];vmap.clear();reg.clear();resv.clear();plantResv.clear();nextId=1;guests.length=0;
   S.t=0;S.festA=[];S.fests=0;festSeq=0;S.edicts=EDICT0();S.births=0;S.deaths=0;S.buried=0;S.unburied=0;S.extra={};S.wh={wood:0,stone:0,iron:0};S.xf={wood:0,stone:0,iron:0};S.stock={wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,game:0,rope:0,charcoal:0,bars:0,weapons:0,clay:0,bricks:0,lime:0,salt:0,cured:0,cheese:0,beer:0,wine:0,hides:0,leather:0,shoes:0};S.inflight={wood:0,stone:0,iron:0};S.grow=0;S.left=0;S.att={joy:0,unemp:0,a:0,bonus:0};S.pet=[];S.petNext=0;S.petSeq=0;S.petOk=0;S.petNo=0;S.petLate=0;S.arrivedFam=0;S.barters=0;S.helps=0;S.visits=0;S.settled=0;S.season=0;S.year=1;S.frozen=false;acc.a1=0;acc.a05=0;acc.farm=0;acc.attr=99;for(const k in told)delete told[k];
   S.deathsBy={age:0,cold:0,hunger:0,ill:0};S.plague={on:false,since:0,dead:0};S.inherits=0;S.cured=0;S.sickTot=0;S.moves=0;S.made={};S.delivered=0;S.coins=COINS0;S.fin=mkFin();S.taxDay=-1;S.taxRate='normal';S.ledger={snap:null,rows:[]};S.routes=mkRoutes();S.tradeOpt={sell:true,buy:true};S.tlog=[];S.trade={sold:0,bought:0,visits:0};
-  S.story=!!(opt&&opt.story);S.rank=0;S.proj={};S.msgs=[];S.raid=raid0();S.wolf=wolf0();S.war=war0();S.rk=0;
+  S.story=!!(opt&&opt.story);S.rank=0;S.proj={};S.edp=1;S.msgs=[];S.raid=raid0();S.wolf=wolf0();S.war=war0();S.rk=0;
   let okT=false,att=0;const base=(sd||7)|0;
   for(;att<48&&!okT;att++){genTerrain(S.mode,base,att);okT=terrainOK(S.mode);}
   S.seed=base;S.mapTries=att;S.mapOK=okT;
@@ -631,7 +631,7 @@ function canPlace(type,x,y,rot){
     if(door[i])return "Ingresso di un edificio: lascialo libero";
     if(cen[i]===2)return "Cancello del centro cittadino: lascialo libero";
     if(type==='sheepfold'&&dist[i]!==5)return "L'ovile va costruito dentro una zona Pascolo: disegnala prima (tasto P)";
-    if(type==='well'&&S.aqRule&&!aqK[i])return "Qui non conosci nessuna falda: il pozzo si scava sull'acqua scoperta (zone azzurre). Cercala con il Rabdomante (B)";
+    if(type==='well'&&S.aqRule&&!aqK[i])return "Qui non conosci nessuna falda: il pozzo si scava sull'acqua scoperta (zone azzurre). Cercala con il Rabdomante"+dwHint();
   }
   if(t.need==='tree'&&!nearAny(tree,x,y,36))return 'Servono alberi nelle vicinanze';
   if(t.need==='rock'&&!nearAny(rock,x,y,36))return 'Servono rocce nelle vicinanze';
@@ -786,7 +786,8 @@ function paintRoad(cx,cy){
 }
 const ZONED={wood:1,quarry:1,mine:1,forester:1};
 function setZone(id,cell,r){const b=buildings.get(id);if(!b||!ZONED[b.type])return;b.zone=cell<0?null:{c:cell,r:Math.max(6,Math.min(60,r|0))};}
-function setEdict(k,v){if(k in S.edicts)S.edicts[k]=!!v;}
+// in modalità storia un editto si emana solo se il progetto è nell'albero (tranne noUpgrade); ritirarlo si può sempre
+function setEdict(k,v){if(!(k in S.edicts))return false;if(v&&!owns('e_'+k))return false;S.edicts[k]=!!v;return true;}
 function setWant(id,n){const b=buildings.get(id);if(!b)return;b.want=Math.max(0,Math.min(BT[b.type].slots,n));}
 
 // ---- attrattiva ----
@@ -3024,10 +3025,10 @@ function tradeTick(){
 // Fuori dalla modalità storia (test) tutto è disponibile e non arrivano né messi né nemici. S.msgs è la coda delle pergamene del messo (le legge l'interfaccia).
 const RANK_NAMES=['Accampamento','Casale','Villaggio','Borgo','Borgo fortificato','Terra murata','Città','Capitale del Regno'];
 // v52: albero della conoscenza. Ogni progetto sta in un ramo (br) e può avere prerequisiti (req): per comprarlo bisogna già possedere quei progetti oltre ad avere il titolo giusto.
-const BRANCHES=[{id:'vita',n:'Vita e comunità'},{id:'legno',n:'Legno, pietra e ferro'},{id:'campi',n:'Campi e cibo'},{id:'tessile',n:'Tessile e cuoio'},{id:'commercio',n:'Commercio e ospitalità'},{id:'difesa',n:'Difesa'},{id:'decoro',n:'Decoro e feste'}];
+const BRANCHES=[{id:'vita',n:'Vita e comunità'},{id:'legno',n:'Legno, pietra e ferro'},{id:'campi',n:'Campi e cibo'},{id:'tessile',n:'Tessile e cuoio'},{id:'commercio',n:'Commercio e ospitalità'},{id:'difesa',n:'Difesa'},{id:'decoro',n:'Decoro e feste'},{id:'editti',n:'Editti del Re'}];
 const PROJ=[
-  {id:'well',br:'vita',rank:1,cost:{wood:10,stone:6}},{id:'d3',br:'commercio',rank:1,cost:{wood:12}},{id:'store',br:'commercio',rank:1,cost:{wood:18,stone:8}},{id:'d4',br:'legno',rank:1,cost:{wood:8}},{id:'forester',br:'legno',rank:1,req:['d4'],cost:{wood:10}},
-  {id:'church',br:'vita',rank:2,cost:{wood:20,stone:30}},{id:'d2',br:'campi',rank:2,cost:{wood:14}},{id:'granary',br:'campi',rank:2,req:['d2'],cost:{wood:16,stone:8}},{id:'carpenter',br:'legno',rank:2,req:['d4'],cost:{wood:16,stone:8}},{id:'mason',br:'legno',rank:2,cost:{wood:12,stone:16}},{id:'claypit',br:'legno',rank:2,req:['mason'],cost:{wood:10,stone:6}},{id:'fisher',br:'campi',rank:2,cost:{wood:12}},{id:'hunter',br:'campi',rank:2,cost:{wood:12}},
+  {id:'well',br:'vita',rank:1,cost:{wood:10,stone:6}},{id:'dowse',br:'vita',rank:1,cost:{wood:6}},{id:'d3',br:'commercio',rank:1,cost:{wood:12}},{id:'store',br:'commercio',rank:1,cost:{wood:18,stone:8}},{id:'d4',br:'legno',rank:1,cost:{wood:8}},{id:'forester',br:'legno',rank:1,req:['d4'],cost:{wood:10}},
+  {id:'church',br:'vita',rank:2,cost:{wood:20,stone:30}},{id:'d2',br:'campi',rank:2,cost:{wood:14}},{id:'granary',br:'campi',rank:2,req:['d2'],cost:{wood:16,stone:8}},{id:'nocut',br:'legno',rank:2,req:['d4'],cost:{wood:6}},{id:'carpenter',br:'legno',rank:2,req:['d4'],cost:{wood:16,stone:8}},{id:'mason',br:'legno',rank:2,cost:{wood:12,stone:16}},{id:'claypit',br:'legno',rank:2,req:['mason'],cost:{wood:10,stone:6}},{id:'fisher',br:'campi',rank:2,cost:{wood:12}},{id:'hunter',br:'campi',rank:2,cost:{wood:12}},
   {id:'watchtower',br:'difesa',rank:3,cost:{wood:22,stone:18}},{id:'brickworks',br:'legno',rank:3,req:['claypit'],cost:{wood:16,stone:12}},{id:'limekiln',br:'legno',rank:3,req:['mason'],cost:{wood:14,stone:14}},{id:'mine',br:'legno',rank:3,req:['mason'],cost:{wood:20,stone:14}},{id:'mill',br:'campi',rank:3,req:['granary'],cost:{wood:20,stone:20}},{id:'school',br:'vita',rank:3,req:['church'],cost:{wood:24,stone:16}},{id:'infirmary',br:'vita',rank:3,req:['church'],cost:{wood:22,stone:16}},{id:'surgeon',br:'vita',rank:3,req:['school'],cost:{wood:20,stone:12}},{id:'smithy',br:'legno',rank:3,req:['mine','brickworks'],cost:{wood:20,stone:20}},{id:'cemetery',br:'vita',rank:3,req:['church'],cost:{wood:12,stone:16}},
   {id:'saltworks',br:'campi',rank:3,req:['fisher'],cost:{wood:14,stone:10}},{id:'butcher',br:'campi',rank:4,req:['hunter','saltworks'],cost:{wood:16,stone:10}},{id:'smokehouse',br:'campi',rank:4,req:['fisher','saltworks'],cost:{wood:16,stone:12}},{id:'bakery',br:'campi',rank:4,req:['mill'],cost:{wood:20,stone:20}},{id:'d5',br:'campi',rank:4,cost:{wood:12}},{id:'d6',br:'vita',rank:4,cost:{wood:20,stone:12}},{id:'sheepfold',br:'campi',rank:4,req:['d5'],cost:{wood:16,stone:4}},{id:'inn',br:'commercio',rank:4,req:['store'],cost:{wood:26,stone:18}},{id:'tavern',br:'commercio',rank:4,req:['inn'],cost:{wood:24,stone:16}},{id:'mercery',br:'commercio',rank:4,req:['store','d3'],cost:{wood:22,stone:16}},{id:'taxoffice',br:'commercio',rank:5,req:['mercery'],cost:{wood:20,stone:14}},{id:'barracks',br:'difesa',rank:4,req:['watchtower'],cost:{wood:30,stone:28}},
   {id:'charcoal',br:'legno',rank:4,req:['forester'],cost:{wood:14,stone:4}},{id:'smelter',br:'legno',rank:4,req:['mine','charcoal','brickworks'],cost:{wood:16,stone:24}},
@@ -3036,11 +3037,19 @@ const PROJ=[
   {id:'dairy',br:'campi',rank:5,req:['sheepfold'],cost:{wood:18,stone:8,coins:30}},{id:'brewery',br:'campi',rank:5,req:['mill'],cost:{wood:20,stone:10,coins:30}},{id:'winery',br:'campi',rank:6,req:['brewery'],cost:{wood:22,stone:12,coins:40}},
   {id:'tannery',br:'tessile',rank:5,cost:{wood:16,stone:8,coins:30}},{id:'cobbler',br:'tessile',rank:6,req:['tannery'],cost:{wood:14,stone:6,coins:40}},
   {id:'dyehouse',br:'tessile',rank:6,req:['retting','weaver'],cost:{wood:20,stone:10,coins:40}},
-  {id:'flowers',br:'decoro',rank:6,req:['plaza'],cost:{wood:4,coins:10}},{id:'statue',br:'decoro',rank:6,req:['plaza'],cost:{stone:16,coins:50}}
+  {id:'flowers',br:'decoro',rank:6,req:['plaza'],cost:{wood:4,coins:10}},{id:'statue',br:'decoro',rank:6,req:['plaza'],cost:{stone:16,coins:50}},
+  // v87: gli editti si sbloccano nell'albero (ramo «Editti del Re»). Resta sempre disponibile solo il divieto di avanzamento delle case (`noUpgrade`).
+  {id:'e_noImmig',ed:'noImmig',br:'editti',rank:2,cost:{wood:6,stone:4}},{id:'e_woodDuty',ed:'woodDuty',br:'editti',rank:2,cost:{wood:8}},
+  {id:'e_birthBonus',ed:'birthBonus',br:'editti',rank:3,cost:{wood:10,stone:6}},{id:'e_schoolMandatory',ed:'schoolMandatory',br:'editti',rank:3,cost:{wood:12,stone:8}},
+  {id:'e_quarantine',ed:'quarantine',br:'editti',rank:4,req:['e_noImmig'],cost:{wood:14,stone:10}}
 ];
+const EXTRA_NAMES={dowse:'Rabdomante',nocut:'Bosco protetto',e_noImmig:'Editto: blocco immigrazione',e_woodDuty:'Editto: obbligo di legna',e_birthBonus:'Editto: incentivo nascite',e_schoolMandatory:'Editto: istruzione obbligatoria',e_quarantine:'Editto: quarantena'};
 const PROJ_BY=Object.fromEntries(PROJ.map(p=>[p.id,p]));
-const PROJ_NAMES=Object.fromEntries(PROJ.map(p=>[p.id,({d2:'Zona agricola',d3:'Zona di mercato',d4:'Zona forestale',d5:'Zona di pascolo',d6:'Zona ad alta densità'})[p.id]||(BT[p.id]?BT[p.id].name:p.id)]));
-const owns=id=>!S.story||!PROJ_BY[id]||!!S.proj[id];
+const PROJ_NAMES=Object.fromEntries(PROJ.map(p=>[p.id,EXTRA_NAMES[p.id]||({d2:'Zona agricola',d3:'Zona di mercato',d4:'Zona forestale',d5:'Zona di pascolo',d6:'Zona ad alta densità'})[p.id]||(BT[p.id]?BT[p.id].name:p.id)]));
+// strumenti che si possiedono insieme a un altro progetto (togliere la protezione dal bosco si può se si può metterla)
+const OWN_VIA={cutok:'nocut'};
+const owns=id=>{const k=OWN_VIA[id]||id;return !S.story||!PROJ_BY[k]||!!S.proj[k];};
+const dwHint=()=>owns('dowse')?' (B)':' (è un progetto del Re: compralo nell\'albero, 🏛️)';
 const TOWER_R=24,TOWER_DPS=6,SIEGE_HOLD=90,SIDE_TXT={w:'ovest',n:'nord',e:'est',s:'sud'};
 // v62: forza relativa ai predoni (un predone = 1): cittadino 1/3, guerriero 1, guerriero armato 5/3 (sia punti ferita sia danno al secondo).
 // I valori qui sono quelli di un predone di forza 1 (24 pf, 4 danni/s): la banda del momento ha un moltiplicatore `pow` e i difensori scendono in campo con lo stesso moltiplicatore, così i rapporti restano sempre quelli.
@@ -3076,7 +3085,7 @@ function regnoTick(){
     }
   }
   raidTick();wolfTick();warTick();deployTick();
-  if(S.aqRule&&S.t>25)tell('aq0','Acqua: sotto il Centro Cittadino passa una falda già nota (zone azzurre sulla mappa del suolo, tasto L). Per scavare altri pozzi cerca le falde con il Rabdomante (B).');
+  if(S.aqRule&&S.t>25)tell('aq0','Acqua: sotto il Centro Cittadino passa una falda già nota (zone azzurre sulla mappa del suolo, tasto L). Per scavare altri pozzi cerca le falde con il Rabdomante'+dwHint()+'.');
 }
 // progetti del Re
 function projectState(id){
@@ -3085,7 +3094,7 @@ function projectState(id){
   for(const r of ['wood','stone','iron'])if(p.cost[r]&&uncommitted(r)<p.cost[r])miss.push(r);
   if(p.cost.coins&&S.coins<p.cost.coins)miss.push('coins');
   const need=(p.req||[]).filter(q=>!(S.proj[q]||!S.story));
-  return {known:true,owned,locked,need,afford:!miss.length,miss,rank:p.rank,br:p.br,req:p.req||[],cost:p.cost};
+  return {known:true,owned,locked,need,afford:!miss.length,miss,rank:p.rank,br:p.br,ed:p.ed||null,req:p.req||[],cost:p.cost};
 }
 function buyProject(id){
   const p=PROJ_BY[id];if(!p)return {ok:false,msg:'Progetto sconosciuto.'};
@@ -3097,7 +3106,7 @@ function buyProject(id){
   for(const r of ['wood','stone','iron'])if(p.cost[r])S.stock[r]-=p.cost[r];
   if(p.cost.coins)S.coins-=p.cost.coins;
   S.proj[id]=true;
-  return {ok:true,msg:'Progetto acquistato: ora puoi costruirlo.'};
+  return {ok:true,msg:p.ed?'Il Re ti concede questo editto: puoi emanarlo e ritirarlo quando vuoi dal pannello degli editti (📜).':'Progetto acquistato: ora puoi costruirlo.'};
 }
 const msgCount=()=>S.msgs.length,peekMsg=()=>S.msgs[0]||null,takeMsg=()=>S.msgs.shift()||null;
 function regnoInfo(st0){
@@ -3445,6 +3454,9 @@ function regnoNormalize(){
   S.raid=Object.assign(raid0(),S.raid||{});S.raid.bands=Object.assign({},S.raid.bands);
   S.wolf=Object.assign(wolf0(),S.wolf||{});S.wolf.bands=Object.assign({},S.wolf.bands);
   S.war=Object.assign(war0(),S.war||{});S.rk=S.rk|0;
+  // salvataggi precedenti alla v87: gli editti erano tutti disponibili. Restano tuoi quelli in vigore e quelli dei titoli già raggiunti; gli altri vanno comprati nell'albero.
+  // (e il Rabdomante e il bosco protetto, che prima erano sempre disponibili)
+  if(!S.edp){S.edp=1;S.proj.dowse=true;S.proj.nocut=true;for(const p of PROJ)if(p.ed&&(p.rank<=S.rank||(S.edicts&&S.edicts[p.ed])))S.proj[p.id]=true;}
   if(legacy){
     while(S.rank<6&&needsMet(RANK_NEEDS[S.rank+1](stats())))S.rank++;
     for(const p of PROJ)if(p.rank<=S.rank)S.proj[p.id]=true;
@@ -4025,7 +4037,7 @@ function importState(d){
   for(const g of guests)hooks.villager(g);
   hooks.trees();hooks.rocks();hooks.saps();hooks.ground();
 }
-return {paintNoCut,under,berriesRipe,capOf,PET_LIFE,petitionTick,acceptPetition,refusePetition,arriveFamily,famText,newPetition,MT,CT,CEN,dowse,soilOf,soilF,soilName,AQ_FIND_R,AQ_COST,TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWanted,WEAPON_PER_POST,startHouseWork,mergeTick,trySpawnDense,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,EDUREQ,EDU_BLD,IMM_LIT,HIRE_COST,canWorkAt,eduBld,hireEducated,hireNeeded,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
+return {EXTRA_NAMES,OWN_VIA,paintNoCut,under,berriesRipe,capOf,PET_LIFE,petitionTick,acceptPetition,refusePetition,arriveFamily,famText,newPetition,MT,CT,CEN,dowse,soilOf,soilF,soilName,AQ_FIND_R,AQ_COST,TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWanted,WEAPON_PER_POST,startHouseWork,mergeTick,trySpawnDense,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,EDUREQ,EDU_BLD,IMM_LIT,HIRE_COST,canWorkAt,eduBld,hireEducated,hireNeeded,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,NEEDS,NEED_LOW,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
   TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,WAGE_JOB,EDU_JOBS,CITY_RANK,WAGE_OWE_CAP,wageJob,wageOf,wagePayer,TAX_TABLE,TAX_WEEK,TAX_POUCH,WAGE,WAGE_SEC,SILVER_GOLD,TAX_MARGIN,MSELL,MSELL_KEEP,MSELL_LIM,taxOf,joyOf,TAX_RATES,TAX_JOY,setTaxRate,taxForecast,ledgerTick,money,taxActive,taxStats,taxDue,taxRefuses,merceryTakes,merceryBuy,merceryBuyer,jobless,kingJob,cityMakes,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,

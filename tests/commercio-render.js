@@ -35,7 +35,7 @@ __openTrade(true);
 let html=String(document.getElementById('trList').innerHTML);
 ok(['Valmora','Rocca Alta','Porto Fiorito','Campomaggio'].every(n=>html.includes(n)),'registro: le 4 città');
 ok((html.match(/data-route=/g)||[]).length===4,'registro: 4 pulsanti di sblocco');
-ok(/Denari in cassa: <b>80<\/b>/.test(html),'registro: cassa iniziale');
+ok(html.includes('Denari in cassa: <b>'+Sim.money(Sim.S.coins)+'</b>'),'registro: la cassa mostrata è quella vera ('+Sim.money(Sim.S.coins)+')');
 ok(!/undefined|NaN/.test(html),'registro senza undefined/NaN');
 const res=Sim.unlockRoute('w');ok(res.ok,'sblocco di Valmora: '+res.msg);
 __renderTrade(true);html=String(document.getElementById('trList').innerHTML);
