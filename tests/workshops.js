@@ -45,9 +45,12 @@ const inf=put('infirmary',98,112);run(10);
 ok(done('infirmary').length===1,'cantiere con muratori completato');
 
 console.log('3) fabbro, forno');
-S.stock.iron=60;S.stock.flour=60;
+// v53: ferro e farina contano solo se stoccati: servono un Magazzino e un Granaio
+const dep=put('store',100,100),gra=put('granary',108,92);run(10);
+const top=(k,n)=>{S.stock[k]=Math.max(S.stock[k],Math.min(n,Sim.capRes(k)));};
+top('iron',60);top('flour',60);
 const sm=put('smithy',108,100),ba=put('bakery',112,104);ok(!!sm&&!!ba,'fucina e forno piazzati');
-run(12);hold();S.stock.iron=Math.max(S.stock.iron,60);S.stock.flour=Math.max(S.stock.flour,60);run(10);
+run(12);hold();top('iron',60);top('flour',60);run(10);
 const smd=done('smithy')[0],bad=done('bakery')[0];
 ok(smd&&smd.workers.length>=1,'fabbro con addetti');ok(bad&&bad.workers.length>=1,'panettiere con addetti');
 ok((S.made.smithy|0)>0&&(S.made.bakery|0)>0,'cicli di lavoro: fucina '+S.made.smithy+', forno '+S.made.bakery);

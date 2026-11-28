@@ -17,7 +17,10 @@ const fs=require('fs');
 eval(fs.readFileSync(__dirname+'/../dist/all.js','utf8').replace('requestAnimationFrame(frame);\n})();','global.__begin=begin;global.__ents=ents;global.__animFest=animFest;requestAnimationFrame(frame);\n})();')+';global.Sim=Sim;');
 __begin(process.argv[2]||'lake');
 const S=Sim.S,N=Sim.N,CS=Sim.CS,W=Sim.W;let fails=0;const ok=(c,m)=>{console.log((c?'  ok ':'  ERRORE ')+m);if(!c)fails++;};
-const hold=()=>{S.stock.wood=Math.max(S.stock.wood,300);S.stock.stone=Math.max(S.stock.stone,200);};
+// v53: le scorte contano solo se stoccate: si rifornisce fino alla capacità, non oltre; il cibo della festa viene dal Granaio
+const top=(k,n)=>{S.stock[k]=Math.max(S.stock[k],Math.min(n,Sim.capRes(k)));};
+let foodOn=false;
+const hold=()=>{top('wood',300);top('stone',200);if(foodOn)top('bread',40);};
 Sim.paintDistrict(78,78,111,108,1);Sim.paintDistrict(60,60,90,92,5);
 const dist=Sim.grids.dist;
 const run=(sec,f)=>{for(let t=0;t<sec;t+=0.1){hold();Sim.step(0.1);if(f&&f())return true;}return false;};
@@ -40,8 +43,9 @@ ok(Sim.cancelFest(pz.id)&&pz.fest.st==='','annullata: la piazza torna libera');
 ok(Sim.callFest(pz.id).ok,'si può indire di nuovo dopo l\'annullamento');
 
 console.log('3) preparativi e festa');
-// cibo abbondante nelle case
-for(const b of Sim.buildings().values())if(b.type==='house'&&b.state==='done')for(const t of Sim.TYPES)b.goods[t]=Math.max(b.goods[t],6);
+// cibo abbondante nel Granaio (il cibo nelle case non conta per la festa)
+{let gr=null;for(let r=0;r<40&&!gr;r+=3)for(let dy=-r;dy<=r&&!gr;dy+=3)for(let dx=-r;dx<=r&&!gr;dx+=3){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;hold();const q=Sim.place('granary',100+dx,90+dy,0);if(q.ok)gr=q.b;}
+ ok(!!gr,'Granaio piazzato');run(800,()=>gr&&gr.state==='done');ok(gr&&gr.state==='done','Granaio completato');foodOn=true;hold();}
 const wood0=S.stock.wood;
 run(Sim.FEST.prep+400,()=>pz.fest.st==='ready'||pz.fest.st==='on');
 ok(pz.fest.st==='ready'||pz.fest.st==='on','preparativi terminati');

@@ -309,7 +309,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v60.1</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v61</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -317,7 +317,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
       <span class="chip" title="Assi di legno prodotte dalla falegnameria: servono a molti cantieri"><i class="sw p"></i>Assi <b id="rPlanks">0</b></span>
       <span class="chip clk" id="chipCoins" role="button" tabindex="0" title="Denari in cassa. Clicca per aprire il registro delle rotte commerciali."><i class="sw" style="background:#d6ad4e"></i>Denari <b id="rCoins">0</b></span>
       <span class="chip" title="Grano nei granai · farina nei mulini"><i class="sw" style="background:#d6b24e"></i>Grano·Farina <b id="rGrain">0</b></span>
-      <span class="chip" title="Cibo nelle scorte delle famiglie"><i class="sw f"></i>Cibo <b id="rFood">0</b></span>
+      <span class="chip" title="Pane, pesce e carne nei Granai (il cibo nelle case non si conta)"><i class="sw f"></i>Cibo <b id="rFood">0</b></span>
       <span class="chip" title="Legna da ardere nelle case · fabbisogno di tutte le case"><i class="sw w"></i>Legna case <b id="rFire">0</b></span>
       <span class="chip clk" id="chipPop" role="button" tabindex="0" title="Abitanti / posti nelle case · clicca per i dettagli"><span>Abitanti</span> <b id="rPop">0</b></span>
       <span class="chip" id="chipSick" title="Abitanti malati (☣ = epidemia in corso)">Malati <b id="rSick">0</b></span>
@@ -506,7 +506,7 @@ const TGN={wood:'legno',stone:'pietra',planks:'assi',iron:'ferro',tools:'attrezz
 // si vende solo sopra T_KEEP (più il fabbisogno delle case per cibo, attrezzi e abiti) e si compra solo sotto T_TARGET: così non si compra e vende lo stesso bene
 const T_KEEP={bars:10,rope:8,wood:60,stone:45,iron:24,planks:18,tools:14,bread:20,cloth:14,clothes:12,fish:25,meat:25},T_TARGET={bars:0,rope:0,wood:30,stone:20,iron:10,planks:10,tools:8,bread:10,cloth:6,clothes:6,fish:10,meat:10};
 const mkRoutes=()=>ROUTE_IDS.map(id=>({id,open:false,next:0,visits:0,earned:0,spent:0,last:-1,blocked:false}));
-const S={t:0,mode:'lake',stock:{wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0},inflight:{wood:0,stone:0,iron:0},grow:0,barters:0,helps:0,visits:0,settled:0,season:0,year:1,frozen:false,day:0,f:0.06,ph:'work',wh:{wood:0,stone:0,iron:0},xf:{wood:0,stone:0,iron:0},edicts:EDICT0(),births:0,deaths:0,buried:0,unburied:0,
+const S={t:0,mode:'lake',extra:{},stock:{wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0},inflight:{wood:0,stone:0,iron:0},grow:0,barters:0,helps:0,visits:0,settled:0,season:0,year:1,frozen:false,day:0,f:0.06,ph:'work',wh:{wood:0,stone:0,iron:0},xf:{wood:0,stone:0,iron:0},edicts:EDICT0(),births:0,deaths:0,buried:0,unburied:0,
   deathsBy:{age:0,cold:0,hunger:0,ill:0},plague:{on:false,since:0,dead:0},inherits:0,cured:0,sickTot:0,moves:0,left:0,att:{joy:0,unemp:0,a:0,bonus:0},made:{},delivered:0,
   coins:COINS0,routes:mkRoutes(),tradeOpt:{sell:true,buy:true},tlog:[],trade:{sold:0,bought:0,visits:0},
   story:false,rank:0,proj:{},msgs:[],raid:{next:0,repelled:0,killed:0,lost:0,stolen:0,bands:{},seq:0},war:{phase:'none',at:0,wave:0,hold:0,defeats:0,killed:0},rk:0};
@@ -579,6 +579,19 @@ function spaceOf(k,pred){
 const stockRoom=k=>spaceOf(k).room;
 const capRes=k=>{const s=spaceOf(k);return s.held+s.room;};
 const capSec=k=>{const s=spaceOf(k,b=>!b.center);return s.held+s.room;};
+// v53: nel conto delle risorse disponibili entra solo ciò che è stoccato in Granai, Magazzini e Centro cittadino.
+// S.stock è sempre questo conteggio. Ciò che non trova posto (merce spenta, massimale abbassato, edificio demolito, rimborsi) passa in S.extra:
+// non conta e non si può usare, ma non va perso: se torna posto rientra nelle scorte.
+function reconcileStock(){
+  const {left}=layout();
+  for(const k of ALLKEYS){
+    const ex=Math.max(0,Math.floor(left[k]||0));
+    if(ex>0){S.stock[k]-=ex;S.extra[k]=(S.extra[k]||0)+ex;}
+    else if((S.extra[k]||0)>0){const q=Math.min(S.extra[k],spaceOf(k).room);if(q>0){S.stock[k]+=q;S.extra[k]-=q;}}
+    if(!(S.extra[k]>0))delete S.extra[k];
+  }
+}
+const extraTotal=()=>{let n=0;for(const k in S.extra)n+=S.extra[k]||0;return n;};
 const capTotal=()=>capRes('wood');
 const capGrain=()=>capRes('grain');
 const capFlour=()=>countDone('mill')*FLOUR_CAP+capRes('flour');
@@ -665,7 +678,7 @@ function init(sd,mode,diff,opt){
   gate.fill(0);gatedSet.clear();
   occ.fill(0);field.fill(0);lastStep.fill(0);wear.fill(0);plev.fill(0);phit.fill(0);pexp.fill(0);attr.fill(0);sapT.fill(0);
   buildings.clear();stCache=null;villagers=[];vmap.clear();reg.clear();resv.clear();plantResv.clear();nextId=1;guests.length=0;
-  S.t=0;S.festA=[];S.fests=0;festSeq=0;S.edicts=EDICT0();S.births=0;S.deaths=0;S.buried=0;S.unburied=0;S.wh={wood:0,stone:0,iron:0};S.xf={wood:0,stone:0,iron:0};S.stock={wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,rope:0,charcoal:0,bars:0};S.inflight={wood:0,stone:0,iron:0};S.grow=0;S.left=0;S.att={joy:0,unemp:0,a:0,bonus:0};S.barters=0;S.helps=0;S.visits=0;S.settled=0;S.season=0;S.year=1;S.frozen=false;acc.a1=0;acc.a05=0;acc.farm=0;acc.attr=99;for(const k in told)delete told[k];
+  S.t=0;S.festA=[];S.fests=0;festSeq=0;S.edicts=EDICT0();S.births=0;S.deaths=0;S.buried=0;S.unburied=0;S.extra={};S.wh={wood:0,stone:0,iron:0};S.xf={wood:0,stone:0,iron:0};S.stock={wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,rope:0,charcoal:0,bars:0};S.inflight={wood:0,stone:0,iron:0};S.grow=0;S.left=0;S.att={joy:0,unemp:0,a:0,bonus:0};S.barters=0;S.helps=0;S.visits=0;S.settled=0;S.season=0;S.year=1;S.frozen=false;acc.a1=0;acc.a05=0;acc.farm=0;acc.attr=99;for(const k in told)delete told[k];
   S.deathsBy={age:0,cold:0,hunger:0,ill:0};S.plague={on:false,since:0,dead:0};S.inherits=0;S.cured=0;S.sickTot=0;S.moves=0;S.made={};S.delivered=0;S.coins=COINS0;S.routes=mkRoutes();S.tradeOpt={sell:true,buy:true};S.tlog=[];S.trade={sold:0,bought:0,visits:0};
   S.story=!!(opt&&opt.story);S.rank=0;S.proj={};S.msgs=[];S.raid=raid0();S.war=war0();S.rk=0;
   let okT=false,att=0;const base=(sd||7)|0;
@@ -1389,9 +1402,10 @@ function cancelFest(id){
 }
 // prende 1 pezzo di cibo da una casa che ne ha più di KEEP (la scorta di famiglia resta)
 function festTakeFood(){
-  let best=null,bq=KEEP;
-  for(const h of buildings.values()){if(h.type!=='house'||h.state!=='done')continue;for(const tp of TYPES)if(h.goods[tp]>bq){bq=h.goods[tp];best=[h,tp];}}
-  if(!best)return false;best[0].goods[best[1]]--;return true;
+  // v53: il cibo della festa viene dalle scorte dei Granai (pane, pesce, carne), non dalle case
+  let best=null,bq=0;
+  for(const k of ['bread','fish','meat'])if(Math.floor(S.stock[k]||0)>bq){bq=Math.floor(S.stock[k]);best=k;}
+  if(!best)return false;S.stock[best]--;return true;
 }
 function festTick(){
   for(const b of buildings.values()){
@@ -3171,6 +3185,7 @@ function tick1(){
   assignJobs();
   for(const b of buildings.values())if(b.type==='school')b.pupils=0;
   for(const v of villagers)if(v.sch&&(v.state==='learn'||v.state==='toSchool')){const sb=buildings.get(v.sch);if(sb)sb.pupils=(sb.pupils|0)+1;}
+  reconcileStock();
   for(const r of ['wood','stone','iron'])S.wh[r]=Math.max(0,Math.min(S.wh[r],S.stock[r],capSec(r)));
   let capD=0,capP=0,pend=0,hungry=0,nh=0;
   for(const b of buildings.values()){
@@ -3296,7 +3311,7 @@ function stats(){
   for(const b of buildings.values()){
     if(b.state==='done'){
       built[b.type]=(built[b.type]||0)+1;
-      if(b.type==='house'){houses++;cap+=capOf(b);levels[b.level]++;if(b.hungry>=30)hungry++;for(const tp of TYPES)food+=b.goods[tp];asum+=b.attr;if(b.attr>amax)amax=b.attr;wsum+=b.well;fire+=b.goods.firewood;fireNeed+=fuelNeed();
+      if(b.type==='house'){houses++;cap+=capOf(b);levels[b.level]++;if(b.hungry>=30)hungry++;asum+=b.attr;if(b.attr>amax)amax=b.attr;wsum+=b.well;fire+=b.goods.firewood;fireNeed+=fuelNeed();
         if(b.crop==='herd')herds++;if(b.craft)crafters++;if(b.bake)bakers++;if(b.side==='fish')fishers++;if(b.side==='hunt')hunters++;tools+=b.goods.tools;if(b.weave)weavers++;if(b.tailor)tailors++;clothes+=b.goods.clothes;}
       else if(b.type==='sheepfold'){slots+=1;}
       else if(b.type==='farm'){farms++;slots+=2;}
@@ -3310,7 +3325,8 @@ function stats(){
   let roads=0,saps=0;const dc=[0,0,0,0,0,0];for(let i=0;i<N*N;i++){roads+=road[i];dc[dist[i]]++;saps+=sap[i];}
   for(let k=0;k<6;k++)dc[k]=Math.round(dc[k]/9);roads=Math.round(roads/SC);
   let jobs=0;for(const v of villagers)if(v.job)jobs++;
-  return {pop:villagers.length,jobs,slots,masters,avgSkill:skN?skSum/skN:0,far,avgCommute:cdN?cdSum/cdN:0,commuters:cdN,houses,cap:cap+S.att.bonus,capHouses:cap,capBonus:S.att.bonus,att:S.att,sites,roads,dc,built,levels,food,farms,stalls,hungry,barters:S.barters,helps:S.helps,stock:S.stock,capRes:capTotal(),capStone:capRes('stone'),capGrain:capGrain(),capFlour:capFlour(),
+  food=Math.floor((S.stock.bread||0)+(S.stock.fish||0)+(S.stock.meat||0)); // v53: viveri pronti nei Granai (il grano e la farina hanno il loro contatore)
+  return {pop:villagers.length,jobs,slots,masters,avgSkill:skN?skSum/skN:0,far,avgCommute:cdN?cdSum/cdN:0,commuters:cdN,houses,cap:cap+S.att.bonus,capHouses:cap,capBonus:S.att.bonus,att:S.att,sites,roads,dc,built,levels,food,farms,stalls,hungry,barters:S.barters,helps:S.helps,stock:S.stock,extra:extraTotal(),capRes:capTotal(),capStone:capRes('stone'),capGrain:capGrain(),capFlour:capFlour(),
     avgAttr:houses?asum/houses:0,maxAttr:houses?amax:0,day:S.day,ph:S.ph,f:S.f,herds,crafters,bakers,fishers,hunters,tools,saps,weavers,tailors,clothes,season:S.season,year:S.year,visits:S.visits,settled:S.settled,guests:guests.length,children:kids,schooled,births:S.births,deaths:S.deaths,buried:S.buried,
     sick,plagueN,plague:S.plague.on,avgWell:houses?wsum/houses:0,avgJoy:villagers.length?villagers.reduce((a,v)=>a+v.joy,0)/villagers.length:0,unhappy:villagers.filter(v=>v.joy<35).length,left:S.left,fire,fireNeed,inherits:S.inherits,cured:S.cured,moves:S.moves,deathsBy:S.deathsBy,pupils,coins:S.coins,routesOpen:S.routes.filter(r=>r.open).length};
 }
@@ -3361,7 +3377,7 @@ function importState(d){
   seed=d.seed;for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;jit[i]=hash(x,y+500)*0.15;}
   for(const k of Object.keys(S))delete S[k];
   Object.assign(S,Sx);lastStep.fill(S.t||0);
-  S.edicts=Object.assign(EDICT0(),S.edicts);S.stock=Object.assign({wood:0,stone:0,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,rope:0,charcoal:0,bars:0},S.stock);
+  S.extra=(S.extra&&typeof S.extra==='object')?S.extra:{};S.edicts=Object.assign(EDICT0(),S.edicts);S.stock=Object.assign({wood:0,stone:0,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,rope:0,charcoal:0,bars:0},S.stock);
   for(const k of ['wh','xf','inflight'])S[k]=Object.assign({wood:0,stone:0,iron:0},S[k]);
   S.coins=Number.isFinite(S.coins)?S.coins:COINS0;{const rt=Array.isArray(S.routes)?S.routes:[];S.routes=mkRoutes().map(r=>Object.assign(r,rt.find(x=>x&&x.id===r.id)||{}));}S.tradeOpt=Object.assign({sell:true,buy:true},S.tradeOpt);S.tlog=Array.isArray(S.tlog)?S.tlog:[];S.trade=Object.assign({sold:0,bought:0,visits:0},S.trade);
   S.mode=S.mode==='river'?'river':'lake';S.diff=DIFFS[S.diff]?S.diff:'facile';S.repairs=S.repairs|0;S.ruined=S.ruined|0;
@@ -3387,7 +3403,7 @@ return {TL,startHouseWork,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
   TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
   setFarmCrop,fibreCrop,sinkOf,CHAR_CAP,BAR_CAP,retInfo,RET_CAP,DIFFS,diffOf,maintStats,condOf,condLabel,maintainable,REPAIR_BELOW,WORN_AT,
-  STORE_KEYS,GRAN_KEYS,GRAN_TOTAL,CENTER_CAP,setPolicy,storeInfo,stockRoom,capRes,
+  STORE_KEYS,GRAN_KEYS,GRAN_TOTAL,CENTER_CAP,setPolicy,storeInfo,stockRoom,capRes,reconcileStock,extraTotal,festTakeFood,
   _t:{tradeTick,doTrade,chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
   grids:{tree,rock,ore,water,sap,sapT,road,dist,occ,wear,plev,field,door,attr,cen},guests:()=>guests,buildings:()=>buildings,villagers:()=>villagers};
 })();
@@ -4641,7 +4657,7 @@ function refreshSel(){
     info=`Erboristi: ${w.length}/${b.want} · malati nel raggio di cura: ${near} · guariti finora: ${S.cured}`;
     list=w.map(v=>`<div>Erborista: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>Cura i malati delle case entro 45 celle: guariscono più in fretta e rischiano meno di morire. Frena anche il contagio.</div>'+(w.length===0?'<div>Senza erborista l\'ospizio non cura.</div>':'');}
   else if(b.type==='cemetery'){info=`Sepolti: ${S.buried} · defunti senza sepoltura: ${S.unburied||0}`;list='<div>I defunti ricevono sepoltura qui: senza un cimitero i morti rendono la zona meno piacevole.</div>';}
-  if(b.state==='done'&&Sim.maintainable(b)){const cv=Math.round(Sim.condOf(b));info+=` · condizione ${cv}/100 (${Sim.condLabel(b)})`+(cv<Sim.REPAIR_BELOW?(S.stock.tools>0||(b.type==='house'&&b.goods.tools>0)?' · in attesa di riparazione':' · servono attrezzi del fabbro'):'');}
+  if(b.state==='done'&&Sim.maintainable(b)){const cv=Math.round(Sim.condOf(b));info+=` · condizione ${cv}/100 (${Sim.condLabel(b)})`+(cv<Sim.REPAIR_BELOW?(S.stock.tools>0?' · in attesa di riparazione':' · servono attrezzi nel Magazzino'):'');}
   $('selName').textContent=name;$('selInfo').textContent=info;if(selCacheList!==list){selCacheList=list;$('selList').innerHTML=list;}
   updStoreCfg((b.type==='granary'||(b.type==='store'&&!b.center))&&b.state==='done'?b:null);
   $('selJobs').hidden=!(b.state==='done'&&t.slots>0&&!(b.type==='sheepfold'&&b.owner));
@@ -4673,7 +4689,8 @@ function updStoreCfg(b){
     row.classList.toggle('off',!p.on);
     row.querySelector('.held').textContent=p.held;
   }
-  $('stkNote').textContent=`In tutto ${si.tot}/${si.total}: il posto è condiviso fra le merci accettate, ogni massimale limita la singola merce.`;
+  const ex=Sim.S.extra||{},exl=Object.keys(ex).filter(k=>ex[k]>0).map(k=>STKNAME[k]+' '+ex[k]);
+  $('stkNote').textContent=`In tutto ${si.tot}/${si.total}: il posto è condiviso fra le merci accettate, ogni massimale limita la singola merce. Conta solo ciò che è nei Granai, nei Magazzini e nel Centro.`+(exl.length?` Senza posto (non conta): ${exl.join(', ')}.`:'');
 }
 $('selStore').addEventListener('change',ev=>{
   const t=ev.target;if(!sel||!t||!t.getAttribute)return;

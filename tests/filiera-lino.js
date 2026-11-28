@@ -3,7 +3,9 @@ const Sim=require('../src/sim.js');const S=Sim.S;
 let fails=0;const ok=(c,m)=>{console.log((c?'  ok ':'  ERRORE ')+m);if(!c)fails++;};
 Sim.init(7,'lake','facile');S.stock.wood=500;S.stock.stone=300;S.stock.planks=20;
 Sim.paintDistrict(60,100,125,128,1);Sim.paintDistrict(100,70,130,92,3);Sim.paintDistrict(60,60,90,92,5);Sim.paintDistrict(60,30,100,58,2);Sim.paintDistrict(100,94,125,99,2);
-const hold=()=>{S.stock.wood=Math.max(S.stock.wood,300);S.stock.stone=Math.max(S.stock.stone,200);};
+// v53: le scorte contano solo se stoccate: si rifornisce fino alla capacità, non oltre
+const top=(k,n)=>{S.stock[k]=Math.max(S.stock[k],Math.min(n,Sim.capRes(k)));};
+const hold=()=>{top('wood',300);top('stone',200);};
 const run=d=>{for(let i=0;i<d*Sim.DAY/0.2;i++){Sim.step(0.2);if(i%10===0)hold();}};
 const B=()=>[...Sim.buildings().values()];
 const done=t=>B().filter(b=>b.type===t&&b.state==='done');
@@ -48,6 +50,7 @@ console.log('   fibra di lino pronta',R.out.flaxf,'cicli telaio',S.made.weaver|0
 ok(wvd&&(S.made.weaver|0)>0,'il telaio ha lavorato la fibra di lino (senza ovile): '+(S.made.weaver|0)+' cicli');
 ok(wvd&&wvd.out.cloth>0||S.stock.cloth>0||done('mercery').length>=0,'tessuto prodotto');
 console.log('4) corde nelle riparazioni e in magazzino');
+put('store',112,104);run(8);
 S.stock.rope=3;S.stock.tools=3;
 const tg=B().find(b=>b.state==='done'&&Sim.maintainable(b)&&b.type!=='house'&&b.type!=='retting'&&b.type!=='ropewalk');
 for(const b of B())if(b!==tg&&Sim.maintainable(b))b.cond=100;

@@ -1247,7 +1247,7 @@ function refreshSel(){
     info=`Erboristi: ${w.length}/${b.want} · malati nel raggio di cura: ${near} · guariti finora: ${S.cured}`;
     list=w.map(v=>`<div>Erborista: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>Cura i malati delle case entro 45 celle: guariscono più in fretta e rischiano meno di morire. Frena anche il contagio.</div>'+(w.length===0?'<div>Senza erborista l\'ospizio non cura.</div>':'');}
   else if(b.type==='cemetery'){info=`Sepolti: ${S.buried} · defunti senza sepoltura: ${S.unburied||0}`;list='<div>I defunti ricevono sepoltura qui: senza un cimitero i morti rendono la zona meno piacevole.</div>';}
-  if(b.state==='done'&&Sim.maintainable(b)){const cv=Math.round(Sim.condOf(b));info+=` · condizione ${cv}/100 (${Sim.condLabel(b)})`+(cv<Sim.REPAIR_BELOW?(S.stock.tools>0||(b.type==='house'&&b.goods.tools>0)?' · in attesa di riparazione':' · servono attrezzi del fabbro'):'');}
+  if(b.state==='done'&&Sim.maintainable(b)){const cv=Math.round(Sim.condOf(b));info+=` · condizione ${cv}/100 (${Sim.condLabel(b)})`+(cv<Sim.REPAIR_BELOW?(S.stock.tools>0?' · in attesa di riparazione':' · servono attrezzi nel Magazzino'):'');}
   $('selName').textContent=name;$('selInfo').textContent=info;if(selCacheList!==list){selCacheList=list;$('selList').innerHTML=list;}
   updStoreCfg((b.type==='granary'||(b.type==='store'&&!b.center))&&b.state==='done'?b:null);
   $('selJobs').hidden=!(b.state==='done'&&t.slots>0&&!(b.type==='sheepfold'&&b.owner));
@@ -1279,7 +1279,8 @@ function updStoreCfg(b){
     row.classList.toggle('off',!p.on);
     row.querySelector('.held').textContent=p.held;
   }
-  $('stkNote').textContent=`In tutto ${si.tot}/${si.total}: il posto è condiviso fra le merci accettate, ogni massimale limita la singola merce.`;
+  const ex=Sim.S.extra||{},exl=Object.keys(ex).filter(k=>ex[k]>0).map(k=>STKNAME[k]+' '+ex[k]);
+  $('stkNote').textContent=`In tutto ${si.tot}/${si.total}: il posto è condiviso fra le merci accettate, ogni massimale limita la singola merce. Conta solo ciò che è nei Granai, nei Magazzini e nel Centro.`+(exl.length?` Senza posto (non conta): ${exl.join(', ')}.`:'');
 }
 $('selStore').addEventListener('change',ev=>{
   const t=ev.target;if(!sel||!t||!t.getAttribute)return;

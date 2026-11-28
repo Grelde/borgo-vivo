@@ -1,5 +1,17 @@
 # Changelog
 
+## v61 – 2026-11-28
+Cambio di regole: nel conto delle risorse disponibili entra solo ciò che è stoccato in Granai, Magazzini e Centro cittadino.
+- **Scorte = solo stoccato:** `S.stock` (i contatori di legno, pietra, ferro, assi, attrezzi, tessuto, abiti, corde, carbone, barre, grano, farina, pane, pesce, carne) è sempre ciò che sta davvero in un deposito che lo accetta. Ciò che non trova posto (merce spenta nel pannello, massimale abbassato, deposito demolito, rimborsi o doni oltre la capacità) passa in `S.extra`: **non conta e non si può usare**, ma non va perso e rientra nelle scorte appena torna posto (`reconcileStock`, a ogni passo).
+- **Cibo del contatore in alto:** mostra pane, pesce e carne **nei Granai** (prima sommava ortaggi, uova e tutto ciò che stava nelle case). Il grano e la farina hanno il loro contatore; il cibo nelle case non entra più nel conto.
+- **Festa di paese:** il cibo per i preparativi esce dalle scorte dei Granai (pane, pesce, carne), non più dalle case.
+- **Riparazioni:** gli attrezzi si trovano solo nel Magazzino (il suggerimento non conta più gli attrezzi nelle case).
+- **Pannello Magazzino/Granaio:** se c'è merce senza posto, la nota in fondo la elenca ("Senza posto (non conta)").
+- Resta com'era: la merce già pronta nelle botteghe, sugli scaffali della merceria, nei buffer dei produttori e in viaggio non è "stoccata" e non entra nelle scorte; le carovane continuano a vendere dagli scaffali della merceria oltre che dalle scorte (da decidere se anche gli scaffali debbano uscire dal conto).
+- Salvataggi: nessun cambio di formato (`S.extra` ha un valore di riserva). Una partita vecchia con scorte oltre la capacità sposta l'eccedenza in `S.extra` al primo passo.
+- Test: `tests/storage.js` ha la sezione 6 (cibo dai Granai, merce spenta fuori dal conto senza perdite, massimale, rientro, festa). Gli altri test che davano per scontate scorte senza depositi (workshops, manutenzione, festa, filiera-lino) ora costruiscono un Magazzino/Granaio e rifornivano solo fino alla capacità.
+- Grafica non provata in un browser WebGL (contatore Cibo, pannello).
+
 ## v60.1 – 2026-11-28
 Correzione: abitanti bloccati a metà percorso (cantieri fermi) e salvataggi vecchi che bloccavano il gioco.
 - **Movimento:** con il passo del browser (0,05 s) un abitante si fermava per sempre su certe curve diagonali del percorso: il punto di mira della curva morbida coincideva con la sua posizione (0,264 dal centro della cella) e `SMOOTH_REACH` era 0,25, quindi non risultava mai arrivato. Restava "in cammino" senza muoversi. Succedeva anche al costruttore del campo: con 2 adulti su 3 di turno all'orto nessun cantiere avanzava (i lavoratori «restavano in casa»). `SMOOTH_REACH` ora è 0,3 (sopra il punto fisso massimo, 0,264).

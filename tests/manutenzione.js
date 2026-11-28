@@ -14,7 +14,9 @@ function village(diff){
   Sim.init(7,'lake',diff);S.stock.wood=500;S.stock.stone=300;
   Sim.paintDistrict(60,100,125,128,1);Sim.paintDistrict(100,70,130,92,3);Sim.paintDistrict(60,60,90,92,5);
   for(const [t,x,y] of [['plaza',90,90],['well',84,96],['church',90,108]])Sim.place(t,x,y,0);
-  return (d)=>{for(let i=0;i<d*Sim.DAY/0.2;i++){Sim.step(0.2);if(i%10===0){S.stock.wood=Math.max(S.stock.wood,300);S.stock.stone=Math.max(S.stock.stone,200);}}};
+  // v53: le scorte contano solo se stoccate: il test rifornisce fino alla capacità, non oltre
+  const top=(k,n)=>{S.stock[k]=Math.max(S.stock[k],Math.min(n,Sim.capRes(k)));};
+  return (d)=>{for(let i=0;i<d*Sim.DAY/0.2;i++){Sim.step(0.2);if(i%10===0){top('wood',300);top('stone',200);}}};
 }
 console.log('1) il livello di difficoltà si sceglie e si salva');
 let run=village('difficile');ok(S.diff==='difficile','difficoltà scelta all\'avvio: '+S.diff);
@@ -34,6 +36,8 @@ const mill=put('mason',104,110);run(8);
 const ms=done('mason')[0];ok(!!ms&&ms.workers.length>=1,'muratori al lavoro');
 const target=B().find(b=>b.state==='done'&&Sim.maintainable(b)&&b.type!=='house'&&b.type!=='mason')||done('church')[0];
 ok(!!target,'edificio da riparare: '+(target&&target.type));
+// v53: gli attrezzi contano solo se stoccati in un Magazzino
+put('store',112,104);run(8);
 for(const b of B())if(b.state==='done'&&Sim.maintainable(b)&&b.type==='house')b.goods.tools=0;
 target.cond=20;S.stock.tools=0;run(3);
 ok(Sim.condOf(target)<20,'senza attrezzi nessuno ripara: '+Sim.condOf(target).toFixed(1));

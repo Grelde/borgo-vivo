@@ -2,9 +2,11 @@
 // Il Magazzino accoglie materiali da costruzione e prodotti degli artigiani; il Granaio il cibo che non viene dai giardini; il centro resta com'era (80 per materiale).
 const Sim=require('../src/sim.js');const S=Sim.S;
 let fails=0;const ok=(c,m)=>{console.log((c?'  ok ':'  ERRORE ')+m);if(!c)fails++;};
-Sim.init(7,'lake');S.stock.wood=500;S.stock.stone=300;
+Sim.init(7,'lake');S.stock.wood=500;S.stock.stone=300;Sim.reconcileStock();
+// v53: le scorte contano solo se stoccate: il test rifornisce fino alla capacità, non oltre
+const top=(k,n)=>{S.stock[k]=Math.max(S.stock[k],Math.min(n,Sim.capRes(k)));};
 Sim.paintDistrict(60,100,125,128,1);Sim.paintDistrict(100,70,130,92,3);Sim.paintDistrict(60,60,90,92,5);
-const hold=()=>{S.stock.wood=Math.max(S.stock.wood,300);S.stock.stone=Math.max(S.stock.stone,200);};
+const hold=()=>{top('wood',300);top('stone',200);};
 const run=d=>{for(let i=0;i<d*Sim.DAY/0.2;i++){Sim.step(0.2);if(i%10===0)hold();}};
 const B=()=>[...Sim.buildings().values()];
 const done=t=>B().filter(b=>b.type===t&&b.state==='done');
@@ -64,8 +66,8 @@ for(const b of B())if(b.type==='house'&&b.state==='done')for(const g of ['tools'
 const sm=put('smithy',112,104),ba=put('bakery',116,108);ok(!!sm&&!!ba,'fucina e forno piazzati');
 // spento tutto: nessuna merce entra in magazzino
 Sim.setPolicy(M.id,'tools',{on:false});Sim.setPolicy(G.id,'bread',{on:false});
-S.stock.iron=80;S.stock.flour=80;
-const feed=()=>{S.stock.iron=Math.max(S.stock.iron,60);S.stock.flour=Math.max(S.stock.flour,60);};
+top('iron',80);top('flour',80);
+const feed=()=>{top('iron',60);top('flour',60);};
 for(let i=0;i<18*Sim.DAY/0.2;i++){Sim.step(0.2);if(i%10===0){hold();feed();for(const h of B())if(h.type==='house'&&h.state==='done'){h.goods.tools=12;h.goods.bread=12;}}}
 ok((S.made.smithy|0)>0&&(S.made.bakery|0)>0,'fucina e forno lavorano: '+S.made.smithy+' e '+S.made.bakery+' cicli');
 ok(S.stock.tools===0&&S.stock.bread===0,'accettazione spenta: attrezzi '+S.stock.tools+', pane '+S.stock.bread);
@@ -87,5 +89,36 @@ console.log('5) coerenza');
 ok(Object.values(S.stock).every(v=>v>=0&&Number.isFinite(v)),'nessuna scorta negativa o non numerica');
 ok(Sim.storeInfo(M).tot<=1000&&Sim.storeInfo(G).tot<=1000,'mai più di 1000 in un edificio');
 const st=Sim.stats();ok(st.capRes>0&&st.capStone>0&&st.capGrain>0,'stats: capacità legno '+st.capRes+', pietra '+st.capStone+', grano '+st.capGrain);
+console.log('6) v53: conta solo ciò che è stoccato in Granai, Magazzini e Centro');
+{
+  // il cibo del contatore è quello nei Granai: viveri nelle case non contano
+  for(const h of B())if(h.type==='house'&&h.state==='done'){h.goods.bread=9;h.goods.fish=9;h.goods.meat=9;h.goods.veg=9;h.goods.eggs=9;}
+  S.stock.bread=0;S.stock.fish=0;S.stock.meat=0;
+  ok(Sim.stats().food===0,'viveri solo nelle case: Cibo = '+Sim.stats().food+' (0)');
+  S.stock.bread=7;S.stock.fish=3;S.stock.meat=2;
+  ok(Sim.stats().food===12,'pane 7 + pesce 3 + carne 2 nei Granai: Cibo = '+Sim.stats().food+' (12)');
+  // merce spenta: ciò che c'era non conta più, ma non va perso
+  Sim.setPolicy(M.id,'tools',{on:true,max:1000});S.stock.tools=40;S.extra={};Sim.reconcileStock();
+  ok(S.stock.tools===40&&!S.extra.tools,'attrezzi 40 stoccati nel Magazzino: tutti contano');
+  Sim.setPolicy(M.id,'tools',{on:false});Sim.reconcileStock();
+  ok(S.stock.tools===0&&S.extra.tools===40,'Magazzino spento per gli attrezzi: 0 contano, 40 fuori dal conto ('+S.stock.tools+', '+S.extra.tools+')');
+  ok(Sim.stockRoom('tools')===0,'e non si può consegnare altro finché non c\'è posto');
+  Sim.setPolicy(M.id,'tools',{on:true,max:25});Sim.reconcileStock();
+  ok(S.stock.tools===25&&S.extra.tools===15,'massimale 25: 25 contano, 15 restano fuori ('+S.stock.tools+', '+S.extra.tools+')');
+  Sim.setPolicy(M.id,'tools',{max:1000});Sim.reconcileStock();
+  ok(S.stock.tools===40&&!S.extra.tools,'tornato il posto: rientrano tutti i 40, niente perso');
+  ok(Sim.stats().extra===0,'stats: nulla fuori dal conto');
+  // legno oltre la capacità (rimborso, regalo): l'eccedenza non conta
+  S.stock.wood=5000;Sim.reconcileStock();
+  const capW=Sim.capRes('wood');
+  ok(S.stock.wood<=capW&&S.stock.wood<5000&&(S.extra.wood|0)>=5000-capW,'legno 5000 oltre la capacità ('+capW+'): conta '+S.stock.wood+', fuori '+S.extra.wood);
+  ok(S.stock.wood+(S.extra.wood|0)===5000,'niente perso: contato + fuori = 5000');
+  S.stock.wood=300;S.extra={};Sim.reconcileStock();
+  // la festa non prende cibo dalle case
+  for(const h of B())if(h.type==='house'&&h.state==='done'){h.goods.bread=9;h.goods.fish=9;h.goods.meat=9;}
+  S.stock.bread=0;S.stock.fish=0;S.stock.meat=0;
+  ok(Sim.festTakeFood()===false,'festa: con le case piene ma i Granai vuoti non c\'è cibo');
+  S.stock.fish=2;ok(Sim.festTakeFood()===true&&S.stock.fish===1,'festa: il cibo esce dal Granaio');
+}
 console.log(fails?'STORAGE_FALLITO '+fails:'STORAGE_OK');
 process.exit(fails?1:0);
