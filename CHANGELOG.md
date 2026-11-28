@@ -1,5 +1,12 @@
 # Changelog
 
+## v55 – 2026-11-28
+Funzione nuova: tende dei senza casa.
+- **Regola:** i cittadini che non hanno una casa si costruiscono da soli una **tenda** (2 persone per tenda) vicino al centro del villaggio. La tenda è un cantiere come gli altri: il legno (4) lo portano i costruttori dal magazzino. Di notte chi ha una tenda finita dorme lì, non più nel magazzino.
+- **Smontaggio:** appena tutti gli occupanti hanno una casa la tenda viene smontata e **metà del legno (2) torna in magazzino**; un cantiere di tenda rimasto vuoto restituisce i materiali già consegnati.
+- Non c'è nel menù di costruzione (`auto:true`); grafica nuova `BUILD.tent` (telo a capanna, pali, porta, ceppo).
+- Test: nuovo `tests/tende.js` (tende nate, vicine al centro, finite, 1-2 occupanti, smontate quando tutti hanno casa). Non verificato in un browser WebGL: aspetto della tenda.
+
 ## v54 – 2026-11-28
 Funzione nuova: capacità di trasporto per viaggio ai cantieri. A mano si porta **1 pezzo**, col carretto **3 pezzi**.
 - **Regola:** il carretto è dei magazzinieri (lavorano in un magazzino o nel centro del paese): ogni viaggio al cantiere porta fino a 3 pezzi (legno, pietra o assi), ma mai più di quelli che servono al cantiere o che ci sono in magazzino. Tutti gli altri (aiutanti, costruttori, adulti senza lavoro) portano 1 pezzo per viaggio. I materiali in volo e le scorte si aggiornano della quantità reale (`task.n`), anche se il viaggio viene annullato.

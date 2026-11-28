@@ -815,6 +815,10 @@ const BUILD={
     for(const sx of[-1.5,1.5]){bx(g,1.2,.07,.45,MAT.log,sx,.55,1.5);bx(g,.06,.5,.06,MAT.timber,sx-.5,.27,1.5);bx(g,.06,.5,.06,MAT.timber,sx+.5,.27,1.5);bx(g,1.2,.05,.2,MAT.logD,sx,.3,1.9);bx(g,1.2,.05,.2,MAT.logD,sx,.3,1.1);}
     cyl(g,.05,.05,2.2,6,MAT.timber,-.1,1.1,-2.0);return g;}
 };
+BUILD.tent=function(b){const g=new THREE.Group();
+  gable(g,1.25,1.15,.75,MAT.cream,0);bx(g,.34,.5,.04,MAT.door,0,.25,.6);
+  for(const sx of[-.62,.62])cyl(g,.03,.03,.9,5,MAT.timber,sx,.45,.55);bx(g,.05,.05,1.15,MAT.timber,0,.82,0);
+  bx(g,.4,.12,.4,MAT.timber,.9,.06,.4);return g;};
 BUILD.watchtower=function(b){const g=new THREE.Group();
   bx(g,1.9,.5,1.9,MAT.stoneD,0,.25,0);bx(g,1.5,3.6,1.5,MAT.stone,0,2.3,0);bx(g,2.1,.4,2.1,MAT.timber,0,4.3,0);
   for(const sx of[-.95,.95])for(const sz of[-.95,.95])bx(g,.14,.7,.14,MAT.timber,sx,4.8,sz);

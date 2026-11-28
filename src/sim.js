@@ -44,6 +44,8 @@ const BT={
   infirmary:{name:'Ospizio',w:6,h:6,cost:{wood:12,stone:8,planks:4},time:12,slots:1,want:1},
   cemetery:{name:'Cimitero',w:9,h:4,cost:{wood:6,stone:10},time:12,slots:0,want:0},
   church:{name:'Chiesa',w:9,h:9,cost:{wood:10,stone:24,planks:8},time:20,slots:0,want:0},
+  // v55: tenda dei senza casa (la costruiscono da soli vicino al centro; si smonta, con metà dei materiali recuperati, quando la famiglia si trasferisce in una casa)
+  tent:{name:'Tenda',w:2,h:2,cost:{wood:4,stone:0},time:6,slots:0,want:0,auto:true},
   well:{name:'Pozzo',w:2,h:2,cost:{wood:2,stone:6},time:6,slots:0,want:0},
   house:{name:'Casa',w:3,h:3,cost:{wood:4,stone:0},time:6,slots:0,want:0},
   farm:{name:'Fattoria',w:6,h:6,cost:{wood:8,stone:0},time:9,slots:0,want:0},
@@ -56,7 +58,7 @@ const BT={
 const ATTR={church:[4,36],well:[2.5,24],stall:[1.2,18],wood:[-3,24],quarry:[-4.5,33],mine:[-5,36],farm:[-1.5,18],forester:[0.6,18],granary:[-0.8,15],mill:[-1.5,21],inn:[1,21],sheepfold:[-0.8,15],school:[1,18],infirmary:[0.5,15],cemetery:[-0.5,15],plaza:[3.2,30],flowers:[0.9,12],statue:[2,21],carpenter:[-1.2,18],mason:[-1.2,18],smithy:[-1.8,21],bakery:[0.4,15],weaver:[-0.3,12],tailor:[0.2,12],mercery:[0.8,18],fisher:[-0.3,12],hunter:[-0.4,12],tavern:[1.6,24],hall:[2.6,30]};
 ATTR.watchtower=[0.4,15];ATTR.barracks=[-0.6,15];
 const DECO={flowers:1,statue:1};
-const NOGATE={house:1,stall:1,flowers:1,statue:1,plaza:1,well:1,cemetery:1};
+const NOGATE={house:1,stall:1,flowers:1,statue:1,plaza:1,well:1,cemetery:1,tent:1};
 // Tempo (v20): 1 anno di vita = AGEY secondi; un'annata del calendario (4 stagioni) = YEARL secondi = 10 anni di vita.
 const AGEY=240*DK;
 const UPC={2:{wood:4,stone:0},3:{wood:4,stone:4},4:{wood:6,stone:8},5:{wood:8,stone:14}};
@@ -1183,7 +1185,7 @@ function decide(v){
   if(ph!=='work'||dusk){
     // al calare della sera tutti si avvicinano a casa; pasto, sera e notte si passano lì
     if(!h||h.state!=='done'){
-      if(ph==='night'){const st=nearestStore(v.cell);if(st&&route(v,st.cell,st.id)){v.state='toStoreSleep';return;}}
+      if(ph==='night'){const tn=v.tentId&&buildings.get(v.tentId);if(tn&&tn.state==='done'&&route(v,tn.cell,tn.id)){v.state='toStoreSleep';return;}const st=nearestStore(v.cell);if(st&&route(v,st.cell,st.id)){v.state='toStoreSleep';return;}}
       v.state='wait';v.timer=3;return;
     }
     if(ph==='meal'){if(!v.ate&&goHome(v,'eat'))return;}
@@ -1625,6 +1627,35 @@ function claimLane(b){
   if(!doorsOK(Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys),cells))return false;
   for(const i of cells){b.ext.push(i);occ[i]=b.id;}
   occStamp++;hooks.ground();hooks.regarden(b);return true;
+}
+// v55: tende. I cittadini senza casa si costruiscono da soli una tenda (2 per tenda) vicino al centro del villaggio: la tenda è un cantiere come gli altri (il materiale lo porta chi costruisce).
+// Appena tutti i suoi occupanti hanno una casa la tenda viene smontata e metà del materiale torna in magazzino.
+const TENT_CAP=2;
+function tentTick(){
+  const tents=[...buildings.values()].filter(b=>b.type==='tent');
+  for(const t of tents){
+    t.members=(t.members||[]).filter(id=>{const v=vmap.get(id);return v&&!v.home&&v.tentId===t.id;});
+    if(!t.members.length){
+      const was=t.state==='done';
+      for(const v of villagers)if(v.tentId===t.id)v.tentId=0;
+      removeBuilding(t.id);
+      if(was)tell('tentDown','Una famiglia ha lasciato la tenda per una casa: la tenda è stata smontata e metà del legno è tornato al magazzino.');
+    }
+  }
+  const homeless=villagers.filter(v=>!v.child&&!v.home&&(!v.tentId||!buildings.get(v.tentId)));
+  if(!homeless.length)return;
+  const open=[...buildings.values()].filter(b=>b.type==='tent'&&b.members.length<TENT_CAP);
+  let pending=false;for(const b of buildings.values())if(b.type==='tent'&&b.state==='site')pending=true;
+  for(const v of homeless){
+    let t=open.find(b=>b.members.length<TENT_CAP);
+    if(!t){
+      if(pending||uncommitted('wood')<BT.tent.cost.wood)break;
+      const c=centerCell();if(c<0)break;
+      const best=siteSearch('tent',0,{cell:c});if(!best)break;
+      t=addBuilding('tent',best.x,best.y,false,{rot:best.r});t.members=[];open.push(t);pending=true;
+    }
+    t.members.push(v.id);v.tentId=t.id;
+  }
 }
 function trySpawnHouse(){
   const t=BT.house;if(uncommitted('wood')<t.cost.wood||uncommitted('stone')<t.cost.stone)return;
@@ -2659,7 +2690,7 @@ function tick1(){
   if(countDone('inn')&&Math.random()<0.06)spawnGuest();
   tradeTick();
   regnoTick();
-  acc.farm+=1;if(acc.farm>=5){acc.farm=0;farmTick();sheepTick();}
+  acc.farm+=1;if(acc.farm>=5){acc.farm=0;farmTick();sheepTick();tentTick();}
   S.grow+=TK;
   let openSlots=0;for(const b of buildings.values())if(b.state==='done')openSlots+=b.want-b.workers.length;
   attractTick(capD);
