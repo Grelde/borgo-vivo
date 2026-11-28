@@ -1142,9 +1142,11 @@ function startShop(v,b){
   }
   b.why='';
   // v66.1: il pescatore pesca sulla riva vicino alla capanna (cella ricordata in b.shore); se non c'è una riva raggiungibile resta in bottega come prima
-  if(b.type==='fisher'){
-    if(!(b.shore>=0)&&S.t>=(b.shoreTry||0)){b.shore=shoreTarget(b.cell,40);if(b.shore<0)b.shoreTry=S.t+40;}
-    if(b.shore>=0){
+  // v74: il cacciatore fa lo stesso nel bosco: va in un albero del folto vicino alla capanna (b.shore, rifatto se l'albero viene tagliato) e caccia là fuori
+  if(b.type==='fisher'||b.type==='hunter'){
+    const hunt=b.type==='hunter',spotOK=i=>i>=0&&(!hunt||tree[i]);
+    if(!spotOK(b.shore)&&S.t>=(b.shoreTry||0)){b.shore=hunt?treeTarget(b.cell,40,true):shoreTarget(b.cell,40);if(b.shore<0)b.shoreTry=S.t+40;}
+    if(spotOK(b.shore)){
       if(v.cell===b.shore){v.inside=false;v.moving=false;v.state='shop';v.timer=sp.t;return;}
       if(route(v,b.shore,0)){v.state='toShore';return;}
       b.shore=-1;b.shoreTry=S.t+20;
@@ -3638,7 +3640,7 @@ function roleText(v){
     case 'tax':return 'Riscuote le tasse in una casa';
     case 'toTaxDep':return "Porta le tasse all'ufficio";
     case 'toMill':case 'mill':return 'Macina il grano';
-    case 'toShore':return 'Va a pescare sulla riva';
+    case 'toShore':{const jb=v.job&&buildings.get(v.job);return jb&&jb.type==='hunter'?'Va a caccia nel bosco':'Va a pescare sulla riva';}
     case 'shop':if(!v.inside){const fb=v.job&&buildings.get(v.job);if(fb&&fb.type==='fisher')return 'Pesca sulla riva';}
     case 'toShop':{const jb=v.job&&buildings.get(v.job);return jb&&TRADENAME[jb.type]?TRADENAME[jb.type][0].toUpperCase()+TRADENAME[jb.type].slice(1)+' al lavoro':'Al lavoro in bottega';}
     case 'toDeliver':{const mh=v.cargo&&buildings.get(v.cargo.h);return mh&&mh.type==='mercery'?'Porta la merce alla merceria':'Porta la merce alle famiglie';}

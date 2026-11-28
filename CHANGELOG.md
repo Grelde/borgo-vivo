@@ -1,5 +1,12 @@
 # Changelog
 
+## v74 – 2026-11-28
+Funzione nuova: il cacciatore va a caccia nel bosco, come il pescatore va sulla riva (v66.1).
+- Chi lavora nella capanna del cacciatore cammina fino a un albero del folto entro 40 celle (la cella è ricordata in `b.shore` e rifatta se l'albero viene tagliato) e caccia là fuori (`toShore`, poi `shop` all'aperto); prima restava chiuso dentro la capanna. Il ruolo mostra "Va a caccia nel bosco".
+- Stessa resa di prima (2 pezzi di carne ogni 8 s, meno d'inverno): cambia solo dove si lavora. Se non c'è un bosco raggiungibile lavora in capanna come prima e riprova dopo 40 s.
+- Test: nuovo `tests/cacciatore.js` (va nel bosco, cammina fin là, non caccia mai dentro la capanna, ripiego in capanna senza bosco, carne prodotta; due mappe).
+- Non verificato in un browser WebGL: non c'è un'animazione di caccia, il cacciatore resta fermo fra gli alberi.
+
 ## v73.2 – 2026-11-28
 Ritocco grafico: pronta la grafica del giardino per la casa specializzata nella raccolta di bacche (`b.side==='berry'`): cespugli carichi di frutti, cesto colmo e ripiano con bacche ad essiccare. La logica di gioco non c'è ancora: il valore `side='berry'` non è ancora assegnato da nessuna parte (la funzione è prevista in un'altra chat).
 
