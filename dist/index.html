@@ -4642,6 +4642,12 @@ function shopProps(g,b){
     for(let k=0;k<4;k++){bx(g,.05,.2,.03,MAT.fishM,.5+k*.12,.38,z0+.1);sph(g,.04,MAT.fishM,.5+k*.12,.28,z0+.1,1,1,.6);}
     cyl(g,.16,.13,.14,8,MAT.fw,.1,.07,z0+.42);cyl(g,.15,.15,.02,8,MAT.fishM,.1,.15,z0+.42);
   }
+  if(b.side==='berry'){ // v73.2: la casa che raccoglie bacche ha cespugli carichi di frutti, un cesto colmo e un ripiano con bacche ad essiccare
+    const z0=-.58,bc=[MAT.red,MAT.blue,MAT.flower1];
+    for(let k=0;k<3;k++){const sx=-.7+k*.38;sph(g,.2,MAT.leaf,sx,.2,z0,1.2,.9,1);for(let j=0;j<6;j++){const a2=j*1.05+k;sph(g,.04,bc[(k+j)%3],sx+Math.cos(a2)*.17,.2+Math.sin(a2*1.7)*.08+.06,z0+Math.sin(a2)*.15+.1);}}
+    cyl(g,.17,.13,.16,8,MAT.wattle,.6,.08,z0+.05);for(let j=0;j<7;j++)sph(g,.045,bc[j%3],.6+Math.cos(j*0.9)*.09,.18,z0+.05+Math.sin(j*0.9)*.09);
+    for(const sx of[.82,1.12])bx(g,.05,.4,.05,MAT.timber,sx,.2,z0+.12);bx(g,.4,.04,.22,MAT.timber,.97,.4,z0+.12);for(let j=0;j<5;j++)sph(g,.04,bc[j%3],.85+j*.06,.45,z0+.12);
+  }
   if(b.side==='hunt'){ // v74: la casa che caccia ha pelli tese su un telaio, un arco appeso e selvaggina appesa a un palo
     const z0=-.58;
     for(const sx of[-.75,-.15])bx(g,.06,.8,.06,MAT.timber,sx,.4,z0);

@@ -1,5 +1,8 @@
 # Changelog
 
+## v73.2 – 2026-11-28
+Ritocco grafico: pronta la grafica del giardino per la casa specializzata nella raccolta di bacche (`b.side==='berry'`): cespugli carichi di frutti, cesto colmo e ripiano con bacche ad essiccare. La logica di gioco non c'è ancora: il valore `side='berry'` non è ancora assegnato da nessuna parte (la funzione è prevista in un'altra chat).
+
 ## v73.1 – 2026-11-28
 Ritocco grafico: il giardino delle case che si specializzano nella pesca mostra una rete appesa, pesce ad essiccare e un cesto; quello delle case che cacciano mostra pelli tese, selvaggina appesa e un arco. Solo grafica (non verificata in un browser WebGL).
 
