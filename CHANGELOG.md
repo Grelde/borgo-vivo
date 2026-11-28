@@ -1,5 +1,13 @@
 # Changelog
 
+## v66 – 2026-11-28
+Funzione nuova: zona ad alta densità, giardino pieno dal Borgo fortificato, fusione delle case in centro.
+- **Giardino di partenza:** dal rango *Borgo fortificato* le case nuove nascono già col giardino completo e recintato (niente orto da 4 celle né lavori). Le case già esistenti restano come sono.
+- **Fusione:** dal Borgo fortificato, nella zona iniziale (entro 28 celle dal centro), due case vicine i cui lotti si toccano possono fondersi: la famiglia della più piccola si trasferisce in un'altra casa con posto e con comfort almeno pari; il suo terreno (casa + giardino) passa al giardino dell'altra, che diventa unico e più grande. Senza una casa libera adatta la fusione non avviene. Controllo ogni mezzo giorno.
+- **Zona Alta densità (progetto d6, rango 4, tasto H):** case di mattoni (1-3 piani secondo il livello) addossate l'una all'altra con muri in comune, senza giardino. Nascono vicine alle altre case dense e alle strade; lo spazio libero dopo di loro serve alle strade. Le famiglie non coltivano: la spesa (cibo vario e legna) si prende dal magazzino; se tutti lavorano, ogni giorno una razione viene consegnata. Servono quindi scorte di pane, pesce, carne o grano nel magazzino.
+- Pannello casa e grafica (mattoni, tetto a falde, comignolo e fumo) dedicati.
+- Test: `tests/densita.js` (seme fisso). Limiti: il rango 4 vale solo in modalità storia; in modalità libera restano le regole precedenti. `tests/lotti.js` fallisce già sul codice della v64 (non causato da questa versione).
+
 ## v65 – 2026-11-28
 Cambio di regole: stipendi diversi secondo l'istruzione richiesta, e dalla Città in poi gli stipendi li paga la cassa del paese.
 - **Stipendi per mestiere** (`WAGE_JOB`, d'argento al giorno di lavoro vero): **1** per i lavori manuali (taglialegna, cavatore, minatore, guardaboschi, contadino, pastore, pescatore, cacciatore, magazziniere, mugnaio, carbonaio, maceratore); **2** per artigiani e servizi (falegname, muratore, fabbro, panettiere, tessitore, sarto, cordaio, tintore, fonditore, oste, taverniere, musicante, guerriero); **3** per i lavori da istruiti (`EDU_JOBS`: maestro, erborista, merciaio, esattore). Chi non sa leggere e scrivere (non ha fatto la scuola) in un lavoro da istruiti prende lo stipendio da artigiano (2). Lavoro in fattoria o ovile di famiglia: nessuno stipendio (come prima).
