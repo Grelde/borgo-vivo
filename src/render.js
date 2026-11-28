@@ -833,6 +833,17 @@ const BUILD={
     // balle di tessuto e cassette accanto alla porta
     cyl(g,.2,.2,.5,10,MAT.cloth,1.3,.25,1.4);bx(g,.4,.3,.4,MAT.fw,1.45,.15,1.0);
     return g;},
+  taxoffice(b){const g=new THREE.Group();
+    bx(g,3.2,1.4,2.2,MAT.stone,-.2,.7,-.2);bx(g,3.3,.1,2.3,MAT.stoneD,-.2,1.4,-.2);bx(g,2.8,.9,2.0,MAT.plaster,-.2,1.9,-.2);
+    for(const x of[-1.6,-.4,.8,1.2])bx(g,.09,2.3,.09,MAT.timber,x,1.15,.93);
+    gab(g,3.4,2.3,1.0,MAT.slate,2.35,-.2,-.2);
+    bx(g,.55,.95,.06,MAT.door,.5,.48,.92);for(const x of[-.9,-.1])bx(g,.4,.45,.06,MAT.glass,x,1.9,.82);bx(g,.9,.5,.06,MAT.glass,-.9,.8,.92);
+    chim(g,1.0,2.8,-.7,.7);
+    // sportello con le sbarre, cassa e insegna con una moneta d'oro
+    bx(g,1.2,.08,.5,MAT.log,-1.0,.6,1.35);for(const x of[-1.5,-1.2,-.9,-.6])bx(g,.04,.5,.04,MAT.stoneD,x,.88,1.58);
+    bx(g,.5,.35,.35,MAT.logD,-1.45,.18,1.35);bx(g,.54,.08,.38,MAT.gold,-1.45,.38,1.35);
+    bx(g,.08,.08,.7,MAT.timber,1.75,1.7,1.25);bx(g,.45,.45,.05,MAT.plaster,1.75,1.38,1.58);cyl(g,.15,.15,.06,10,MAT.gold,1.75,1.38,1.64,Math.PI/2,0);
+    return g;},
   hall(b){const g=new THREE.Group();
     bx(g,4.6,.18,5.0,MAT.stoneD,0,.09,0);
     bx(g,4.0,1.9,2.4,MAT.plaster,0,1.1,-1.1);for(const x of[-1.9,-.95,0,.95,1.9])bx(g,.12,1.9,2.5,MAT.timber,x,1.1,-1.1);
@@ -1098,6 +1109,7 @@ const TOOLS=[
   {id:'hunter',label:'Capanna del cacciatore',key:'',hint:'Vicino a un bosco fitto. Porta carne alle famiglie (2 ogni 8 s per cacciatore); d\'inverno la selvaggina è scarsa.'},
   {id:'sheepfold',label:'Ovile',key:'',hint:'Costruisci l\'ovile dentro una zona Pascolo (tasto P): la zona intorno si chiude con un recinto, i pastori portano le pecore a brucare lì dentro e producono la lana per il tessitore.'},
   {id:'mercery',label:'Merceria',key:'',hint:'Con un merciaio: le botteghe portano qui attrezzi, pane, tessuto e abiti (fino a 40 per merce) e le famiglie entro 135 celle vengono a ritirare ciò che manca. Se è chiusa o lo scaffale è pieno, le botteghe consegnano alle case.'},
+  {id:'taxoffice',label:'Ufficio delle Tasse',key:'',hint:'Con un esattore: ogni casa ha un contatore di 7 giorni; quando scade l\'esattore passa a riscuotere la tassa (1 moneta d\'argento a settimana al livello 1, il doppio a ogni livello) e porta tutto all\'ufficio. Le case che non riesce a visitare non pagano. Chi paga troppo può decidere di non migliorare la casa.'},
   {id:'tavern',label:'Taverna',key:'',hint:'Con un taverniere: chi abita entro 36 celle ha +4 di felicità. Attrae nuovi abitanti.'},
   {id:'hall',label:'Sala delle feste',key:'',hint:'Con un musicante: chi abita entro 45 celle ha +6 di felicità. Molto piacevole.'},
   {id:'granary',label:'Granaio',key:'b',hint:'Le fattorie portano qui il grano in eccedenza. Il mulino lo macina.'},
@@ -1122,7 +1134,7 @@ const CATS=[
   {id:'zone',label:'Zone e strade',ids:['d1','d2','d3','d4','d5','undistrict','road']},
   {id:'prod',label:'Produzione',ids:['wood','quarry','mine','forester','granary','mill']},
   {id:'shop',label:'Botteghe',ids:['carpenter','mason','smithy','bakery','sheepfold','charcoal','smelter','retting','ropewalk','dyehouse','weaver','tailor','fisher','hunter','mercery']},
-  {id:'serv',label:'Servizi',ids:['store','well','school','infirmary','church','inn','tavern','hall']},
+  {id:'serv',label:'Servizi',ids:['store','well','school','infirmary','church','inn','tavern','hall','taxoffice']},
   {id:'deco',label:'Decorazioni',ids:['plaza','flowers','statue']},
   {id:'def',label:'Difesa',ids:['watchtower','barracks']}];
 const CATOF={};CATS.forEach(c=>c.ids.forEach(i=>{CATOF[i]=c.id;}));
@@ -1166,7 +1178,7 @@ function refreshSel(){
     const need=b.level>=Sim.MAXLV?'':('Per migliorare: '+Math.min(3,b.level)+(b.level>1?' tipi':' tipo')+' di cibo, acqua, legna'+(b.level>=2?', chiesa':'')+(b.level>=3?', scuola vicina':'')+(b.level>=4?', zona di qualità ottima (attrattiva 3 o più)':'')+(()=>{const u=Sim.UPC[b.level+1];return u?`, materiali (legno ${u.wood}${u.stone?`, pietra ${u.stone}`:''})`:'';})()+` (${Math.min(25,b.up)}/25)`);
     const shopTxt=b.craft?'Fabbro: lavora il ferro del magazzino e consuma legna.':b.bake?'Panettiere: cuoce il pane con farina e legna.':b.weave?'Tessitore: trasforma la lana in tessuto.':b.tailor?'Sarto: cuce abiti con il tessuto.':(b.pure?'Giardino fisso: non diventerà mai una bottega.':(b.crop==='wood'||b.level<3?(b.crop==='wood'?'Giardino della legna: non diventa una bottega.':'Da livello 3 il giardino può diventare bottega: fabbro (serve una miniera) o tessitore (serve un ovile); da livello 4 sarto o panettiere (serve un mulino).'):'Può ancora diventare bottega salendo di livello o quando ci sono miniera, ovile o mulino.'));
     const wk=b.work?`<div><b>Lavori in corso</b>: ${b.work.kind==='up'?'ampliamento della casa':b.work.kind==='garden'?'nuovo giardino':'ampliamento del giardino'} · materiali ${(b.got.wood||0)+(b.got.stone||0)}/${((b.cost||{}).wood||0)+((b.cost||{}).stone||0)} · avanzamento ${Math.round((b.prog||0)*100)}%</div>`:(b.gfull===false?'<div>Orto piccolo: dal livello 2 potrà farsi un giardino recintato (serve legna e un costruttore).</div>':'');
-        list=wk+rows+`<div>${shopTxt}</div><div>Felicità <b>${b.well}</b>/100</div><div class="wbar"><i style="width:${b.well}%"></i></div>${needsHtml(b)}<div>Legna da ardere: ${gd.firewood}/${fn} ${gd.firewood>=fn?'(scorta sufficiente)':'(scorta scarsa)'}</div>`+(S.edicts&&S.edicts.noUpgrade?'<div>Editto in vigore: le case non migliorano.</div>':'')+`${b.ext&&b.ext.length?`<div>Giardino ampliato di ${b.ext.length} celle, verso la strada.</div>`:''}<div>Attività secondaria: ${b.side==='fish'?'pesca (casa vicino all\'acqua)':b.side==='hunt'?'caccia (casa vicino a un bosco tranquillo)':'nessuna'}. ${b.crop==='wood'?'Niente orto né galline: la famiglia va nel bosco a raccogliere la legna e quella in più la baratta al mercato con il cibo.':'Non produce legna: la compra al mercato.'}</div><div>Attrattiva della zona: ${Sim.attrLabel(b.attr)} (${b.attr.toFixed(1)})</div>`+
+        list=wk+rows+`<div>${shopTxt}</div><div>Felicità <b>${b.well}</b>/100</div><div class="wbar"><i style="width:${b.well}%"></i></div>${needsHtml(b)}${taxHtml(b)}<div>Legna da ardere: ${gd.firewood}/${fn} ${gd.firewood>=fn?'(scorta sufficiente)':'(scorta scarsa)'}</div>`+(S.edicts&&S.edicts.noUpgrade?'<div>Editto in vigore: le case non migliorano.</div>':'')+`${b.ext&&b.ext.length?`<div>Giardino ampliato di ${b.ext.length} celle, verso la strada.</div>`:''}<div>Attività secondaria: ${b.side==='fish'?'pesca (casa vicino all\'acqua)':b.side==='hunt'?'caccia (casa vicino a un bosco tranquillo)':'nessuna'}. ${b.crop==='wood'?'Niente orto né galline: la famiglia va nel bosco a raccogliere la legna e quella in più la baratta al mercato con il cibo.':'Non produce legna: la compra al mercato.'}</div><div>Attrattiva della zona: ${Sim.attrLabel(b.attr)} (${b.attr.toFixed(1)})</div>`+
       `<div class="flags"><span class="${fl.foodUp?'ok':'no'}">Cibo ${b.level}+</span><span class="${fl.water?'ok':'no'}">Acqua</span><span class="${fl.church?'ok':'no'}">Chiesa</span>${b.level>=3?`<span class="${fl.school?'ok':'no'}">Scuola</span>`:''}${b.level>=4?`<span class="${fl.quality?'ok':'no'}">Zona</span>`:''}<span class="${fl.attr?'ok':'no'}">Quiete</span><span class="${fl.heat?'ok':'no'}">Caldo</span><span class="${fl.fuel?'ok':'warn'}">Legna</span><span class="${fl.mat?'ok':'no'}">Materiali</span></div>`+
       `<div>Scorte: ortaggi ${gd.veg} · uova ${gd.eggs} · grano ${gd.grain} · pesce ${gd.fish} · carne ${gd.meat} · pane ${gd.bread}</div><div>Legna ${gd.firewood} · ferro ${gd.iron} · farina ${gd.flour} · attrezzi ${gd.tools}</div><div>Lana ${gd.wool} · tessuto ${gd.cloth} · abiti ${gd.clothes}</div>`+(need?`<div>${need}</div>`:'<div>Livello massimo raggiunto.</div>');
   }
@@ -1212,6 +1224,14 @@ function refreshSel(){
       hall:`Con almeno un musicante, chi abita entro ${Sim.FUN.hall.r} celle ha +${Sim.FUN.hall.joy} di felicità.`}[b.type];
     info=`Al lavoro: ${w.length} su ${b.want}`+(g?` · pronti: ${GL[g]} ${b.out[g]}/${Sim.OUTCAP}`:'')+(b.type==='carpenter'?` · assi ${S.stock.planks}/${Sim.PLANK_CAP}`:'');
     list=w.map((v,i)=>`<div>Addetto ${i+1}: ${esc(Sim.roleText(v))}</div>`).join('')+`<div>${DESC}</div>`+(g?`<div>Resa più alta della bottega di un giardino: la merce è portata alle famiglie che ne hanno più bisogno.</div>`:'')+(b.sur?`<div>${esc(b.why)}: tornano al mestiere quando la scorta scende sotto il fabbisogno + 50%.</div>`:w.length===0?`<div>Nessun addetto: servono abitanti liberi.</div>`:'')+(b.why&&w.length?`<div>${esc(b.why)}</div>`:'');
+  }
+  else if(b.type==='taxoffice'){
+    const w=Sim.villagers().filter(v=>v.job===b.id),ts=Sim.taxStats();
+    info=`Esattori: ${w.length}/${b.want} · case da visitare ora: ${ts.due}/${ts.houses} · incassato qui: ${Sim.money(b.collected|0)} (${b.visits|0} visite)`;
+    list=w.map((v,i)=>`<div>Esattore ${i+1}: ${esc(Sim.roleText(v))}${v.pouch?` · in borsa ${Sim.money(v.pouch)}`:''}</div>`).join('')
+      +`<div>Ogni casa ha un contatore di ${Sim.TAX_WEEK} giorni. A zero l'esattore la visita, incassa la tassa (livello 1: 1 arg, livello 2: 2, livello 3: 4, livello 4: 8, livello 5: 16 a settimana) e porta il gruzzolo all'ufficio, che lo versa nella cassa del paese.</div>`
+      +`<div>Tasse dovute in una settimana: ${Sim.money(ts.weekly)} · riscosse in tutto: ${Sim.money(ts.tax)} · mancate per cassa vuota: ${Sim.money(ts.short)}.</div>`
+      +(w.length===0?'<div>Nessun esattore: servono abitanti liberi. Senza esattore non si pagano tasse.</div>':'');
   }
   else if(t.slots&&b.type!=='inn'&&b.type!=='school'&&b.type!=='infirmary'&&b.type!=='sheepfold'){
     const res=b.type==='wood'?'wood':b.type==='mine'?'iron':'stone';
@@ -1357,7 +1377,7 @@ function renderTrade(force){
   if($('trade').hidden)return;
   const st=Sim.tradeStatus(),O=S.tradeOpt,live=Sim.guests().filter(g=>g.caravan);
   const hasHub=[...Sim.buildings().values()].some(b=>b.type==='mercery'&&b.state==='done');
-  let h=`<div class="trTop"><div class="trPurse">Denari in cassa: <b>${S.coins}</b></div><div class="trOpt"><button class="btn${O.sell?'':' off'}" type="button" data-topt="sell">Vendi eccedenze: ${O.sell?'sì':'no'}</button><button class="btn${O.buy?'':' off'}" type="button" data-topt="buy">Compra il necessario: ${O.buy?'sì':'no'}</button></div></div>`;
+  let h=`<div class="trTop"><div class="trPurse">Denari in cassa: <b>${Sim.money(S.coins)}</b></div><div class="trOpt"><button class="btn${O.sell?'':' off'}" type="button" data-topt="sell">Vendi eccedenze: ${O.sell?'sì':'no'}</button><button class="btn${O.buy?'':' off'}" type="button" data-topt="buy">Compra il necessario: ${O.buy?'sì':'no'}</button></div></div>`;
   h+=`<p class="trRule">${tradeRule()}</p>`;
   if(!st.ok)h+=`<div class="trWarn">${esc(st.why)}</div>`;
   h+=Sim.ROUTE_IDS.map(id=>{
@@ -1375,6 +1395,12 @@ function renderTrade(force){
     const sv=e.sold.length?'vendute: '+e.sold.map(x=>tgood(x.k,x.q,x.p)).join(', ')+' = +'+e.earned:'',bg=e.bought.length?'comprate: '+e.bought.map(x=>tgood(x.k,x.q,x.p)).join(', ')+' = −'+e.spent:'';
     return `<div><b>${T.name}</b> · ${Sim.dateStr(e.t)} — ${[sv,bg].filter(Boolean).join(' · ')||'nessuno scambio'}</div>`;}).join(''):'<div>Nessuna carovana è ancora passata.</div>')+`</div>`;
   if(force||h!==tradeCache){tradeCache=h;$('trList').innerHTML=h;}
+}
+function taxHtml(b){
+  const tx=Sim.taxOf(b.level),left=Number.isFinite(b.taxT)?b.taxT:Sim.TAX_WEEK;
+  const st=!Sim.taxActive()?'nessun ufficio delle tasse aperto':(left>0?`prossima visita dell'esattore fra ${Math.ceil(left)} giorni`:'in attesa dell\'esattore');
+  const lt=b.lastTax?` · ultima: ${Sim.money(b.lastTax.pay)} su ${Sim.money(b.lastTax.due)}`:'';
+  return `<div>Cassa della famiglia: <b>${Sim.money(b.cash|0)}</b> · tassa: ${Sim.money(tx)} a settimana (${st})${lt}</div>`+(b.noUp?'<div>La famiglia non vuole migliorare la casa: la tassa sarebbe troppo alta.</div>':'');
 }
 function openTrade(v){$('trade').hidden=!v;$('tradeBtn').classList.toggle('on',!!v);if(v)renderTrade(true);}
 $('tradeBtn').addEventListener('click',()=>openTrade($('trade').hidden));
@@ -1936,7 +1962,7 @@ let hudT=0;const PHN={work:'lavoro',meal:'pasto',evening:'sera',night:'notte'};
 function updateHUD(){
   const st=Sim.stats();
   capNow=st.capRes||80;capStoneNow=st.capStone||80;if(attrOn)groundDirty=true;
-  $('rWood').textContent=`${S.stock.wood}/${capNow}`;$('rStone').textContent=`${S.stock.stone}/${capStoneNow}`;$('rFood').textContent=st.food;$('rIron').textContent=`${S.stock.iron}`;$('rPlanks').textContent=`${S.stock.planks}`;$('rCoins').textContent=st.coins;$('rGrain').textContent=`${S.stock.grain}·${S.stock.flour}`;
+  $('rWood').textContent=`${S.stock.wood}/${capNow}`;$('rStone').textContent=`${S.stock.stone}/${capStoneNow}`;$('rFood').textContent=st.food;$('rIron').textContent=`${S.stock.iron}`;$('rPlanks').textContent=`${S.stock.planks}`;$('rCoins').textContent=Sim.money(st.coins);$('rGrain').textContent=`${S.stock.grain}·${S.stock.flour}`;
   $('rDay').textContent=`${Sim.SEASONS[st.season]} ${st.day%Sim.SEASON_DAYS+1}/${Sim.SEASON_DAYS} · annata ${st.year} · ${PHN[st.ph]}`;
   $('rPop').textContent=`${st.pop}/${st.cap}`+(st.children?` (👶${st.children})`:'');$('rJobs').textContent=`${st.jobs}/${st.slots}`;$('rBarter').textContent=st.barters;
   $('rFire').textContent=`${st.fire}/${st.fireNeed}`;$('rSick').textContent=st.sick+(st.plague?' ☣':'');$('chipSick').classList.toggle('alert',st.sick>0);$('rWell').textContent=Math.round(st.avgJoy)+(st.unhappy?' · '+st.unhappy+' tristi':'');$('chipJoy').classList.toggle('alert',st.unhappy>0&&st.avgJoy<45);
