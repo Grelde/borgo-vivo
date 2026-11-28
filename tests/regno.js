@@ -55,12 +55,12 @@ let guard=0;while(S.raid.repelled<1&&guard++<4000)Sim.step(0.2);
 ok(S.raid.repelled>=1&&S.raid.killed>=2,'con le torri l\'assalto è respinto (uccisi '+S.raid.killed+', rubato '+S.raid.stolen+')');
 ok(S.raid.stolen<S.raid.killed*40,'le torri limitano i furti');
 
-console.log('5) la caserma manda i soldati solo quando ci sono nemici');
+console.log('5) i difensori escono solo quando ci sono nemici (dalla v62 i guerrieri sono abitanti della caserma; qui senza abitanti scendono in campo i cittadini; i dettagli sono in tests/difesa.js)');
 story(13);S.rank=4;built('barracks',80,93);S.stock.wood=500;S.stock.stone=500;
-run(30);ok(mil('mine').length===0,'senza nemici la caserma resta vuota');
+run(30);ok(mil('mine').length===0,'senza nemici nessun difensore in campo');
 S.raid.next=1;let soldiers=0,g2=0;while(g2++<3000&&!(soldiers>=1&&S.raid.bands&&!mil('raid').length)){Sim.step(0.2);soldiers=Math.max(soldiers,mil('mine').length);}
-ok(soldiers>=1&&soldiers<=3,'la caserma manda da 1 a 3 soldati (visti '+soldiers+')');
-run(80);ok(mil('mine').length===0,'finita la minaccia i soldati rientrano');
+ok(soldiers>=1,'con i nemici scendono in campo dei difensori (visti '+soldiers+')');
+run(80);ok(mil('mine').length===0,'finita la minaccia i difensori rientrano');
 
 console.log('6) guerra del Re: dichiarazione, battaglia, vittoria e sconfitta');
 story(17);S.rank=6;S.stock.wood=500;S.stock.stone=500;

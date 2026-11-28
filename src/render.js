@@ -1014,7 +1014,7 @@ Sim.hooks.villager=function(v){
     if(v.horse){const hs=new THREE.Group();bx(hs,.5,.5,1.1,MAT.horse,0,.55,-.2);bx(hs,.22,.5,.25,MAT.horse,0,.95,.45);for(const sx of[-.16,.16])for(const sz of[-.55,.15])bx(hs,.1,.35,.1,MAT.horse,sx,.18,sz);bx(hs,.55,.1,.5,MAT.cloth,0,.82,-.2);gp.add(hs);gp.userData.horse=hs;}}
   let hpb=null;
   if(v.mil){
-    body.material=L(v.kind==='raider'?0x3a1d1d:v.kind==='royal'?0x4a2a6b:0x2f5d9a);hood.material=L(v.kind==='raider'?0x1a0f0f:v.kind==='royal'?0xb0802e:0x6a7a8c);
+    body.material=L(v.kind==='raider'?0x3a1d1d:v.kind==='royal'?0x4a2a6b:v.kind==='citizen'?0x7a5a3a:v.kind==='armed'?0x1f4f9a:0x2f5d9a);hood.material=L(v.kind==='raider'?0x1a0f0f:v.kind==='royal'?0xb0802e:v.kind==='citizen'?0x4a3a28:v.kind==='armed'?0xc9d3df:0x6a7a8c);
     bx(gp,.05,.05,.95,MAT.timber,.24,.6,.18);bx(gp,.07,.18,.07,MAT.iron,.24,.6,.7);
     hpb=new THREE.Sprite(new THREE.SpriteMaterial({color:v.side==='mine'?0x5fae5f:0xd9553f}));hpb.scale.set(.55,.09,1);hpb.position.y=1.5;gp.add(hpb);
   }
@@ -1112,7 +1112,7 @@ const TOOLS=[
   {id:'infirmary',label:'Ospizio',key:'o',hint:'Un erborista cura i malati delle case entro 45 celle: guariscono prima e rischiano meno. Frena le epidemie.'},
   {id:'church',label:'Chiesa',key:'c',hint:'Serve alle case entro 54 celle per salire dal livello 2 in su. Molto attraente.'},
   {id:'watchtower',label:'Torre di guardia',key:'',hint:'Gli arcieri tirano ai predoni e ai soldati nemici entro 24 celle. Mettila vicino ai magazzini e al centro: i predoni cercano le scorte.'},
-  {id:'barracks',label:'Caserma',key:'',hint:'Quando arrivano i nemici manda fino a 3 soldati incontro a loro (uno ogni 5 s); finita la minaccia rientrano.'},
+  {id:'barracks',label:'Caserma',key:'',hint:'Dà il mestiere di guerriero a 2 abitanti. Quando arrivano i nemici escono incontro a loro: a mani nude valgono quanto un brigante, con un\'arma (la forgia il fabbro o si importa) 5/3.'},
   {id:'demolish',label:'Demolisci',key:'x',hint:'Clicca un edificio, una casa, una strada o un sentiero.'},
   {id:'pan',label:'Muovi',key:'h',hint:'Trascina per spostare la mappa.'}
 ];
@@ -1197,7 +1197,7 @@ function refreshSel(){
     const GL={tools:'attrezzi',bread:'pane',cloth:'tessuto',clothes:'abiti',fish:'pesce',meat:'carne',rope:'corde'};
     const DESC={
       carpenter:`Trasforma il legno del magazzino in assi (2 per legno ogni ${spec.t} s per falegname). Legno ${S.stock.wood} · assi ${S.stock.planks}/${Sim.PLANK_CAP}. Le assi servono ai cantieri di scuola, ospizio, chiesa, mulino, locanda, magazzino e botteghe.`,
-      smithy:`Un fabbro trasforma 1 ferro in 3 attrezzi ogni ${spec.t} s e li porta alle case (con gli attrezzi il giardino rende il 10% in più). Ferro nel magazzino: ${S.stock.iron}.`,
+      smithy:`Un fabbro trasforma 1 ferro in 3 attrezzi ogni ${spec.t} s e li porta alle case (con gli attrezzi il giardino rende il 10% in più). Ferro nel magazzino: ${S.stock.iron}. Se c'è una caserma che ha bisogno di armi, il fabbro forgia prima quelle (1 barra o 2 ferri per un'arma): armi nel magazzino ${S.stock.weapons|0}.`,
       bakery:`Un panettiere trasforma 1 farina in 3 pagnotte ogni ${spec.t} s e le porta alle famiglie. Farina nei mulini: ${S.stock.flour}.`,
       weaver:`Un tessitore trasforma 1 lana in 2 pezze di tessuto ogni ${spec.t} s, o 1 fibra di lino in 3 pezze. La lana viene dagli ovili vicini, la fibra dal maceratoio. Le pezze vanno ai sarti e alle case con il telaio.`,
       retting:`Un maceratore trasforma 1 stelo di lino o canapa in 1 fibra ogni ${spec.t} s. Steli in attesa: lino ${(b.inp||{}).flax|0}, canapa ${(b.inp||{}).hemp|0} (max ${Sim.RET_CAP}) · fibra pronta: lino ${b.out.flaxf|0}, canapa ${b.out.hempf|0}. Il lino va ai telai, la canapa ai cordai. Gli steli li portano i contadini delle fattorie che coltivano lino o canapa.`,
@@ -1239,7 +1239,7 @@ function refreshSel(){
     list='<div>Accoglie il cibo che non viene dai giardini: grano delle fattorie, farina del mulino, pane del forno, pesce e carne dei pescatori e dei cacciatori. Il raccolto dei giardini resta alle case. Il mugnaio ritira il grano.</div>';}
   else if(b.type==='well')info=`Acqua per le case entro ${Sim.WELL_R} celle. Luogo piacevole.`;
   else if(b.type==='watchtower')info=`Arcieri: tirano al nemico più vicino entro ${Sim.TOWER_R} celle (${Sim.TOWER_DPS} colpi al secondo). Predoni uccisi finora: ${S.raid.killed}.`;
-  else if(b.type==='barracks')info='Quando arrivano nemici manda fino a 3 soldati incontro a loro, uno ogni 5 secondi; finita la minaccia rientrano.';
+  else if(b.type==='barracks'){const w=Sim.villagers().filter(v=>v.job===b.id);info=`Guerrieri: ${w.length}/${b.want}. Escono quando arrivano i nemici: senza arma valgono quanto un brigante, con un'arma 5/3 (ne usano una ciascuno, torna in magazzino se sopravvivono). Armi nel magazzino: ${S.stock.weapons|0}. Se un guerriero non basta, i cittadini vicini combattono con 1/3 della forza di un brigante e rischiano di morire.`;}
   else if(b.type==='church'){info=`Le case entro ${Sim.CHURCH_R} celle possono raggiungere il livello massimo. Luogo molto attraente.`+(b.cem?' Il cimitero sorge accanto alla chiesa.':'');}
   else if(b.type==='school'){const w=Sim.villagers().filter(v=>v.job===b.id);info=`Maestri: ${w.length}/${b.want} · alunni ora: ${b.pupils|0}/${Sim.SCHOOL_CAP} · persone istruite: ${stt.schooled}`;
     list=w.map(v=>`<div>Maestro: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>I bambini dai 6 anni vengono al mattino (con l\'editto sull\'istruzione obbligatoria anche al pomeriggio). A 14 anni chi ha studiato abbastanza sa leggere e scrivere: la sua casa migliora più in fretta.</div>'+(w.length===0?'<div>Senza maestro la scuola resta chiusa.</div>':'')+((b.pupils|0)>=Sim.SCHOOL_CAP?'<div>Aula piena: costruisci un\'altra scuola.</div>':'');}
@@ -1260,7 +1260,7 @@ function refreshSel(){
 }
 function selB(){return sel&&Sim.buildings().get(sel);}
 // v36: pannello di accettazione e massimali di Magazzino e Granaio (le righe si creano una volta per edificio, poi si aggiornano solo i numeri)
-const STKNAME={wood:'Legno',stone:'Pietra',iron:'Ferro',planks:'Assi',tools:'Attrezzi',cloth:'Tessuto',clothes:'Abiti',rope:'Corde',charcoal:'Carbone',bars:'Barre di ferro',grain:'Grano',flour:'Farina',bread:'Pane',fish:'Pesce',meat:'Carne'};
+const STKNAME={weapons:'Armi',wood:'Legno',stone:'Pietra',iron:'Ferro',planks:'Assi',tools:'Attrezzi',cloth:'Tessuto',clothes:'Abiti',rope:'Corde',charcoal:'Carbone',bars:'Barre di ferro',grain:'Grano',flour:'Farina',bread:'Pane',fish:'Pesce',meat:'Carne'};
 let stkCfgFor=null;
 function updStoreCfg(b){
   const box=$('selStore');
@@ -1541,7 +1541,7 @@ const GUIDE=[
   [[s=>owns('barracks')&&owns('mercery')&&owns('inn'),'Compra la caserma, la merceria e la locanda (🏛️): servono a difendere e a commerciare.'],
    [s=>(s.built.mercery||0)>=1,'Costruisci la Merceria: con lei arrivano le carovane e i denari.'],
    [s=>(s.built.inn||0)>=1,'Costruisci la locanda: i viandanti portano notizie e merci.'],
-   [s=>(s.built.barracks||0)>=1,'Costruisci una caserma: i soldati escono quando ci sono nemici.'],
+   [s=>(s.built.barracks||0)>=1,'Costruisci una caserma: i suoi guerrieri escono quando ci sono nemici (con le armi del fabbro valgono di più). I briganti attaccano di notte.'],
    [s=>s.pop>=60,'Il borgo cresce: ancora un po\' di gente e il Re se ne accorgerà.']],
   [[s=>owns('hall')&&owns('plaza'),'Nuovi progetti, ma ora costano anche denari: commercia con le città e compra la sala delle feste e la piazza (🏛️).'],
    [s=>(s.built.hall||0)>=1,'Costruisci la sala delle feste.'],
@@ -1556,7 +1556,7 @@ function alertLine(inf){
   const W=inf.war;
   if(W.phase==='warn'){const d=Math.max(1,Math.ceil((W.at-S.t)/Sim.DAY));return {t:`Il Re ci ha dichiarato guerra! L'esercito arriverà tra ${d} ${d===1?'giorno':'giorni'}: torri di guardia e caserme intorno al centro del borgo!`,war:true};}
   if(W.phase==='fight')return {t:'L\'esercito del Re assedia il centro del borgo: difendilo!',war:true};
-  if(inf.raiders)return {t:'Predoni! Le torri e la caserma difendono i magazzini.',war:true};
+  if(inf.raiders)return {t:'Briganti! Guerrieri e torri difendono i magazzini.',war:true};
   return null;
 }
 // consigli urgenti: la prima condizione vera vince (ordine = priorità)
@@ -1650,7 +1650,7 @@ const CITIZEN=[null,
     'Il Re ti ha dato i progetti: compra il pozzo e la zona di mercato, il resto può aspettare.']},
   {t:'Le parole della gente',x:['Frate Anselmo dice che il villaggio ha bisogno di una chiesa, e noi con lui: la gente vuole un posto dove pregare e le case migliori non crescono senza.','E ci servono campi: più famiglie vogliono più cibo. Compra la chiesa e la zona agricola.']},
   {t:'Le parole della gente',x:['Qualcuno ha visto fuochi nel bosco, di notte. Sono predoni: cercano le nostre scorte.','Ci serve almeno una torre di guardia vicino ai magazzini. Compra il progetto e costruiscila.']},
-  {t:'Le parole della gente',x:['Abbiamo respinto i predoni, ma torneranno. Una caserma ci darà dei soldati; una merceria e una locanda ci porteranno carovane e viandanti.','Sono queste le tre cose che ti chiediamo.']},
+  {t:'Le parole della gente',x:['Abbiamo respinto i predoni, ma torneranno. Una caserma ci darà dei guerrieri; una merceria e una locanda ci porteranno carovane e viandanti.','Sono queste le tre cose che ti chiediamo.']},
   {t:'Le parole della gente',x:['Il commercio ci ha arricchiti. Ora vorremmo una piazza con la fontana e una sala per le feste: sono i luoghi dove un borgo si riconosce.','Ci serviranno denari: apri qualche rotta con le città vicine.']},
   {t:'Le parole della gente',x:['Il Re ci teme. Non chiediamo nulla di nuovo: rinforziamo le torri e le caserme intorno al centro, e teniamo scorte per ricostruire.']}];
 function citizenMsg(r){
@@ -1799,7 +1799,7 @@ function renderCard(){
   const sexT=r.sex==='M'?'Uomo':'Donna',ageT=child?(r.sex==='M'?'Bambino':'Bambina'):sexT;
   let h=`<h2>${esc(r.name)} ${esc(r.fam)}</h2><div class="sub">${ageT}, ${age} anni${dead?(r.cause==='left'?' · partito/a dal paese ':' · morto/a ')+Sim.dateStr(r.died):''}</div>`;
   h+='<h4>Mestiere</h4>';
-  if(dead)h+=`<p>${r.trade?Sim.TRADENAME[r.trade]:'Nessun mestiere'}${r.inh?' <span class="tag">ereditato</span>':''}</p><p>${r.cause?({age:'Morto di vecchiaia.',cold:'Morto di freddo.',hunger:'Morto di fame.',ill:'Morto di malattia.',left:'Ha lasciato il paese perché infelice.'})[r.cause]||'':''}</p>`;
+  if(dead)h+=`<p>${r.trade?Sim.TRADENAME[r.trade]:'Nessun mestiere'}${r.inh?' <span class="tag">ereditato</span>':''}</p><p>${r.cause?({age:'Morto di vecchiaia.',cold:'Morto di freddo.',hunger:'Morto di fame.',ill:'Morto di malattia.',raid:'Caduto difendendo il borgo dai briganti.',left:'Ha lasciato il paese perché infelice.'})[r.cause]||'':''}</p>`;
   else{h+=`<p>${child?(age<6?'Gioca in giardino':'Gioca e studia'):esc(Sim.roleText(v))}${v.trade&&!child?` · mestiere: ${Sim.TRADENAME[v.trade]}`:''}${v.inh?' <span class="tag">ereditato</span>':''}</p>`;}
   if(!dead&&v.job){const cd=Math.round(Sim.commuteOf(v));h+=`<p>Casa-lavoro: ${cd} celle${cd>Sim.COMMUTE_OK?' <span class="tag bad">troppo lontano: scontento</span>':''}</p>`;}
   if(!dead)h+=villagerNeedsHtml(v);
@@ -1867,7 +1867,7 @@ function popPeople(st){
   h+='<h4>Mestieri degli adulti</h4>'+Object.keys(jc).sort((a,b)=>jc[b]-jc[a]).map(k=>popRow(Sim.TRADENAME[k]||BT[k].name,jc[k])).join('')+popRow('A casa (giardino, bottega, commissioni)',home);
   h+='<h4>Case</h4>'+[1,2,3,4,5].filter(l=>st.levels[l]).map(l=>popRow(Sim.LVNAME[l-1],st.levels[l])).join('');
   const d=S2.deathsBy;
-  h+='<h4>Nascite, arrivi e partenze</h4>'+popRow('Nati in paese',S2.births)+popRow('Viandanti diventati abitanti',S2.settled)+popRow('Partiti perché infelici',S2.left)+popRow('Morti in tutto',S2.deaths)+popRow('di vecchiaia · freddo · fame · malattia',`${d.age} · ${d.cold} · ${d.hunger} · ${d.ill}`)+popRow('Trasferimenti tra case',S2.moves);
+  h+='<h4>Nascite, arrivi e partenze</h4>'+popRow('Nati in paese',S2.births)+popRow('Viandanti diventati abitanti',S2.settled)+popRow('Partiti perché infelici',S2.left)+popRow('Morti in tutto',S2.deaths)+popRow('di vecchiaia · freddo · fame · malattia · in battaglia',`${d.age} · ${d.cold} · ${d.hunger} · ${d.ill} · ${d.raid||0}`)+popRow('Trasferimenti tra case',S2.moves);
   const list=vs.slice().sort((a,b)=>a.fam.localeCompare(b.fam)||b.age-a.age);
   h+=`<h4>Tutti gli abitanti (${vs.length}) · a destra la felicità</h4><div class="popList">`+(list.map(v=>popRow(`<span class="lk" data-v="${v.id}">${esc(v.name)} ${esc(v.fam)}</span> · ${v.age|0} anni · ${esc(stableRole(v))}`,v.joy)).join('')||'<div class="row"><span>Nessun abitante.</span></div>')+'</div>';
   return h;

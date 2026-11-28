@@ -1,5 +1,19 @@
 # Changelog
 
+## v63 – 2026-11-28
+Cambio di regole: la Difesa. I briganti attaccano di notte, cittadini e guerrieri combattono (e possono morire), le armi fanno la differenza.
+- **Attacco di notte:** le bande di briganti (i vecchi "predoni") partono solo di notte; il timer della prima banda si arma una volta sola (`S.raid.arm`), perché ora scade spesso di giorno.
+- **Forza della banda:** `raidPower()` dà un moltiplicatore `pow` da 0,7 a 1,7 che cresce con il **benessere** (felicità media degli abitanti) e con le **difese** (torri di guardia, posti di guerriero, armi in magazzino); le difese aggiungono anche qualche brigante (fino a +2, massimo 8). Il moltiplicatore scala punti ferita e danno dei briganti.
+- **Il bottino dipende da quanti sono:** ogni brigante che arriva al magazzino/granaio/merceria porta via quello che può (come prima, per brigante).
+- **Rapporti di forza (punti ferita e danno al secondo):** cittadino **1/3** di un brigante, guerriero **1** (a mani nude), guerriero **armato 5/3**. I difensori scendono in campo con lo stesso moltiplicatore `pow` della banda, quindi i rapporti restano sempre questi.
+- **Guerrieri = abitanti veri:** la Caserma ora dà lavoro a 2 abitanti (mestiere "guerriero", 3 posti). Quando arrivano nemici (briganti o esercito del Re) escono tutti. Mentre combattono l'abitante è "in guerra" (fermo e invisibile); se la sua figura cade, l'abitante **muore** (causa "in battaglia", contata a parte in popolazione e nella scheda del defunto); se sopravvive torna e riprende il lavoro. Sparisce la vecchia caserma che faceva uscire fino a 3 soldati dal nulla.
+- **Cittadini alle armi:** solo se i difensori in campo non bastano (un brigante = 1 di forza) e solo quelli a meno di 28 celle dal nemico: fino al 20% degli adulti, **massimo 8 per banda** (il tetto vale per l'intera banda, non solo in campo insieme, così un assalto non svuota il paese). Combattono con 1/3 della forza e rischiano di morire.
+- **Armi:** nuova merce **Armi**, nel Magazzino (non nel Centro cittadino). Un guerriero che esce ne prende una dal magazzino e diventa armato (5/3); se sopravvive l'arma torna in magazzino, se cade è persa. Il **fabbro** forgia armi direttamente nel magazzino (1 barra o 2 ferri per un'arma) finché ce ne sono 2 per posto di guerriero (`WEAPON_PER_POST`), prima di fare attrezzi. Si possono **importare** (Rocca Alta 16 denari, Campomaggio 18; solo se c'è una caserma, fino a 6 in scorta).
+- **Interfaccia:** pannello della Caserma (guerrieri, armi, regole), pannello del fabbro (armi nel magazzino), nome "Armi" nelle scorte, colori diversi per cittadino, guerriero, armato e brigante, ruolo "Combatte contro i nemici", causa di morte "in battaglia". Testi della guida aggiornati ("briganti", caserma).
+- Salvataggi: nessun cambio di formato. I vecchi soldati (`kind:'soldier'`) in marcia si comportano come prima; `S.raid` ha valori di riserva per `pow`, `fallen`, `drafted`, `arm`.
+- Test: nuovo `tests/difesa.js` (30 controlli: rapporti 1/3 · 1 · 5/3, attacco di notte, forza della banda, cittadini e guerrieri in campo, arma persa o recuperata, morti in battaglia, fabbro e import, salvataggio in battaglia). `tests/regno.js` aggiornato al posto dei vecchi soldati fissi.
+- Da tarare giocando: moltiplicatore `pow` (0,7-1,7), tetto dei cittadini (20%, max 8), numero di posti di guerriero (2 per caserma), prezzi delle armi, quanto contano le torri. Grafica non provata in un browser WebGL.
+
 ## v62 – 2026-11-28
 Cambio di regole: il lavoro resta fisso e si cambia solo per eccedenza di merce.
 - **Lavoro stabile:** chi lavora in un edificio produttivo (taglialegna, guardaboschi, cava, miniera, falegnameria, fucina, forno, telaio, sartoria, pescatore, cacciatore, cordaio, carbonaia, fonderia) tiene il suo posto e il suo mestiere; nessuno cambia lavoro per capriccio.
