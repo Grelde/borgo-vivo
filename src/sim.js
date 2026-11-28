@@ -1597,14 +1597,14 @@ function expandGarden(b){
 }
 // v43: il giardino cresce dalla casa cella per cella, come toft e croft medievali: la casa sta sul fronte (verso il sentiero, dove si apre la porta), l'orto/giardino
 // si allunga DIETRO la casa con fronte stretto (poco oltre la larghezza della casa), il cortile davanti è piccolo. Si appoggia ai sentieri vicini e non tocca altri lotti.
-function growGarden(hcs,doorCell,hx,hy,hw,hh,target,seed,pp,start,minLen){
+function growGarden(hcs,doorCell,hx,hy,hw,hh,target,seed,pp,start,minLen,selfId){
   const g=start?start.slice():[],lot=new Set(hcs.concat(g)),cx=hx+(hw-1)/2,cy=hy+(hh-1)/2;
   const dxr=doorCell%N-cx,dyr=((doorCell/N)|0)-cy,horiz=Math.abs(dxr)>Math.abs(dyr);
   const ux=horiz?Math.sign(dxr):0,uy=horiz?0:Math.sign(dyr);        // verso il fronte (la porta)
   const hd=(horiz?hw:hh)/2,hwid=(horiz?hh:hw)/2;                  // mezza profondità e mezza larghezza della casa rispetto al fronte
   const nbr=(c,k)=>{const x=c%N;if(k===0)return x<N-1?c+1:-1;if(k===1)return x>0?c-1:-1;if(k===2)return c+N<N*N?c+N:-1;return c-N>=0?c-N:-1;};
   const okc=i=>{if(i<0||lot.has(i)||i===doorCell||!cellFree(i,1))return false;
-    return !foreignNear(i,-1);};
+    return !foreignNear(i,selfId||-1);};
   while(g.length<target){
     let best=-1,bs=1e9;const seen=new Set();
     for(const c of (g.length?g:hcs))for(let k=0;k<4;k++){ // il giardino resta in un pezzo solo: parte dalla casa e poi cresce da se stesso
@@ -1682,13 +1682,14 @@ function trySpawnHouse(){
   const roadAt=(x,y,w,h)=>rect(pp,x,y,w,h);
   // v43: placement organico. La casa si appoggia a un sentiero con la porta verso di esso; il giardino non ha una forma predefinita: "cresce" dalla casa
   // riempiendo le celle libere vicine (preferisce quelle accanto ai sentieri, evita i vicini), così prende la forma dello spazio tra sentieri, alberi e altre case.
-  for(const tol of [picky,-6]){
+  // v58: le prime case stanno più distanti (3 celle libere intorno, NON riservate al giardino futuro); se non c'è posto ci si accontenta di 1
+  for(const mg of [3,1])for(const tol of [picky,-6]){
     const top=[];
     for(let y=0;y<=N-hh0;y++)for(let x=0;x<=N-hw0;x++){
       if(((x*7+y*13+(S.t|0))%3)!==0)continue;
       if(attr[(y+(hh0>>1))*N+x+(hw0>>1)]<tol)continue;
       if(rect(blk,x,y,hw0,hh0))continue;
-      if(rect(oc,x-1,y-1,hw0+2,hh0+2))continue;
+      if(rect(oc,x-mg,y-mg,hw0+2*mg,hh0+2*mg))continue;
       const A=(hw0+6)*(hh0+6);if(A-rect(blk,x-3,y-3,hw0+6,hh0+6)-hw0*hh0<14)continue; // spazio libero per il giardino
       let dr=-1,ds=-1e9,dadj=0;
       const per=[];for(let i2=0;i2<hw0;i2++){per.push([x+i2,y-1,Math.abs(i2-(hw0-1)/2)],[x+i2,y+hh0,Math.abs(i2-(hw0-1)/2)]);}
@@ -1707,10 +1708,9 @@ function trySpawnHouse(){
     }
     for(const cd of top){
       const hcs=[];for(let yy=0;yy<hh0;yy++)for(let xx=0;xx<hw0;xx++)hcs.push((cd.y+yy)*N+cd.x+xx);
-      const fullG=growGarden(hcs,cd.dr,cd.x,cd.y,hw0,hh0,9+Math.floor(hash(cd.x,cd.y+7)*10),(S.t|0)+cd.x*3,pp,null,9); // v57: si riserva l'area del giardino completo, ma all'inizio si costruisce solo un orto di 4 celle: il giardino vero arriva dal livello 2
-      if(!fullG)continue;
-      const gcs=fullG.slice(0,4),planC=fullG.slice(4);
-      const marks=hcs.concat(fullG),mxs=marks.map(i=>i%N),mys=marks.map(i=>(i/N)|0);
+      const gcs=growGarden(hcs,cd.dr,cd.x,cd.y,hw0,hh0,4,(S.t|0)+cd.x*3,pp,null,4); // v57: all'inizio solo un piccolo orto di 4 celle; v58: l'area del giardino futuro NON viene riservata
+      if(!gcs)continue;
+      const marks=hcs.concat(gcs),mxs=marks.map(i=>i%N),mys=marks.map(i=>(i/N)|0);
       const bx0=Math.min(...mxs),by0=Math.min(...mys),bx1=Math.max(...mxs),by1=Math.max(...mys);
       if(!flood(marks))continue;
       if(rs[cd.dr]!==rstamp||!doorsAfterFlood(bx0,by0,bx1,by1,marks))continue;
@@ -1726,7 +1726,7 @@ function trySpawnHouse(){
       const pt=(nh-nw+1)*0.35;
       const pure=!wood&&(np<pt-0.5||(np<pt+0.5&&hash(cd.x*3,cd.y*7)<0.5));
       if(pure&&crop==='eggs')crop='veg'; // un giardino fisso non ha galline né uova: solo orto e fiori
-      addBuilding('house',bx0,by0,false,{w:bx1-bx0+1,h:by1-by0+1,hx:cd.x,hy:cd.y,hw:hw0,hh:hh0,gcells:gcs,plan:planC,gfull:false,shape:'organic',diag:null,door:cd.dr,crop,side,pure,variant:(hash(cd.x*11,cd.y*7)*4)|0})
+      addBuilding('house',bx0,by0,false,{w:bx1-bx0+1,h:by1-by0+1,hx:cd.x,hy:cd.y,hw:hw0,hh:hh0,gcells:gcs,gfull:false,shape:'organic',diag:null,door:cd.dr,crop,side,pure,variant:(hash(cd.x*11,cd.y*7)*4)|0})
       return;
     }
   }
@@ -2133,13 +2133,15 @@ function beginGardenWork(b,kind,cells){
 }
 // dal livello 2 la casa si costruisce il giardino vero (9-18 celle in tutto) intorno all'orto iniziale
 function planGarden(b){
-  let cells=(b.plan||[]).filter(i=>occ[i]===b.id);
-  if(!cells.length){b.gfull=true;b.plan=null;return false;}
+  const house=[];for(let yy=b.hy;yy<b.hy+b.hh;yy++)for(let xx=b.hx;xx<b.hx+b.hw;xx++)house.push(yy*N+xx);
+  const pp=buildSAT(i=>(road[i]||plev[i]>=PATH)?1:0);
+  const target=9+Math.floor(hash(b.x,b.y+7)*10);
+  const full=growGarden(house,b.door,b.hx,b.hy,b.hw,b.hh,target,(S.t|0)+b.id*3,pp,b.gcells,b.gcells.length+3,b.id);
+  if(!full){b.gfull=true;return false;} // niente spazio libero: l'orto resta com'è
+  const have=new Set(b.gcells),cells=full.filter(i=>!have.has(i));
   const xs=cells.map(i=>i%N),ys=cells.map(i=>(i/N)|0);
   if(!reachable(b.door,cells)||!doorsOK(Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys),cells))return false;
-  for(const i of cells)occ[i]=0; // beginGardenWork le riserva di nuovo
-  if(!beginGardenWork(b,'garden',cells)){for(const i of cells)occ[i]=b.id;return false;}
-  b.plan=null;return true;
+  return beginGardenWork(b,'garden',cells);
 }
 function houseTick(b){
   const m=b.members.map(id=>vmap.get(id)).filter(Boolean);b.members=m.map(v=>v.id);

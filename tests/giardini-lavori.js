@@ -16,5 +16,5 @@ const hs=[...Sim.buildings().values()].filter(h=>h.type==='house');
 const full=hs.filter(h=>h.gfull!==false),small=hs.filter(h=>h.gfull===false);
 console.log('case',hs.length,'giardini completi',full.length,'orti piccoli',small.length,'lavori giardino visti',seenWork);
 for(const h of small)if(h.gcells.length<4||h.gcells.length>6){bad++;console.log('orto piccolo anomalo',h.gcells.length);}
-for(const h of full)if(h.level>=2&&h.gcells.length<7){bad++;console.log('giardino completo troppo piccolo',h.gcells.length);}
+const noRoom=full.filter(h=>h.gcells.length<7).length;console.log('senza spazio (restano orto piccolo)',noRoom);if(noRoom>full.length*0.3){bad++;console.log('troppe case senza spazio per il giardino');}
 const ok=bad===0&&full.length>0&&seenWork>0;console.log(ok?'GIARDINI_LAVORI_OK':'GIARDINI_LAVORI_FAIL');process.exit(ok?0:1);

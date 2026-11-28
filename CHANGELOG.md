@@ -1,5 +1,11 @@
 # Changelog
 
+## v60 – 2026-11-28
+Ritocco ai giardini della v57: lo spazio del giardino futuro non è più riservato.
+- Le case nuove si piazzano con **3 celle libere intorno** (non occupate): il giardino vero, dal livello 2, si costruisce su quello spazio se è ancora libero; se la zona è fitta (spazio di 1 cella) l'orto resta piccolo.
+- Il giardino cresce ora anche vicino alla propria casa (prima i controlli di vicinato la escludevano).
+- Test: `giardini-lavori.js` tollera fino al 30% di case senza spazio.
+
 ## v59 – 2026-11-28
 Cambio di regole: la giornata dell'abitante è guidata dai bisogni, non dalle ore.
 - **Indicatori per abitante (0-100)**, ognuno con il proprio decadimento (giorni di `DAY` per scendere da 100 a 20): Acqua 0,8, Cibo 1, Riposo 0,75 (quotidiani); Chiesa 4 (dal livello 2) e Compagnia 6 (se esiste una piazza). Lavorare li consuma più in fretta (×1,3); nel sonno cibo e acqua calano della metà; il riposo cala di più di sera e di notte.
