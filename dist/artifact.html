@@ -347,7 +347,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v92</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v92.2</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -2363,6 +2363,20 @@ function setJob(v,b){
 // maestro, oste, muratore, magazziniere, contadini di famiglia e simili, che non hanno una scorta da pareggiare).
 const JOBRES={wood:'wood',forester:'wood',quarry:'stone',mine:'iron',carpenter:'planks',smithy:'tools',bakery:'bread',weaver:'cloth',tailor:'clothes',fisher:'fish',hunter:'game',ropewalk:'rope',charcoal:'charcoal',smelter:'bars',armory:'weapons',bowyer:'weapons'};
 const JOB_MARGIN=1.5,JOB_DWELL=DAY*2;
+// v87.1: posto perso. Un edificio che era al completo (`b.full`) e scende sotto i posti voluti (morte, malattia, incursione) ha un posto
+// vuoto per perdita (`b.vacT` = istante della perdita). Per VAC_DAYS giorni conta come mestiere scoperto in `dutyPass`: ogni casa lascia
+// libero un adulto che lo riempie, anche se resta un solo posto vuoto (prima il rilascio scattava solo a edificio senza addetti).
+// Chi non ha mai avuto il personale al completo (paese a corto di braccia) non è toccato: niente rilasci permanenti.
+const VAC_DAYS=3;
+function trackVacancies(){
+  for(const b of buildings.values()){
+    if(b.state!=='done'||BT[b.type].slots<1||b.type==='store')continue;
+    if(b.sur||b.want<1){b.full=false;b.vacT=undefined;continue;}
+    if(b.workers.length>=b.want){b.full=true;b.vacT=undefined;}
+    else if(b.full){b.full=false;b.vacT=S.t;}
+  }
+}
+const vacancyOpen=b=>b.vacT!==undefined&&S.t-b.vacT<DAY*VAC_DAYS&&b.workers.length<b.want;
 // fabbisogno = riserva del paese (T_KEEP, la stessa che il commercio non vende) + ciò che manca ai cantieri + ciò che chiedono le case
 function jobNeed(r){
   let n=r==='charcoal'?6:(T_KEEP[r]||0);
@@ -2441,6 +2455,7 @@ function assignJobs(){
     const id=donor.workers.splice(di,1)[0];release(id);const v=vmap.get(id);if(v){setJob(v,b);b.workers.push(id);}
   }
   for(const b of buildings.values())if(b.workers.length){b.workers=b.workers.filter(id=>{const v=vmap.get(id);return v&&v.job===b.id;});}
+  trackVacancies();
 }
 const fibreCrop=b=>b.crop==='flax'||b.crop==='hemp';
 const cellFree=(i,dt)=>cen[i]!==2&&!occ[i]&&!tree[i]&&!rock[i]&&!ore[i]&&!road[i]&&!field[i]&&!door[i]&&!water[i]&&!sap[i]&&plev[i]<2&&dist[i]===dt;
@@ -3327,8 +3342,8 @@ const freeMember=h=>{for(const id of h.members){const v=vmap.get(id);if(v&&!v.ch
 const dutyIdle=h=>{for(const id of h.members){const v=vmap.get(id);if(v&&!v.child&&!v.job&&v.duty&&!v.ill&&(v.state==='idle'||v.state==='tend'||v.state==='wait')&&!v.carry)return v;}return null;};
 const marketMember=h=>freeMember(h)||dutyIdle(h);
 function dutyPass(){
-  // se un mestiere produttivo (taglialegna, cava...) è senza addetti, ogni casa lascia almeno un adulto libero per il lavoro
-  let unmet=0;for(const b of buildings.values())if(b.state==='done'&&BT[b.type].slots>0&&b.type!=='store'&&!b.sur&&b.want>=1&&b.workers.length<1)unmet++;
+  // se un mestiere produttivo (taglialegna, cava...) è senza addetti, o ha perso da poco un addetto (v87.1, `vacancyOpen`), ogni casa lascia almeno un adulto libero per il lavoro
+  let unmet=0;for(const b of buildings.values())if(b.state==='done'&&BT[b.type].slots>0&&b.type!=='store'&&!b.sur&&b.want>=1&&(b.workers.length<1||vacancyOpen(b)))unmet++;
   for(const h of buildings.values()){
     if(h.type!=='house'||h.state!=='done')continue;
     const m=h.members.map(id=>vmap.get(id)).filter(v=>v&&!v.child&&!v.ill);
@@ -4632,7 +4647,7 @@ return {EXTRA_NAMES,OWN_VIA,paintNoCut,under,berriesRipe,capOf,PET_LIFE,petition
   TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,WAGE_JOB,EDU_JOBS,CITY_RANK,WAGE_OWE_CAP,wageJob,wageOf,wagePayer,TAX_TABLE,TAX_WEEK,TAX_POUCH,WAGE,WAGE_SEC,SILVER_GOLD,TAX_MARGIN,MSELL,MSELL_KEEP,MSELL_LIM,taxOf,joyOf,TAX_RATES,TAX_JOY,setTaxRate,taxForecast,ledgerTick,money,taxActive,taxStats,taxDue,taxRefuses,merceryTakes,merceryBuy,merceryBuyer,jobless,kingJob,cityMakes,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
   setFarmCrop,fibreCrop,sinkOf,CHAR_CAP,BAR_CAP,CLAY_CAP,BRICK_CAP,LIME_CAP,MATS,BAND,PITCH_CAP,BOAT_CAP,BARGE_CAP,BOAT_FISH,BOAT_TRIPS,BARGE_VISIT,BARGE_TRIPS,BARREL_CAP,CART_CAP,CART_AUX,CART_TRIPS,haulCap,HIDE_CAP,LEATHER_CAP,SHOE_CAP,shoeCover,SALT_CAP,CURED_CAP,CHEESE_CAP,BEER_CAP,WINE_CAP,MILK_CAP,MEAT_KEEP,FISH_KEEP,GRAIN_KEEP,retInfo,RET_CAP,DIFFS,diffOf,maintStats,condOf,condLabel,maintainable,REPAIR_BELOW,WORN_AT,
   STORE_KEYS,GRAN_KEYS,GRAN_TOTAL,CENTER_CAP,setPolicy,storeInfo,stockRoom,capRes,reconcileStock,extraTotal,festTakeFood,
-  _t:{boatBonus,visitCap,useCart,wt,BARROW_LOAD,HUTCAP,FOOD_P,MERC_PAY,GRAN_PRICE,FOOD_RES,foodSurplus,gPrice,granaryOpen,joyOf,eatOne,drinkTick,shoeTick,FISH_CYCLE,FAM_FISH_RATE,FAM_FISH_Q,famFishTime,jobNeed,jobSurplus,rebalanceJobs,JOBRES,JOB_MARGIN,JOB_DWELL,tradeTick,doTrade,chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
+  _t:{boatBonus,visitCap,useCart,wt,BARROW_LOAD,HUTCAP,FOOD_P,MERC_PAY,GRAN_PRICE,FOOD_RES,foodSurplus,gPrice,granaryOpen,joyOf,eatOne,drinkTick,shoeTick,FISH_CYCLE,FAM_FISH_RATE,FAM_FISH_Q,famFishTime,jobNeed,jobSurplus,rebalanceJobs,dutyPass,vacancyOpen,VAC_DAYS,JOBRES,JOB_MARGIN,JOB_DWELL,tradeTick,doTrade,chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
   env:{fert,flowS,flowX,flowY,FERT_HIGH,flowSeason,riverInfo,windNow,windAt,flowLabel,windLabel,COMPASS8,WIND_NAME,FLOW_MS},
   grids:{prot,undP,aq,aqK,tree,rock,ore,water,sap,sapT,road,dist,occ,wear,plev,field,door,attr,cen},guests:()=>guests,buildings:()=>buildings,villagers:()=>villagers};
 })();

@@ -1,5 +1,13 @@
 # Changelog
 
+## v92.2 – 2026-11-28
+Correzione: se muoiono i taglialegna (o altri addetti di un mestiere produttivo) qualcun altro prende il loro posto.
+- **Difetto:** `dutyPass` liberava un adulto dai lavori di casa solo se il mestiere restava con **zero** addetti. Morto uno dei due taglialegna, senza erede e senza adulti liberi il posto restava vuoto per sempre (prova: seme 7, 1/2 per 6 giorni con 0 liberi e 37 adulti in dovere), e la legna calava a metà produzione.
+- **Posto perso:** un edificio produttivo che era al completo (`b.full`) e scende sotto i posti voluti (morte, malattia, incursione) registra `b.vacT` (`trackVacancies`, a fine `assignJobs`). Per `VAC_DAYS` = 3 giorni `vacancyOpen` lo fa contare come scoperto in `dutyPass`: ogni casa lascia libero un adulto, anche con un solo posto vuoto.
+- **Nessun effetto sul resto:** chi non ha mai avuto il personale al completo (paese a corto di braccia, inizio partita) non è toccato, quindi niente rilasci permanenti dai lavori di casa. Dopo la sostituzione gli adulti in dovere tornano al livello di prima. I campi nuovi stanno sull'edificio e viaggiano nel salvataggio; `SAVE_FMT` resta 1.
+- **Test:** nuovo `tests/posti-vuoti.js` (semi 3, 7, 11 con uno e due morti senza erede; mai al completo; finestra di `VAC_DAYS`). Con la logica vecchia fallisce sul caso del seme 7. Passano `smoke-prebegin`, `smoke-render` e `specialization`. Dopo l'unione con la v92 sono stati rieseguiti anche `granaiolo`, `lavoro-stabile` e `legname`, confrontati con il remoto v92 **senza** questa correzione: `granaiolo` (6 controlli falliti) e `lavoro-stabile` (2) falliscono già così, con le stesse righe, e non dipendono da questa modifica; `legname` passa in entrambi i casi. La suite completa (compresi `population.js` e `legna.js`) non è stata rieseguita su questa versione.
+- Non verificato in un browser WebGL (solo la logica di simulazione).
+
 ## v92.1 – 2026-11-28
 Ritocco ai giardini e alla grafica delle specializzazioni.
 - **Giardini sottili:** anche ampliamenti e corsie annesse non possono più trasformare il giardino in una striscia (controllo dei blocchi 2x2). I giardini già sottili (salvataggi precedenti) si allargano da soli: ogni giorno la casa può affiancare due celle libere alla striscia, come lavoro con materiale, finché è larga almeno due celle (`thickenGarden`).
