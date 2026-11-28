@@ -4345,7 +4345,7 @@ function refreshSel(){
       smithy:`Un fabbro trasforma 1 ferro in 3 attrezzi ogni ${spec.t} s e li porta alle case (con gli attrezzi il giardino rende il 10% in più). Ferro nel magazzino: ${S.stock.iron}.`,
       bakery:`Un panettiere trasforma 1 farina in 3 pagnotte ogni ${spec.t} s e le porta alle famiglie. Farina nei mulini: ${S.stock.flour}.`,
       weaver:`Un tessitore trasforma 1 lana in 2 pezze di tessuto ogni ${spec.t} s, o 1 fibra di lino in 3 pezze. La lana viene dagli ovili vicini, la fibra dal maceratoio. Le pezze vanno ai sarti e alle case con il telaio.`,
-      retting:`Un maceratore trasforma 1 stelo di lino o canapa in 1 fibra ogni ${spec.t} s. Steli in attesa: lino ${b.inp.flax}, canapa ${b.inp.hemp} (max ${Sim.RET_CAP}) · fibra pronta: lino ${b.out.flaxf}, canapa ${b.out.hempf}. Il lino va ai telai, la canapa ai cordai. Gli steli li portano i contadini delle fattorie che coltivano lino o canapa.`,
+      retting:`Un maceratore trasforma 1 stelo di lino o canapa in 1 fibra ogni ${spec.t} s. Steli in attesa: lino ${(b.inp||{}).flax|0}, canapa ${(b.inp||{}).hemp|0} (max ${Sim.RET_CAP}) · fibra pronta: lino ${b.out.flaxf|0}, canapa ${b.out.hempf|0}. Il lino va ai telai, la canapa ai cordai. Gli steli li portano i contadini delle fattorie che coltivano lino o canapa.`,
       ropewalk:`Un cordaio trasforma 1 fibra di canapa in 3 corde ogni ${spec.t} s. Corde nel magazzino: ${S.stock.rope|0}. Le corde si vendono ai mercanti e rinforzano le riparazioni (+50%).`,
       tailor:`Un sarto trasforma 1 pezza di tessuto in 2 abiti ogni ${spec.t} s; le case dal livello 3 che li ricevono hanno +3 di felicità. Il tessuto viene dai telai.`,
       fisher:`Un pescatore porta 2 pesci ogni ${spec.t} s. Con il ghiaccio non si pesca.`,
