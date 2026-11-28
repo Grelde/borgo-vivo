@@ -83,9 +83,9 @@ const NIGHT_AM=9/DAY,NIGHT_PM=1-18/DAY,dayF=o=>NIGHT_AM+(o-0.06)*(NIGHT_PM-NIGHT
 const TL={nAm:NIGHT_AM,dawn:dayF(0.12),lunch0:dayF(0.42),lunch1:dayF(0.54),dusk:dayF(0.68),eve:dayF(0.76),nPm:NIGHT_PM},DUSK=TL.dusk;
 const YEARL=SEASON_DAYS*4*DAY;
 // v65: la scuola ha 10 posti (iscritti dai 6 ai 14 anni); chi non trova posto non studia. EDUREQ = edifici in cui lavora solo chi ha studiato.
-// Una bottega con almeno un addetto istruito rende il 30% in più (EDU_BLD). IMM_LIT = probabilità che chi arriva da fuori sappia già leggere e scrivere.
+// Una bottega con almeno un addetto istruito rende il 30% in più (EDU_BLD). IMM_LIT = probabilità (10%) che chi arriva da fuori sappia già leggere e scrivere; HIRE_COST = argento per assumere da fuori una persona istruita (`hireEducated`).
 const SCHOOL_CAP=10,HEAL_R=45;
-const EDUREQ={taxoffice:1,school:1,mercery:1,surgeon:1},EDU_BLD=1.3,IMM_LIT=0.25;
+const EDUREQ={taxoffice:1,school:1,mercery:1,surgeon:1},EDU_BLD=1.3,IMM_LIT=0.10,HIRE_COST=25;
 const canWorkAt=(v,type)=>!EDUREQ[type]||!!v.schooled;
 function arrivalLit(v,sure){if(sure||Math.random()<IMM_LIT){v.schooled=true;v.edu=300;const r=reg.get(v.id);if(r)r.schooled=true;}}
 // malattie: durata [min,max] in secondi, mortalità al secondo
@@ -3505,20 +3505,43 @@ function merceryBuy(m,h,g){
   return q;
 }
 // v69: chi si trasferisce non compare dal nulla: arriva a piedi dal bordo della mappa (dal lato più vicino alla casa scelta) e cammina fino alla porta
-function arriveNewcomer(pk){
+function arriveNewcomer(pk,lit){
   const hx=pk.door%N,hy=(pk.door/N)|0,dist={w:hx,e:N-1-hx,n:hy,s:N-1-hy};
   const sides=['w','e','n','s'].sort((a,b)=>dist[a]-dist[b]);
   let c=-1,path=null;
   for(const sd of sides){const e=edgeCell(sd);if(e<0)continue;const p=astar(e,pk.cell,pk.id);if(p&&p.length){c=e;path=p;break;}}
   const age=18+Math.random()*18;
   if(!path){ // nessun cammino dal bordo (mappa chiusa): compare alla porta come prima
-    const v=addVillager(cx2w(pk.door%N),cy2w((pk.door/N)|0),age);arrivalLit(v);v.home=pk.id;pk.members.push(v.id);logV(v,'Arriva in paese in cerca di casa e lavoro.');return;
+    const v=addVillager(cx2w(pk.door%N),cy2w((pk.door/N)|0),age);arrivalLit(v,lit);v.home=pk.id;pk.members.push(v.id);logV(v,'Arriva in paese in cerca di casa e lavoro.');return v;
   }
-  const v=addVillager(cx2w(c%N),cy2w((c/N)|0),age);arrivalLit(v);
+  const v=addVillager(cx2w(c%N),cy2w((c/N)|0),age);arrivalLit(v,lit);
   v.home=pk.id;pk.members.push(v.id);v.newc=true;v.path=path;v.state='toHomeLife';v.moving=true;v.next='sleep';
   logV(v,'Arriva in paese dalla strada in cerca di casa e lavoro.');
-  tell('newcomer','I nuovi abitanti arrivano a piedi dai confini della mappa e raggiungono le case libere: più il paese è felice e ha lavoro, più gente arriva.');
+  if(!lit)tell('newcomer','I nuovi abitanti arrivano a piedi dai confini della mappa e raggiungono le case libere: più il paese è felice e ha lavoro, più gente arriva.');
+  return v;
 }
+// v74: assunzione da fuori. Per HIRE_COST argento arriva a piedi una persona che sa leggere e scrivere, già destinata a questo edificio
+// (utile per gli edifici solo per istruiti e per il +30% delle botteghe). Serve una casa con un posto libero. Se l'edificio è al completo,
+// l'istruito prende il posto di un addetto non istruito, che torna libero.
+const hireNeeded=b=>!!b&&b.state==='done'&&BT[b.type].slots>0&&b.type!=='store'&&!(b.owner&&(b.type==='farm'||b.type==='sheepfold'))&&!b.sur;
+function hireEducated(bid){
+  const b=buildings.get(bid);
+  if(!hireNeeded(b))return {ok:false,msg:'In questo edificio non si assume.'};
+  for(const id of b.workers){const w=vmap.get(id);if(w&&w.schooled)return {ok:false,msg:'Qui lavora già una persona istruita.'};}
+  if(S.coins<HIRE_COST)return {ok:false,msg:'Servono '+money(HIRE_COST)+' per far venire una persona istruita da fuori (ne hai '+money(S.coins)+').'};
+  let pk=null,pd=1e9;
+  for(const h of buildings.values())if(h.type==='house'&&h.state==='done'&&roomFor(h)){const d=cellDist(h.cell,b.cell);if(d<pd){pd=d;pk=h;}}
+  if(!pk)return {ok:false,msg:'Nessuna casa ha un posto libero: costruisci o amplia le case.'};
+  S.coins-=HIRE_COST;S.fin.hired=(S.fin.hired|0)+HIRE_COST;
+  const v=arriveNewcomer(pk,true);
+  if(b.workers.length>=b.want&&b.want<BT[b.type].slots)b.want++;
+  if(b.workers.length>=b.want){const oi=b.workers.findLastIndex(id=>{const w=vmap.get(id);return w&&!w.schooled;});if(oi>=0){const id=b.workers.splice(oi,1)[0];release(id);}}
+  setJob(v,b);b.workers.push(v.id);v.hired=true;
+  logV(v,'Assunto da fuori come '+TRADENAME[b.type]+': sa leggere e scrivere.');
+  tell('hire','Una persona istruita è stata chiamata da fuori: arriverà a piedi e prenderà subito servizio.');
+  return {ok:true,v};
+}
+
 function tick1(){
   updClock();
   taxDayTick();
@@ -3757,7 +3780,7 @@ function importState(d){
   for(const g of guests)hooks.villager(g);
   hooks.trees();hooks.rocks();hooks.saps();hooks.ground();
 }
-return {TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWanted,WEAPON_PER_POST,startHouseWork,mergeTick,trySpawnDense,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,EDUREQ,EDU_BLD,IMM_LIT,canWorkAt,eduBld,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
+return {TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWanted,WEAPON_PER_POST,startHouseWork,mergeTick,trySpawnDense,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,EDUREQ,EDU_BLD,IMM_LIT,HIRE_COST,canWorkAt,eduBld,hireEducated,hireNeeded,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,NEEDS,NEED_LOW,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
   TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,WAGE_JOB,EDU_JOBS,CITY_RANK,WAGE_OWE_CAP,wageJob,wageOf,wagePayer,TAX_WEEK,TAX_POUCH,WAGE,WAGE_SEC,SILVER_GOLD,TAX_MARGIN,MSELL,MSELL_KEEP,MSELL_LIM,taxOf,money,taxActive,taxStats,taxDue,taxRefuses,merceryTakes,merceryBuy,merceryBuyer,jobless,kingJob,cityMakes,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,

@@ -1426,6 +1426,9 @@ function refreshSel(){
   $('selZone').hidden=!(Sim.ZONED[b.type]&&b.state==='done');if(!$('selZone').hidden){$('zR').textContent=b.zone?b.zone.r:(b.type==='forester'?72:39);$('zSet').textContent=zoneEdit===b.id?'Clicca sulla mappa…':(b.zone?'Sposta zona':'Scegli sulla mappa');}$('wCount').textContent=b.want;
   $('selCem').hidden=!(b.type==='church'&&b.state==='done'&&!b.cem&&Sim.owns('cemetery'));
   $('selFest').hidden=!(b.type==='plaza'&&b.state==='done');
+  // v74: assunzione da fuori di una persona istruita (solo se in edificio non c'è già un istruito)
+  {const can=Sim.hireNeeded(b)&&!b.workers.some(id=>{const w=VM(id);return w&&w.schooled;});
+   $('selHire').hidden=!can;if(can){$('selHire').textContent='Assumi un istruito da fuori ('+Sim.money(Sim.HIRE_COST)+')';$('selHire').disabled=S.coins<Sim.HIRE_COST;}}
   if(!$('selFest').hidden){const fs=b.fest&&b.fest.st;$('selFest').textContent=(fs==='prep'||fs==='ready')?'Annulla la festa':fs==='on'?'Festa in corso…':'Indici la festa di paese';$('selFest').disabled=fs==='on';}
   $('selDemo').hidden=b.type==='stall';
   $('selDemo').textContent=b.state==='site'?'Annulla cantiere':'Demolisci';
@@ -1462,6 +1465,7 @@ $('selStore').addEventListener('change',ev=>{
   refreshSel();
 });
 $('selCem').addEventListener('click',()=>{const b=selB();if(!b||b.type!=='church')return;const res=Sim.addCemetery(b.id);toast(res.ok?'Cantiere del cimitero avviato accanto alla chiesa.':(res.msg||'Non c\'è spazio per il cimitero'));refreshSel();});
+$('selHire').addEventListener('click',()=>{const b=selB();if(!b)return;const r=Sim.hireEducated(b.id);toast(r.ok?'Una persona istruita arriva da fuori e prenderà servizio qui.':r.msg,!r.ok);refreshSel();});
 $('selFest').addEventListener('click',()=>{const b=selB();if(!b||b.type!=='plaza')return;const st=b.fest&&b.fest.st;
   if(st==='prep'||st==='ready'){Sim.cancelFest(b.id);toast('Festa annullata: il legno raccolto torna al magazzino.');}
   else{const r=Sim.callFest(b.id);if(!r.ok)toast(r.msg,true);}

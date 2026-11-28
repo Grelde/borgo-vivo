@@ -95,5 +95,26 @@ const first=seated[0];first.age=14.01;
 run(1);
 ok(!first.child&&!first.seat,'chi compie 14 anni lascia la scuola e libera il posto');
 
+console.log('7) assunzione di un istruito da fuori');
+ok(Sim.IMM_LIT<=0.1&&Sim.HIRE_COST>0,'gli immigrati istruiti sono pochi (<=10%) e assumere da fuori costa ('+Sim.IMM_LIT+', '+Sim.HIRE_COST+')');
+for(const id of mason.workers)Sim._t.vmap.get(id).schooled=false;
+ok(Sim.hireNeeded(mason)&&!Sim.hireNeeded(done('store')[0]),'si assume nelle botteghe, non nel magazzino');
+// libera qualche posto nelle case
+let freed=0;for(const v of Sim.villagers().slice())if(!v.child&&!mason.workers.includes(v.id)&&freed<6){Sim._t.killV(v,'left');freed++;}
+S.coins=Sim.HIRE_COST-1;
+let r=Sim.hireEducated(mason.id);
+ok(!r.ok&&S.coins===Sim.HIRE_COST-1,'senza abbastanza denari non si assume e non si paga');
+S.coins=Sim.HIRE_COST+10;const w0=mason.workers.length,fin0=S.fin.hired|0;
+r=Sim.hireEducated(mason.id);
+ok(r.ok&&!!r.v,'con i denari l\'assunzione riesce ('+(r.msg||'')+')');
+ok(S.coins===10&&(S.fin.hired|0)===fin0+Sim.HIRE_COST,'pagati '+Sim.HIRE_COST+' argento');
+ok(r.v&&r.v.schooled&&r.v.hired&&mason.workers.includes(r.v.id)&&r.v.job===mason.id,'l\'assunto è istruito e ha già il posto in bottega');
+ok(Sim.eduBld(mason)===1.3,'la bottega ora rende il 30% in più');
+ok(mason.workers.length>=w0&&mason.workers.length<=mason.want,'nessun addetto oltre i posti voluti ('+mason.workers.length+'/'+mason.want+')');
+r=Sim.hireEducated(mason.id);
+ok(!r.ok,'con un istruito già al lavoro non si assume un secondo');
+run(2);
+ok(Sim._t.vmap.get(mason.workers[0])&&mason.workers.some(id=>Sim._t.vmap.get(id).schooled),'dopo qualche giorno l\'istruito lavora ancora in bottega');
+
 console.log(fails?'ISTRUZIONE_FAIL '+fails:'ISTRUZIONE_OK');
 process.exit(fails?1:0);

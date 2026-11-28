@@ -1,5 +1,11 @@
 # Changelog
 
+## v75 – 2026-11-28
+Funzione nuova: assunzione di una persona istruita da fuori. Gli immigrati istruiti diventano pochi.
+- **Meno istruiti in arrivo:** `IMM_LIT` scende dal 25% al **10%** (viandanti e immigrati). I primi tre della carovana restano istruiti.
+- **Assumere da fuori (`hireEducated`, `HIRE_COST` = 25 monete d'argento):** nel pannello di ogni edificio di lavoro senza un addetto istruito compare «Assumi un istruito da fuori»: arriva a piedi dal bordo della mappa (`arriveNewcomer(pk, true)`) una persona che sa leggere e scrivere, che ha già il posto in quell'edificio. Serve una casa con un posto libero; se l'edificio è al completo prende il posto di un addetto non istruito, che torna libero. Non si assume nel magazzino, nelle fattorie e negli ovili di famiglia, né dove lavora già un istruito. Serve per aprire subito Ufficio delle Tasse, Scuola, Merceria e Cerusico e per il +30% delle botteghe. Pagato dalla cassa del paese (`S.fin.hired`).
+- Test: `node tests/istruzione.js` (sezione 7).
+
 ## v74 – 2026-11-28
 Funzione nuova: il cacciatore va a caccia nel bosco, come il pescatore va sulla riva (v66.1).
 - Chi lavora nella capanna del cacciatore cammina fino a un albero del folto entro 40 celle (la cella è ricordata in `b.shore` e rifatta se l'albero viene tagliato) e caccia là fuori (`toShore`, poi `shop` all'aperto); prima restava chiuso dentro la capanna. Il ruolo mostra "Va a caccia nel bosco".
