@@ -39,10 +39,12 @@ run(3);
 const off=done('taxoffice')[0];
 ok(!!off,'ufficio completato');
 ok(off&&off.workers.length===0,'nessun istruito in paese: l\'ufficio non ha esattore ('+(off&&off.workers.length)+')');
-const cands=Sim.villagers().filter(v=>!v.child&&!v.ill).slice(0,4); // alcune persone istruite libere (qualcuna potrebbe essere di turno in giardino)
+const cands=Sim.villagers().filter(v=>!v.child&&!v.ill); // tutti gli adulti del paese diventano istruiti e liberi (alcuni sono di turno in giardino: ne servono molti perché almeno uno sia libero)
 for(const c of cands){if(c.job){const jb=Sim.buildings().get(c.job);if(jb)jb.workers=jb.workers.filter(x=>x!==c.id);c.job=null;c.state='idle';c.carry=null;}c.duty=false;c.schooled=true;wl.add(c.id);}
+const wants=new Map();for(const b of Sim.buildings().values())if(b!==off&&b.state==='done'&&b.want>0){wants.set(b,b.want);b.want=0;} // solo l'ufficio cerca addetti
 run(3);
 ok(off&&off.workers.length===1,'con una persona istruita libera l\'esattore c\'è ('+(off&&off.workers.length)+')');
+for(const [b,w] of wants)b.want=w;
 ok(off&&off.workers.every(id=>Sim._t.vmap.get(id).schooled),'chi ci lavora è istruito');
 // un non istruito messo a forza nell'ufficio viene mandato via
 const intruder=Sim.villagers().find(v=>!v.child&&!v.schooled&&!v.job);
@@ -99,13 +101,17 @@ console.log('7) assunzione di un istruito da fuori');
 ok(Sim.IMM_LIT<=0.1&&Sim.HIRE_COST>0,'gli immigrati istruiti sono pochi (<=10%) e assumere da fuori costa ('+Sim.IMM_LIT+', '+Sim.HIRE_COST+')');
 for(const id of mason.workers)Sim._t.vmap.get(id).schooled=false;
 ok(Sim.hireNeeded(mason)&&!Sim.hireNeeded(done('store')[0]),'si assume nelle botteghe, non nel magazzino');
-// libera qualche posto nelle case
-let freed=0;for(const v of Sim.villagers().slice())if(!v.child&&!mason.workers.includes(v.id)&&freed<6){Sim._t.killV(v,'left');freed++;}
 S.coins=Sim.HIRE_COST-1;
 let r=Sim.hireEducated(mason.id);
 ok(!r.ok&&S.coins===Sim.HIRE_COST-1,'senza abbastanza denari non si assume e non si paga');
 S.coins=Sim.HIRE_COST+10;const w0=mason.workers.length,fin0=S.fin.hired|0;
-r=Sim.hireEducated(mason.id);
+// se le case sono tutte piene l'assunzione è rifiutata: si liberano posti (qualche abitante se ne va) finché c'è una casa libera
+for(let tries=0;tries<25;tries++){
+  r=Sim.hireEducated(mason.id);
+  if(r.ok||!/casa/.test(r.msg))break;
+  ok(S.coins===Sim.HIRE_COST+10,'senza casa libera non si paga nulla');
+  let k=0;for(const v of Sim.villagers().slice())if(!v.child&&!mason.workers.includes(v.id)&&k<3){Sim._t.killV(v,'left');k++;}
+}
 ok(r.ok&&!!r.v,'con i denari l\'assunzione riesce ('+(r.msg||'')+')');
 ok(S.coins===10&&(S.fin.hired|0)===fin0+Sim.HIRE_COST,'pagati '+Sim.HIRE_COST+' argento');
 ok(r.v&&r.v.schooled&&r.v.hired&&mason.workers.includes(r.v.id)&&r.v.job===mason.id,'l\'assunto è istruito e ha già il posto in bottega');
