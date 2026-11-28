@@ -115,6 +115,10 @@ let seed=7;
 const tree=new Uint8Array(N*N),rock=new Uint8Array(N*N),ore=new Uint8Array(N*N),water=new Uint8Array(N*N),sap=new Uint8Array(N*N),road=new Uint8Array(N*N),dist=new Uint8Array(N*N),occ=new Int32Array(N*N),field=new Int32Array(N*N),door=new Uint8Array(N*N),cen=new Uint8Array(N*N),gate=new Int32Array(N*N);const gatedSet=new Set();
 // wear: solo per le strade tracciate dal giocatore (usura lenta). plev/phit/pexp: livello del sentiero, passaggi nella finestra corrente, istante di scadenza del livello.
 const lastStep=new Float32Array(N*N); // v44: ultimo passaggio di un abitante su ogni cella libera (non salvato: dopo un caricamento riparte da adesso)
+// v63: fertilità del suolo (0 arido, 1 povero, 2 buono, 3 fertile), falde acquifere (aq: c'è acqua sotto; aqK: il giocatore l'ha scoperta; aqV: numero della falda, solo per la generazione)
+const aq=new Uint8Array(N*N),aqK=new Uint8Array(N*N),aqV=new Uint8Array(N*N);
+// v76: la fertilità (griglia `fert` 0-100 dell'ambiente, v69) conta davvero: resa 0,6 (terra magra) … 1,4 (ottima), 1,0 a metà
+const soilF=v=>0.6+0.8*v/100,soilName=v=>v<25?'Arida':v<45?'Povera':v<70?'Buona':'Ottima',AQ_COST=2,AQ_FIND_R=27,AQ_REVEAL_R=54;
 const wear=new Float32Array(N*N),jit=new Float32Array(N*N),attr=new Float32Array(N*N),sapT=new Float32Array(N*N),plev=new Uint8Array(N*N),phit=new Uint8Array(N*N),pexp=new Float32Array(N*N);
 const EDICT0=()=>({noUpgrade:false,noImmig:false,birthBonus:false,schoolMandatory:false,quarantine:false,woodDuty:false});
 // ---- v44: commercio. Le 4 città vicine (una per lato della mappa) mandano carovane alla Merceria, ma solo sulle rotte che il giocatore ha sbloccato.
@@ -286,9 +290,47 @@ function genTerrain(mode,sd,att){
     if(pts.length>20)for(const fr of [rr(0.15,0.4),rr(0.6,0.85)]){const p=pts[Math.floor(pts.length*fr)];disc(p[0],p[1],p[2]+0.7,2,true);}
   }
   for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;if(Math.hypot(x/SC-CX,y/SC-CY)<8){tree[i]=0;rock[i]=0;ore[i]=0;}if(water[i]){tree[i]=0;rock[i]=0;ore[i]=0;}}
+  // v63: flusso casuale a parte, così la forma di acqua, boschi e rocce per un dato seme resta quella di prima
+  const R2=mulberry((Math.imul(sd|0,2246822519)^Math.imul(att+1,3266489917))>>>0);
+  enrichDeposits();genAquifers(R2);
 }
-// la mappa è giocabile? acqua lontana dal punto di partenza, quantità d'acqua sensata, legno, pietra e ferro raggiungibili
+// ---- v63: giacimenti più o meno ricchi, falde acquifere e fertilità del suolo (tutto dipende solo dal seme)
+// Ricchezza: la quantità di roccia e di ferro in ogni cella (prima sempre 10) varia a zone, da circa 5 a 15: i filoni ricchi durano di più e i massi si vedono più grossi. La media resta 10.
+function enrichDeposits(){
+  for(let i=0;i<N*N;i++){
+    if(!rock[i]&&!ore[i])continue;const x=(i%N+0.5)/SC,y=((i/N|0)+0.5)/SC;
+    if(rock[i]){const n=vnoise(x*0.09+211,y*0.09+37)*0.5+vnoise(x*0.3+5,y*0.3+81)*0.35+vnoise(x*0.8+60,y*0.8+3)*0.15;rock[i]=Math.max(3,Math.min(24,Math.round(10*(1+2.9*(n-0.5)))));}
+    if(ore[i]){const n=vnoise(x*0.09+351,y*0.09+97)*0.5+vnoise(x*0.3+45,y*0.3+11)*0.35+vnoise(x*0.8+20,y*0.8+73)*0.15;ore[i]=Math.max(3,Math.min(24,Math.round(10*(1+2.9*(n-0.5)))));}
+  }
+}
+// Falde: 3-5 corpi d'acqua sotterranei a forma di lente (larghi 3-5 tile, lunghi 40-80, che si assottigliano alle estremità). La prima passa sempre esattamente sotto il Centro Cittadino (tile 32,32).
+function genAquifers(R2){
+  aq.fill(0);aqV.fill(0);
+  const rr=(a,b)=>a+(b-a)*R2(),ri=(a,b)=>Math.floor(rr(a,b+1)),CX=32,CY=32,nv=ri(3,5);
+  for(let v=0;v<nv;v++){
+    let bx=CX,by=CY;if(v>0){const a=R2()*6.2832,d=rr(9,26);bx=CX+Math.cos(a)*d;by=CY+Math.sin(a)*d;}
+    const phi=R2()*Math.PI,dx=Math.cos(phi),dy=Math.sin(phi),nx=-dy,ny=dx;
+    const A1=rr(1.8,4.5),A2=rr(0.6,1.6),f1=rr(0.6,1.2),f2=rr(1.8,3),p1=R2()*6.2832,p2=R2()*6.2832,off=R2()*100;
+    const wb=rr(1.5,2.3),wv=rr(0.3,0.7),Lh=v===0?rr(30,42):rr(20,38);
+    const lat0=A1*Math.sin(p1)+A2*Math.sin(p2)+(vnoise(off,7)-0.5)*3; // la curva passa esattamente dal punto base
+    for(let s=-Lh;s<=Lh;s+=0.3){
+      const lat=A1*Math.sin(s*0.09*f1+p1)+A2*Math.sin(s*0.21*f2+p2)+(vnoise(s*0.08+off,7)-0.5)*3-lat0;
+      const px=bx+dx*s+nx*lat,py=by+dy*s+ny*lat;if(px<-4||py<-4||px>N/SC+4||py>N/SC+4)continue;
+      let hw=(wb+wv*(vnoise(s*0.1+off+50,9)-0.5)*2)*Math.min(1,(Lh-Math.abs(s))/7);
+      if(v===0&&Math.abs(s)<6)hw=Math.max(hw,2.3); // sotto il centro la falda è sempre larga abbastanza
+      if(hw<0.3)continue;
+      const r=hw*SC,cx=px*SC,cy=py*SC;
+      for(let y=Math.max(0,Math.floor(cy-r));y<=Math.min(N-1,Math.ceil(cy+r));y++)for(let x=Math.max(0,Math.floor(cx-r));x<=Math.min(N-1,Math.ceil(cx+r));x++){
+        if((x+0.5-cx)**2+(y+0.5-cy)**2>r*r)continue;const i=y*N+x;aq[i]=1;if(!aqV[i])aqV[i]=v+1;}
+    }
+  }
+}
+// la mappa è giocabile? acqua lontana dal punto di partenza, quantità d'acqua sensata, legno, pietra e ferro raggiungibili; falda sotto il centro
 function terrainOK(mode){
+  let aqn=0,cenOK=true;
+  for(let i=0;i<N*N;i++)if(aq[i])aqn++;
+  for(let y=93;y<100;y++)for(let x=93;x<99;x++)if(!aq[y*N+x])cenOK=false;
+  if(!cenOK||aqn<3000||aqn>11500)return false;
   let wc=0,mw=1e9,t26=0,t18=0,r26=0,r18=0,oT=0,o32=0;
   for(let i=0;i<N*N;i++){const x=(i%N)/SC,y=((i/N)|0)/SC,d=Math.hypot(x-32,y-32);
     if(water[i]){wc++;if(d<mw)mw=d;}
@@ -324,10 +366,10 @@ function distField(isSrc){
 // Dopo un caricamento si rigenera il terreno naturale dal seme (e si rimettono a posto le griglie vive); se non coincide con l'acqua della partita si usa quello attuale.
 function naturalTerrain(){
   if(!(S.mapTries>0))return null;
-  const live=[tree,rock,ore,water].map(a=>a.slice()),sd0=seed;
+  const live=[tree,rock,ore,water,aq,aqV].map(a=>a.slice()),sd0=seed; // v76: genTerrain rifà anche le falde: si rimettono a posto
   genTerrain(S.mode,S.seed|0,(S.mapTries|0)-1);
   const nat={rock:rock.slice(),ore:ore.slice()};let same=true;for(let i=0;i<N*N;i++)if(water[i]!==live[3][i]){same=false;break;}
-  [tree,rock,ore,water].forEach((a,k)=>a.set(live[k]));seed=sd0;
+  [tree,rock,ore,water,aq,aqV].forEach((a,k)=>a.set(live[k]));seed=sd0;
   return same?nat:null;
 }
 function computeEnv(nat){
@@ -426,6 +468,9 @@ function init(sd,mode,diff,opt){
   let okT=false,att=0;const base=(sd||7)|0;
   for(;att<48&&!okT;att++){genTerrain(S.mode,base,att);okT=terrainOK(S.mode);}
   S.seed=base;S.mapTries=att;S.mapOK=okT;
+  // v63: nelle partite nuove il pozzo si scava solo su una falda scoperta; all'inizio è nota la parte della falda che passa sotto il Centro Cittadino
+  S.aqRule=!!(opt&&opt.aquifers);S.dowsed=0;aqK.fill(0);
+  for(let i=0;i<N*N;i++)if(aq[i]&&aqV[i]===1&&Math.hypot(i%N-96,((i/N)|0)-96)<=AQ_REVEAL_R)aqK[i]=1;
   for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;jit[i]=hash(x,y+500)*0.15;}
   windP=null;computeEnv();
   updClock();
@@ -564,6 +609,7 @@ function canPlace(type,x,y,rot){
     if(door[i])return "Ingresso di un edificio: lascialo libero";
     if(cen[i]===2)return "Cancello del centro cittadino: lascialo libero";
     if(type==='sheepfold'&&dist[i]!==5)return "L'ovile va costruito dentro una zona Pascolo: disegnala prima (tasto P)";
+    if(type==='well'&&S.aqRule&&!aqK[i])return "Qui non conosci nessuna falda: il pozzo si scava sull'acqua scoperta (zone azzurre). Cercala con il Rabdomante (B)";
   }
   if(t.need==='tree'&&!nearAny(tree,x,y,36))return 'Servono alberi nelle vicinanze';
   if(t.need==='rock'&&!nearAny(rock,x,y,36))return 'Servono rocce nelle vicinanze';
@@ -632,6 +678,19 @@ function place(type,x,y,rot){
   return {ok:true,b:addBuilding(type,x,y,false,{rot:rot|0})};
 }
 
+// v63: il rabdomante cerca acqua in un raggio di AQ_FIND_R celle e rivela le falde che trova (costa AQ_COST legni). Non rivela nulla a chi prova a piazzare un pozzo a caso: il messaggio è lo stesso con falda non scoperta e senza falda.
+function dowse(cx,cy){
+  cx=cx|0;cy=cy|0;if(cx<0||cy<0||cx>=N||cy>=N)return {ok:false,msg:'Fuori dal territorio'};
+  const R=AQ_FIND_R,cells=[];let any=0;
+  for(let y=Math.max(0,cy-R);y<=Math.min(N-1,cy+R);y++)for(let x=Math.max(0,cx-R);x<=Math.min(N-1,cx+R);x++){
+    if(Math.hypot(x-cx,y-cy)>R)continue;const i=y*N+x;if(!aq[i])continue;any++;if(!aqK[i])cells.push(i);}
+  if(any&&!cells.length)return {ok:false,msg:'Le falde di questa zona le conosci già: guarda le zone azzurre.'};
+  if(uncommitted('wood')<AQ_COST)return {ok:false,msg:'Il rabdomante vuole '+AQ_COST+' legni (parte del legno è già destinata ai cantieri).'};
+  S.stock.wood-=AQ_COST;S.dowsed=(S.dowsed|0)+1;
+  if(!cells.length)return {ok:true,found:0,msg:'Il rabdomante non sente acqua qui sotto: prova più in là.'};
+  for(const i of cells)aqK[i]=1;hooks.ground();stCache=null;
+  return {ok:true,found:cells.length,msg:'Il rabdomante ha trovato una falda: ora puoi scavare il pozzo sulle zone azzurre.'};
+}
 function dropMarket(v){
   if(v.cargo&&v.state==='toMarket'){const h=buildings.get(v.home),o=buildings.get(v.cargo.owner);if(h)h.goods[v.cargo.s]+=v.cargo.q;if(o)o.goods[v.cargo.t]+=v.cargo.q;}
   v.cargo=null;v.carry=null;v.stall=null;v.path=[];v.state='idle';v.moving=false;
@@ -1460,7 +1519,7 @@ function onArrive(v){
     case 'toSchool':v.inside=true;v.state='learn';break;
     case 'toTree':v.state='chop';v.timer=2.4;break;
     case 'toRock':v.state='mine';v.timer=3.0;break;
-    case 'toField':v.state='till';v.timer=5;break;
+    case 'toField':v.state='till';v.timer=5/soilF(fert[v.target]);break; // v63: su terra fertile si lavora più in fretta
     case 'toBuild':v.state='build';break;
     case 'toGraze':v.state='graze';v.timer=6;break;
     case 'toStoreSleep':v.inside=true;v.state='sleep';break;
@@ -2513,6 +2572,8 @@ function workDone(b){
   hooks.regarden(b);
 }
 // v57: produzione in proporzione alla grandezza: un orto iniziale (4 celle, nessun giardino costruito) rende il 75%; un giardino costruito 100% a 9 celle, +25% per ogni cella oltre (tetto 24)
+// v63: fertilità del suolo: media sulle celle del giardino (con gli ampliamenti); il giardino cresce più o meno in fretta
+function soilOf(b){let s=0,n=0;for(const c of b.gcells){s+=soilF(fert[c]);n++;}if(b.ext)for(const c of b.ext){s+=soilF(fert[c]);n++;}return n?s/n:1;}
 const gardenFactor=b=>b.gfull===false?0.75:1+0.25*Math.max(0,Math.min(GMAX,b.gcells.length+b.ext.length)-9);
 function setGardenBox(b){const xs=b.gcells.map(i=>i%N),ys=b.gcells.map(i=>(i/N)|0);b.gx=Math.min(...xs);b.gy=Math.min(...ys);b.gw=Math.max(...xs)-b.gx+1;b.gh=Math.max(...ys)-b.gy+1;}
 // v57: ogni ampliamento del giardino è un lavoro: celle prenotate, il costruttore porta il legno e costruisce (staccionata e piante compaiono a fine lavori)
@@ -2552,7 +2613,7 @@ function houseTick(b){
     const canWeave=b.weave&&b.goods.wool>=1,canTail=b.tailor&&b.goods.cloth>=1;
     const share=TK*tenders/(1+(canCraft?1:0)+(canBake?1:0)+(canWeave?1:0)+(canTail?1:0))*(S.edicts.woodDuty?0.85:1);
     const sf=S.season===3?(b.crop==='veg'?0.35:b.crop==='eggs'?0.6:0.8):S.season===2?1.25:1;
-    if(b.crop!=='wood'&&!b.dens)b.pa.g+=share/(b.crop==='herd'?26:16)*(b.level>=3?1.5:1)*sf*gardenFactor(b)*(b.goods.tools>=1?1.1:1);
+    if(b.crop!=='wood'&&!b.dens)b.pa.g+=share/(b.crop==='herd'?26:16)*(b.level>=3?1.5:1)*sf*gardenFactor(b)*soilOf(b)*(b.goods.tools>=1?1.1:1);
     const gk=gardenGood(b.crop),gcap=gardenCap(b.crop);
     while(b.pa.g>=1){b.pa.g-=1;if(b.goods[gk]<gcap)b.goods[gk]++;}
     if(canCraft){b.pa.c+=share/20;while(b.pa.c>=1&&b.goods.iron>=1&&b.goods.firewood>=1){b.pa.c-=1;b.goods.iron--;b.goods.firewood--;b.goods.tools=Math.min(12,b.goods.tools+1);}}
@@ -2946,6 +3007,7 @@ function regnoTick(){
     }
   }
   raidTick();wolfTick();warTick();deployTick();
+  if(S.aqRule&&S.t>25)tell('aq0','Acqua: sotto il Centro Cittadino passa una falda già nota (zone azzurre sulla mappa del suolo, tasto L). Per scavare altri pozzi cerca le falde con il Rabdomante (B).');
 }
 // progetti del Re
 function projectState(id){
@@ -3328,7 +3390,7 @@ function finish(b){
   if(b.type==='farm'){
     const cand=[];
     for(let y=b.y-6;y<b.y+b.h+6;y++)for(let x=b.x-6;x<b.x+b.w+6;x++){
-      if(x<0||y<0||x>=N||y>=N)continue;const i=y*N+x;if(cellFree(i,2))cand.push([Math.hypot(x-b.x-b.w/2,y-b.y-b.h/2),i]);
+      if(x<0||y<0||x>=N||y>=N)continue;const i=y*N+x;if(cellFree(i,2))cand.push([Math.hypot(x-b.x-b.w/2,y-b.y-b.h/2)-0.066*fert[i],i]); // v63: i campi preferiscono la terra fertile
     }
     cand.sort((a,c)=>a[0]-c[0]);
     for(const [,i] of cand.slice(0,81)){field[i]=b.id;b.fields.push(i);}
@@ -3546,7 +3608,7 @@ function tick1(){
   updClock();
   taxDayTick();
   if(acc.attr>=3){acc.attr=0;computeAttr();}
-  for(let i=0;i<N*N;i++)if(sap[i]&&S.season!==3){sapT[i]+=1;if(sapT[i]>=SAPLING_T){sap[i]=0;tree[i]=1;hooks.trees();hooks.saps();}}
+  for(let i=0;i<N*N;i++)if(sap[i]&&S.season!==3){sapT[i]+=soilF(fert[i]);if(sapT[i]>=SAPLING_T){sap[i]=0;tree[i]=1;hooks.trees();hooks.saps();}}
   lifeTick();
   diseaseTick();
   dutyPass();
@@ -3714,13 +3776,15 @@ function stats(){
 // Compatibilità: SAVE_FMT cambia solo se il formato diventa illeggibile dalle versioni precedenti; i campi nuovi si aggiungono con un valore di riserva in importState.
 const SAVE_FMT=1;
 const SAVE_GRIDS={tree,rock,ore,water,sap,road,dist,occ,field,door,cen,gate,wear,sapT,plev,phit,pexp};
+// v63: suolo e falde si salvano a parte e sono facoltativi: un salvataggio precedente non li ha e li ricostruisce dal seme
+const SOIL_GRIDS={aq,aqK};
 function b64enc(u8){let s='';for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s);}
 function b64dec(str){const s=atob(str),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u;}
 // griglie: compressione a run (lunghezza,byte) sui byte grezzi, poi base64
 function packGrid(a){const u=new Uint8Array(a.buffer,a.byteOffset,a.byteLength),out=[];let i=0;while(i<u.length){const v=u[i];let r=1;while(r<255&&i+r<u.length&&u[i+r]===v)r++;out.push(r,v);i+=r;}return b64enc(Uint8Array.from(out));}
 function unpackGrid(a,str){const p=b64dec(str),u=new Uint8Array(a.buffer,a.byteOffset,a.byteLength);let o=0;for(let i=0;i+1<p.length;i+=2){const r=p[i];if(r===0||o+r>u.length)throw new Error('griglia rovinata');u.fill(p[i+1],o,o+r);o+=r;}if(o!==u.length)throw new Error('griglia rovinata');}
 function exportState(){
-  const grids={};for(const k in SAVE_GRIDS)grids[k]=packGrid(SAVE_GRIDS[k]);
+  const grids={};for(const k in SAVE_GRIDS)grids[k]=packGrid(SAVE_GRIDS[k]);for(const k in SOIL_GRIDS)grids[k]=packGrid(SOIL_GRIDS[k]);
   return {fmt:SAVE_FMT,seed,nextId,S,acc,told,gated:[...gatedSet],reg:[...reg.entries()],resv:[...resv.entries()],plantResv:[...plantResv],guests,buildings:[...buildings.values()],villagers,grids};
 }
 function importState(d){
@@ -3732,6 +3796,7 @@ function importState(d){
   if(!Number.isFinite(d.seed)||!Number.isFinite(d.nextId))bad('numeri non validi');
   const tmp={};
   for(const k in SAVE_GRIDS){if(typeof d.grids[k]!=='string')bad('manca la griglia '+k);tmp[k]=new SAVE_GRIDS[k].constructor(N*N);try{unpackGrid(tmp[k],d.grids[k]);}catch(e){bad('griglia '+k+' rovinata');}}
+  const sg={};for(const k in SOIL_GRIDS)if(typeof d.grids[k]==='string'){sg[k]=new Uint8Array(N*N);try{unpackGrid(sg[k],d.grids[k]);}catch(e){sg[k]=null;}}
   const cp=x=>JSON.parse(JSON.stringify(x));
   const bl=cp(d.buildings),vl=cp(d.villagers),gl=cp(d.guests),Sx=cp(d.S),ac=cp(d.acc),tl=cp(d.told),ga=cp(d.gated),rg=cp(d.reg),rv=cp(d.resv),pr=cp(d.plantResv);
   const ids=new Set();
@@ -3753,6 +3818,8 @@ function importState(d){
   for(const g of guests)hooks.gone(g);
   for(const k in SAVE_GRIDS)SAVE_GRIDS[k].set(tmp[k]);
   seed=d.seed;for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;jit[i]=hash(x,y+500)*0.15;}
+  if(sg.aq&&sg.aqK){aq.set(sg.aq);aqK.set(sg.aqK);}
+  else{const R2=mulberry((Math.imul(d.seed|0,2246822519)^0x9e3779b9)>>>0);genAquifers(R2);aqK.set(aq);} // salvataggio precedente alla v76: le falde si ricreano dal seme (la fertilità si ricava da sola, v69); le falde sono tutte note e i pozzi già costruiti restano dove sono
   for(const k of Object.keys(S))delete S[k];
   Object.assign(S,Sx);lastStep.fill(S.t||0);
   S.extra=(S.extra&&typeof S.extra==='object')?S.extra:{};S.edicts=Object.assign(EDICT0(),S.edicts);S.stock=Object.assign({wood:0,stone:0,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,rope:0,charcoal:0,bars:0,weapons:0,clay:0,bricks:0,lime:0,salt:0,cured:0,cheese:0,beer:0,wine:0},S.stock);
@@ -3780,7 +3847,7 @@ function importState(d){
   for(const g of guests)hooks.villager(g);
   hooks.trees();hooks.rocks();hooks.saps();hooks.ground();
 }
-return {TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWanted,WEAPON_PER_POST,startHouseWork,mergeTick,trySpawnDense,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,EDUREQ,EDU_BLD,IMM_LIT,HIRE_COST,canWorkAt,eduBld,hireEducated,hireNeeded,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
+return {dowse,soilOf,soilF,soilName,AQ_FIND_R,AQ_COST,TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWanted,WEAPON_PER_POST,startHouseWork,mergeTick,trySpawnDense,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,EDUREQ,EDU_BLD,IMM_LIT,HIRE_COST,canWorkAt,eduBld,hireEducated,hireNeeded,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,NEEDS,NEED_LOW,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
   TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,WAGE_JOB,EDU_JOBS,CITY_RANK,WAGE_OWE_CAP,wageJob,wageOf,wagePayer,TAX_WEEK,TAX_POUCH,WAGE,WAGE_SEC,SILVER_GOLD,TAX_MARGIN,MSELL,MSELL_KEEP,MSELL_LIM,taxOf,money,taxActive,taxStats,taxDue,taxRefuses,merceryTakes,merceryBuy,merceryBuyer,jobless,kingJob,cityMakes,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
@@ -3788,6 +3855,6 @@ return {TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWa
   STORE_KEYS,GRAN_KEYS,GRAN_TOTAL,CENTER_CAP,setPolicy,storeInfo,stockRoom,capRes,reconcileStock,extraTotal,festTakeFood,
   _t:{eatOne,drinkTick,FISH_CYCLE,FAM_FISH_RATE,FAM_FISH_Q,famFishTime,jobNeed,jobSurplus,rebalanceJobs,JOBRES,JOB_MARGIN,JOB_DWELL,tradeTick,doTrade,chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
   env:{fert,flowS,flowX,flowY,FERT_HIGH,flowSeason,riverInfo,windNow,windAt,flowLabel,windLabel,COMPASS8,WIND_NAME,FLOW_MS},
-  grids:{tree,rock,ore,water,sap,sapT,road,dist,occ,wear,plev,field,door,attr,cen},guests:()=>guests,buildings:()=>buildings,villagers:()=>villagers};
+  grids:{aq,aqK,tree,rock,ore,water,sap,sapT,road,dist,occ,wear,plev,field,door,attr,cen},guests:()=>guests,buildings:()=>buildings,villagers:()=>villagers};
 })();
 if(typeof module!=='undefined')module.exports=Sim;

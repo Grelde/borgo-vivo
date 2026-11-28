@@ -192,6 +192,9 @@ body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--seri
 .wbar i{display:block;height:100%;background:var(--moss)}
 #hint{position:absolute;left:50%;transform:translateX(-50%);bottom:126px;max-width:min(560px,calc(100% - 32px));text-align:center;font-size:15px;color:var(--parch2);background:rgba(23,17,12,.72);padding:4px 12px;border-radius:12px;pointer-events:none}
 #hint:empty{display:none}
+#ovLeg{position:absolute;left:16px;bottom:calc(138px + var(--sb));max-width:min(300px,calc(100% - 32px));padding:8px 12px;font-size:14px;line-height:1.55;pointer-events:none;z-index:2}
+#ovLeg b{color:var(--gold)}
+#ovLeg i.sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px;border:1px solid rgba(0,0,0,.35)}
 #toast{position:absolute;left:50%;bottom:164px;transform:translate(-50%,8px);max-width:min(520px,calc(100% - 32px));padding:9px 16px;text-align:center;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;font-size:16px}
 #toast.show{opacity:1;transform:translate(-50%,0)}
 #toast.bad{border-color:var(--blood);color:#ffd7cb}
@@ -328,7 +331,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v75</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v76</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -398,6 +401,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
     <button class="btn on" id="zoneBtn" title="Zone di caccia e pesca (J): icona arco e freccia = caccia, icona pesce = pesca">🏹</button>
     <button class="btn" id="attrBtn" title="Mappa dell'attrattiva (V): verde piacevole, rosso rumoroso">☺</button>
     <button class="btn" id="layBtn" title="Layer della mappa: fertilità del suolo, vento, corrente del fiume">🗺️</button>
+    <button class="btn" id="ovBtn" title="Mappa del suolo (L): fertilità, giacimenti, falde acquifere">🌱</button>
   </div>
   <div id="sel" class="panel" hidden>
     <h3 id="selName"></h3>
@@ -412,6 +416,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
     <button class="btn danger" id="selDemo">Demolisci</button>
   </div>
   <div id="hint"></div>
+  <div id="ovLeg" class="panel" hidden></div>
   <div id="pbar" class="panel" hidden><span id="pName"></span><button class="btn" id="pOk" type="button">✓ Costruisci</button><button class="btn" id="pRot" type="button" title="Ruota l'edificio">⟳</button><button class="btn danger" id="pNo" type="button" title="Annulla">✕</button></div>
   <div id="toast" class="panel"></div>
   <div id="cats" class="panel"></div>
@@ -538,6 +543,10 @@ let seed=7;
 const tree=new Uint8Array(N*N),rock=new Uint8Array(N*N),ore=new Uint8Array(N*N),water=new Uint8Array(N*N),sap=new Uint8Array(N*N),road=new Uint8Array(N*N),dist=new Uint8Array(N*N),occ=new Int32Array(N*N),field=new Int32Array(N*N),door=new Uint8Array(N*N),cen=new Uint8Array(N*N),gate=new Int32Array(N*N);const gatedSet=new Set();
 // wear: solo per le strade tracciate dal giocatore (usura lenta). plev/phit/pexp: livello del sentiero, passaggi nella finestra corrente, istante di scadenza del livello.
 const lastStep=new Float32Array(N*N); // v44: ultimo passaggio di un abitante su ogni cella libera (non salvato: dopo un caricamento riparte da adesso)
+// v63: fertilità del suolo (0 arido, 1 povero, 2 buono, 3 fertile), falde acquifere (aq: c'è acqua sotto; aqK: il giocatore l'ha scoperta; aqV: numero della falda, solo per la generazione)
+const aq=new Uint8Array(N*N),aqK=new Uint8Array(N*N),aqV=new Uint8Array(N*N);
+// v76: la fertilità (griglia `fert` 0-100 dell'ambiente, v69) conta davvero: resa 0,6 (terra magra) … 1,4 (ottima), 1,0 a metà
+const soilF=v=>0.6+0.8*v/100,soilName=v=>v<25?'Arida':v<45?'Povera':v<70?'Buona':'Ottima',AQ_COST=2,AQ_FIND_R=27,AQ_REVEAL_R=54;
 const wear=new Float32Array(N*N),jit=new Float32Array(N*N),attr=new Float32Array(N*N),sapT=new Float32Array(N*N),plev=new Uint8Array(N*N),phit=new Uint8Array(N*N),pexp=new Float32Array(N*N);
 const EDICT0=()=>({noUpgrade:false,noImmig:false,birthBonus:false,schoolMandatory:false,quarantine:false,woodDuty:false});
 // ---- v44: commercio. Le 4 città vicine (una per lato della mappa) mandano carovane alla Merceria, ma solo sulle rotte che il giocatore ha sbloccato.
@@ -709,9 +718,47 @@ function genTerrain(mode,sd,att){
     if(pts.length>20)for(const fr of [rr(0.15,0.4),rr(0.6,0.85)]){const p=pts[Math.floor(pts.length*fr)];disc(p[0],p[1],p[2]+0.7,2,true);}
   }
   for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;if(Math.hypot(x/SC-CX,y/SC-CY)<8){tree[i]=0;rock[i]=0;ore[i]=0;}if(water[i]){tree[i]=0;rock[i]=0;ore[i]=0;}}
+  // v63: flusso casuale a parte, così la forma di acqua, boschi e rocce per un dato seme resta quella di prima
+  const R2=mulberry((Math.imul(sd|0,2246822519)^Math.imul(att+1,3266489917))>>>0);
+  enrichDeposits();genAquifers(R2);
 }
-// la mappa è giocabile? acqua lontana dal punto di partenza, quantità d'acqua sensata, legno, pietra e ferro raggiungibili
+// ---- v63: giacimenti più o meno ricchi, falde acquifere e fertilità del suolo (tutto dipende solo dal seme)
+// Ricchezza: la quantità di roccia e di ferro in ogni cella (prima sempre 10) varia a zone, da circa 5 a 15: i filoni ricchi durano di più e i massi si vedono più grossi. La media resta 10.
+function enrichDeposits(){
+  for(let i=0;i<N*N;i++){
+    if(!rock[i]&&!ore[i])continue;const x=(i%N+0.5)/SC,y=((i/N|0)+0.5)/SC;
+    if(rock[i]){const n=vnoise(x*0.09+211,y*0.09+37)*0.5+vnoise(x*0.3+5,y*0.3+81)*0.35+vnoise(x*0.8+60,y*0.8+3)*0.15;rock[i]=Math.max(3,Math.min(24,Math.round(10*(1+2.9*(n-0.5)))));}
+    if(ore[i]){const n=vnoise(x*0.09+351,y*0.09+97)*0.5+vnoise(x*0.3+45,y*0.3+11)*0.35+vnoise(x*0.8+20,y*0.8+73)*0.15;ore[i]=Math.max(3,Math.min(24,Math.round(10*(1+2.9*(n-0.5)))));}
+  }
+}
+// Falde: 3-5 corpi d'acqua sotterranei a forma di lente (larghi 3-5 tile, lunghi 40-80, che si assottigliano alle estremità). La prima passa sempre esattamente sotto il Centro Cittadino (tile 32,32).
+function genAquifers(R2){
+  aq.fill(0);aqV.fill(0);
+  const rr=(a,b)=>a+(b-a)*R2(),ri=(a,b)=>Math.floor(rr(a,b+1)),CX=32,CY=32,nv=ri(3,5);
+  for(let v=0;v<nv;v++){
+    let bx=CX,by=CY;if(v>0){const a=R2()*6.2832,d=rr(9,26);bx=CX+Math.cos(a)*d;by=CY+Math.sin(a)*d;}
+    const phi=R2()*Math.PI,dx=Math.cos(phi),dy=Math.sin(phi),nx=-dy,ny=dx;
+    const A1=rr(1.8,4.5),A2=rr(0.6,1.6),f1=rr(0.6,1.2),f2=rr(1.8,3),p1=R2()*6.2832,p2=R2()*6.2832,off=R2()*100;
+    const wb=rr(1.5,2.3),wv=rr(0.3,0.7),Lh=v===0?rr(30,42):rr(20,38);
+    const lat0=A1*Math.sin(p1)+A2*Math.sin(p2)+(vnoise(off,7)-0.5)*3; // la curva passa esattamente dal punto base
+    for(let s=-Lh;s<=Lh;s+=0.3){
+      const lat=A1*Math.sin(s*0.09*f1+p1)+A2*Math.sin(s*0.21*f2+p2)+(vnoise(s*0.08+off,7)-0.5)*3-lat0;
+      const px=bx+dx*s+nx*lat,py=by+dy*s+ny*lat;if(px<-4||py<-4||px>N/SC+4||py>N/SC+4)continue;
+      let hw=(wb+wv*(vnoise(s*0.1+off+50,9)-0.5)*2)*Math.min(1,(Lh-Math.abs(s))/7);
+      if(v===0&&Math.abs(s)<6)hw=Math.max(hw,2.3); // sotto il centro la falda è sempre larga abbastanza
+      if(hw<0.3)continue;
+      const r=hw*SC,cx=px*SC,cy=py*SC;
+      for(let y=Math.max(0,Math.floor(cy-r));y<=Math.min(N-1,Math.ceil(cy+r));y++)for(let x=Math.max(0,Math.floor(cx-r));x<=Math.min(N-1,Math.ceil(cx+r));x++){
+        if((x+0.5-cx)**2+(y+0.5-cy)**2>r*r)continue;const i=y*N+x;aq[i]=1;if(!aqV[i])aqV[i]=v+1;}
+    }
+  }
+}
+// la mappa è giocabile? acqua lontana dal punto di partenza, quantità d'acqua sensata, legno, pietra e ferro raggiungibili; falda sotto il centro
 function terrainOK(mode){
+  let aqn=0,cenOK=true;
+  for(let i=0;i<N*N;i++)if(aq[i])aqn++;
+  for(let y=93;y<100;y++)for(let x=93;x<99;x++)if(!aq[y*N+x])cenOK=false;
+  if(!cenOK||aqn<3000||aqn>11500)return false;
   let wc=0,mw=1e9,t26=0,t18=0,r26=0,r18=0,oT=0,o32=0;
   for(let i=0;i<N*N;i++){const x=(i%N)/SC,y=((i/N)|0)/SC,d=Math.hypot(x-32,y-32);
     if(water[i]){wc++;if(d<mw)mw=d;}
@@ -747,10 +794,10 @@ function distField(isSrc){
 // Dopo un caricamento si rigenera il terreno naturale dal seme (e si rimettono a posto le griglie vive); se non coincide con l'acqua della partita si usa quello attuale.
 function naturalTerrain(){
   if(!(S.mapTries>0))return null;
-  const live=[tree,rock,ore,water].map(a=>a.slice()),sd0=seed;
+  const live=[tree,rock,ore,water,aq,aqV].map(a=>a.slice()),sd0=seed; // v76: genTerrain rifà anche le falde: si rimettono a posto
   genTerrain(S.mode,S.seed|0,(S.mapTries|0)-1);
   const nat={rock:rock.slice(),ore:ore.slice()};let same=true;for(let i=0;i<N*N;i++)if(water[i]!==live[3][i]){same=false;break;}
-  [tree,rock,ore,water].forEach((a,k)=>a.set(live[k]));seed=sd0;
+  [tree,rock,ore,water,aq,aqV].forEach((a,k)=>a.set(live[k]));seed=sd0;
   return same?nat:null;
 }
 function computeEnv(nat){
@@ -849,6 +896,9 @@ function init(sd,mode,diff,opt){
   let okT=false,att=0;const base=(sd||7)|0;
   for(;att<48&&!okT;att++){genTerrain(S.mode,base,att);okT=terrainOK(S.mode);}
   S.seed=base;S.mapTries=att;S.mapOK=okT;
+  // v63: nelle partite nuove il pozzo si scava solo su una falda scoperta; all'inizio è nota la parte della falda che passa sotto il Centro Cittadino
+  S.aqRule=!!(opt&&opt.aquifers);S.dowsed=0;aqK.fill(0);
+  for(let i=0;i<N*N;i++)if(aq[i]&&aqV[i]===1&&Math.hypot(i%N-96,((i/N)|0)-96)<=AQ_REVEAL_R)aqK[i]=1;
   for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;jit[i]=hash(x,y+500)*0.15;}
   windP=null;computeEnv();
   updClock();
@@ -987,6 +1037,7 @@ function canPlace(type,x,y,rot){
     if(door[i])return "Ingresso di un edificio: lascialo libero";
     if(cen[i]===2)return "Cancello del centro cittadino: lascialo libero";
     if(type==='sheepfold'&&dist[i]!==5)return "L'ovile va costruito dentro una zona Pascolo: disegnala prima (tasto P)";
+    if(type==='well'&&S.aqRule&&!aqK[i])return "Qui non conosci nessuna falda: il pozzo si scava sull'acqua scoperta (zone azzurre). Cercala con il Rabdomante (B)";
   }
   if(t.need==='tree'&&!nearAny(tree,x,y,36))return 'Servono alberi nelle vicinanze';
   if(t.need==='rock'&&!nearAny(rock,x,y,36))return 'Servono rocce nelle vicinanze';
@@ -1055,6 +1106,19 @@ function place(type,x,y,rot){
   return {ok:true,b:addBuilding(type,x,y,false,{rot:rot|0})};
 }
 
+// v63: il rabdomante cerca acqua in un raggio di AQ_FIND_R celle e rivela le falde che trova (costa AQ_COST legni). Non rivela nulla a chi prova a piazzare un pozzo a caso: il messaggio è lo stesso con falda non scoperta e senza falda.
+function dowse(cx,cy){
+  cx=cx|0;cy=cy|0;if(cx<0||cy<0||cx>=N||cy>=N)return {ok:false,msg:'Fuori dal territorio'};
+  const R=AQ_FIND_R,cells=[];let any=0;
+  for(let y=Math.max(0,cy-R);y<=Math.min(N-1,cy+R);y++)for(let x=Math.max(0,cx-R);x<=Math.min(N-1,cx+R);x++){
+    if(Math.hypot(x-cx,y-cy)>R)continue;const i=y*N+x;if(!aq[i])continue;any++;if(!aqK[i])cells.push(i);}
+  if(any&&!cells.length)return {ok:false,msg:'Le falde di questa zona le conosci già: guarda le zone azzurre.'};
+  if(uncommitted('wood')<AQ_COST)return {ok:false,msg:'Il rabdomante vuole '+AQ_COST+' legni (parte del legno è già destinata ai cantieri).'};
+  S.stock.wood-=AQ_COST;S.dowsed=(S.dowsed|0)+1;
+  if(!cells.length)return {ok:true,found:0,msg:'Il rabdomante non sente acqua qui sotto: prova più in là.'};
+  for(const i of cells)aqK[i]=1;hooks.ground();stCache=null;
+  return {ok:true,found:cells.length,msg:'Il rabdomante ha trovato una falda: ora puoi scavare il pozzo sulle zone azzurre.'};
+}
 function dropMarket(v){
   if(v.cargo&&v.state==='toMarket'){const h=buildings.get(v.home),o=buildings.get(v.cargo.owner);if(h)h.goods[v.cargo.s]+=v.cargo.q;if(o)o.goods[v.cargo.t]+=v.cargo.q;}
   v.cargo=null;v.carry=null;v.stall=null;v.path=[];v.state='idle';v.moving=false;
@@ -1883,7 +1947,7 @@ function onArrive(v){
     case 'toSchool':v.inside=true;v.state='learn';break;
     case 'toTree':v.state='chop';v.timer=2.4;break;
     case 'toRock':v.state='mine';v.timer=3.0;break;
-    case 'toField':v.state='till';v.timer=5;break;
+    case 'toField':v.state='till';v.timer=5/soilF(fert[v.target]);break; // v63: su terra fertile si lavora più in fretta
     case 'toBuild':v.state='build';break;
     case 'toGraze':v.state='graze';v.timer=6;break;
     case 'toStoreSleep':v.inside=true;v.state='sleep';break;
@@ -2936,6 +3000,8 @@ function workDone(b){
   hooks.regarden(b);
 }
 // v57: produzione in proporzione alla grandezza: un orto iniziale (4 celle, nessun giardino costruito) rende il 75%; un giardino costruito 100% a 9 celle, +25% per ogni cella oltre (tetto 24)
+// v63: fertilità del suolo: media sulle celle del giardino (con gli ampliamenti); il giardino cresce più o meno in fretta
+function soilOf(b){let s=0,n=0;for(const c of b.gcells){s+=soilF(fert[c]);n++;}if(b.ext)for(const c of b.ext){s+=soilF(fert[c]);n++;}return n?s/n:1;}
 const gardenFactor=b=>b.gfull===false?0.75:1+0.25*Math.max(0,Math.min(GMAX,b.gcells.length+b.ext.length)-9);
 function setGardenBox(b){const xs=b.gcells.map(i=>i%N),ys=b.gcells.map(i=>(i/N)|0);b.gx=Math.min(...xs);b.gy=Math.min(...ys);b.gw=Math.max(...xs)-b.gx+1;b.gh=Math.max(...ys)-b.gy+1;}
 // v57: ogni ampliamento del giardino è un lavoro: celle prenotate, il costruttore porta il legno e costruisce (staccionata e piante compaiono a fine lavori)
@@ -2975,7 +3041,7 @@ function houseTick(b){
     const canWeave=b.weave&&b.goods.wool>=1,canTail=b.tailor&&b.goods.cloth>=1;
     const share=TK*tenders/(1+(canCraft?1:0)+(canBake?1:0)+(canWeave?1:0)+(canTail?1:0))*(S.edicts.woodDuty?0.85:1);
     const sf=S.season===3?(b.crop==='veg'?0.35:b.crop==='eggs'?0.6:0.8):S.season===2?1.25:1;
-    if(b.crop!=='wood'&&!b.dens)b.pa.g+=share/(b.crop==='herd'?26:16)*(b.level>=3?1.5:1)*sf*gardenFactor(b)*(b.goods.tools>=1?1.1:1);
+    if(b.crop!=='wood'&&!b.dens)b.pa.g+=share/(b.crop==='herd'?26:16)*(b.level>=3?1.5:1)*sf*gardenFactor(b)*soilOf(b)*(b.goods.tools>=1?1.1:1);
     const gk=gardenGood(b.crop),gcap=gardenCap(b.crop);
     while(b.pa.g>=1){b.pa.g-=1;if(b.goods[gk]<gcap)b.goods[gk]++;}
     if(canCraft){b.pa.c+=share/20;while(b.pa.c>=1&&b.goods.iron>=1&&b.goods.firewood>=1){b.pa.c-=1;b.goods.iron--;b.goods.firewood--;b.goods.tools=Math.min(12,b.goods.tools+1);}}
@@ -3369,6 +3435,7 @@ function regnoTick(){
     }
   }
   raidTick();wolfTick();warTick();deployTick();
+  if(S.aqRule&&S.t>25)tell('aq0','Acqua: sotto il Centro Cittadino passa una falda già nota (zone azzurre sulla mappa del suolo, tasto L). Per scavare altri pozzi cerca le falde con il Rabdomante (B).');
 }
 // progetti del Re
 function projectState(id){
@@ -3751,7 +3818,7 @@ function finish(b){
   if(b.type==='farm'){
     const cand=[];
     for(let y=b.y-6;y<b.y+b.h+6;y++)for(let x=b.x-6;x<b.x+b.w+6;x++){
-      if(x<0||y<0||x>=N||y>=N)continue;const i=y*N+x;if(cellFree(i,2))cand.push([Math.hypot(x-b.x-b.w/2,y-b.y-b.h/2),i]);
+      if(x<0||y<0||x>=N||y>=N)continue;const i=y*N+x;if(cellFree(i,2))cand.push([Math.hypot(x-b.x-b.w/2,y-b.y-b.h/2)-0.066*fert[i],i]); // v63: i campi preferiscono la terra fertile
     }
     cand.sort((a,c)=>a[0]-c[0]);
     for(const [,i] of cand.slice(0,81)){field[i]=b.id;b.fields.push(i);}
@@ -3969,7 +4036,7 @@ function tick1(){
   updClock();
   taxDayTick();
   if(acc.attr>=3){acc.attr=0;computeAttr();}
-  for(let i=0;i<N*N;i++)if(sap[i]&&S.season!==3){sapT[i]+=1;if(sapT[i]>=SAPLING_T){sap[i]=0;tree[i]=1;hooks.trees();hooks.saps();}}
+  for(let i=0;i<N*N;i++)if(sap[i]&&S.season!==3){sapT[i]+=soilF(fert[i]);if(sapT[i]>=SAPLING_T){sap[i]=0;tree[i]=1;hooks.trees();hooks.saps();}}
   lifeTick();
   diseaseTick();
   dutyPass();
@@ -4137,13 +4204,15 @@ function stats(){
 // Compatibilità: SAVE_FMT cambia solo se il formato diventa illeggibile dalle versioni precedenti; i campi nuovi si aggiungono con un valore di riserva in importState.
 const SAVE_FMT=1;
 const SAVE_GRIDS={tree,rock,ore,water,sap,road,dist,occ,field,door,cen,gate,wear,sapT,plev,phit,pexp};
+// v63: suolo e falde si salvano a parte e sono facoltativi: un salvataggio precedente non li ha e li ricostruisce dal seme
+const SOIL_GRIDS={aq,aqK};
 function b64enc(u8){let s='';for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s);}
 function b64dec(str){const s=atob(str),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u;}
 // griglie: compressione a run (lunghezza,byte) sui byte grezzi, poi base64
 function packGrid(a){const u=new Uint8Array(a.buffer,a.byteOffset,a.byteLength),out=[];let i=0;while(i<u.length){const v=u[i];let r=1;while(r<255&&i+r<u.length&&u[i+r]===v)r++;out.push(r,v);i+=r;}return b64enc(Uint8Array.from(out));}
 function unpackGrid(a,str){const p=b64dec(str),u=new Uint8Array(a.buffer,a.byteOffset,a.byteLength);let o=0;for(let i=0;i+1<p.length;i+=2){const r=p[i];if(r===0||o+r>u.length)throw new Error('griglia rovinata');u.fill(p[i+1],o,o+r);o+=r;}if(o!==u.length)throw new Error('griglia rovinata');}
 function exportState(){
-  const grids={};for(const k in SAVE_GRIDS)grids[k]=packGrid(SAVE_GRIDS[k]);
+  const grids={};for(const k in SAVE_GRIDS)grids[k]=packGrid(SAVE_GRIDS[k]);for(const k in SOIL_GRIDS)grids[k]=packGrid(SOIL_GRIDS[k]);
   return {fmt:SAVE_FMT,seed,nextId,S,acc,told,gated:[...gatedSet],reg:[...reg.entries()],resv:[...resv.entries()],plantResv:[...plantResv],guests,buildings:[...buildings.values()],villagers,grids};
 }
 function importState(d){
@@ -4155,6 +4224,7 @@ function importState(d){
   if(!Number.isFinite(d.seed)||!Number.isFinite(d.nextId))bad('numeri non validi');
   const tmp={};
   for(const k in SAVE_GRIDS){if(typeof d.grids[k]!=='string')bad('manca la griglia '+k);tmp[k]=new SAVE_GRIDS[k].constructor(N*N);try{unpackGrid(tmp[k],d.grids[k]);}catch(e){bad('griglia '+k+' rovinata');}}
+  const sg={};for(const k in SOIL_GRIDS)if(typeof d.grids[k]==='string'){sg[k]=new Uint8Array(N*N);try{unpackGrid(sg[k],d.grids[k]);}catch(e){sg[k]=null;}}
   const cp=x=>JSON.parse(JSON.stringify(x));
   const bl=cp(d.buildings),vl=cp(d.villagers),gl=cp(d.guests),Sx=cp(d.S),ac=cp(d.acc),tl=cp(d.told),ga=cp(d.gated),rg=cp(d.reg),rv=cp(d.resv),pr=cp(d.plantResv);
   const ids=new Set();
@@ -4176,6 +4246,8 @@ function importState(d){
   for(const g of guests)hooks.gone(g);
   for(const k in SAVE_GRIDS)SAVE_GRIDS[k].set(tmp[k]);
   seed=d.seed;for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;jit[i]=hash(x,y+500)*0.15;}
+  if(sg.aq&&sg.aqK){aq.set(sg.aq);aqK.set(sg.aqK);}
+  else{const R2=mulberry((Math.imul(d.seed|0,2246822519)^0x9e3779b9)>>>0);genAquifers(R2);aqK.set(aq);} // salvataggio precedente alla v76: le falde si ricreano dal seme (la fertilità si ricava da sola, v69); le falde sono tutte note e i pozzi già costruiti restano dove sono
   for(const k of Object.keys(S))delete S[k];
   Object.assign(S,Sx);lastStep.fill(S.t||0);
   S.extra=(S.extra&&typeof S.extra==='object')?S.extra:{};S.edicts=Object.assign(EDICT0(),S.edicts);S.stock=Object.assign({wood:0,stone:0,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,rope:0,charcoal:0,bars:0,weapons:0,clay:0,bricks:0,lime:0,salt:0,cured:0,cheese:0,beer:0,wine:0},S.stock);
@@ -4203,7 +4275,7 @@ function importState(d){
   for(const g of guests)hooks.villager(g);
   hooks.trees();hooks.rocks();hooks.saps();hooks.ground();
 }
-return {TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWanted,WEAPON_PER_POST,startHouseWork,mergeTick,trySpawnDense,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,EDUREQ,EDU_BLD,IMM_LIT,HIRE_COST,canWorkAt,eduBld,hireEducated,hireNeeded,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
+return {dowse,soilOf,soilF,soilName,AQ_FIND_R,AQ_COST,TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWanted,WEAPON_PER_POST,startHouseWork,mergeTick,trySpawnDense,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,EDUREQ,EDU_BLD,IMM_LIT,HIRE_COST,canWorkAt,eduBld,hireEducated,hireNeeded,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,NEEDS,NEED_LOW,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
   TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,WAGE_JOB,EDU_JOBS,CITY_RANK,WAGE_OWE_CAP,wageJob,wageOf,wagePayer,TAX_WEEK,TAX_POUCH,WAGE,WAGE_SEC,SILVER_GOLD,TAX_MARGIN,MSELL,MSELL_KEEP,MSELL_LIM,taxOf,money,taxActive,taxStats,taxDue,taxRefuses,merceryTakes,merceryBuy,merceryBuyer,jobless,kingJob,cityMakes,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
@@ -4211,15 +4283,18 @@ return {TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWa
   STORE_KEYS,GRAN_KEYS,GRAN_TOTAL,CENTER_CAP,setPolicy,storeInfo,stockRoom,capRes,reconcileStock,extraTotal,festTakeFood,
   _t:{eatOne,drinkTick,FISH_CYCLE,FAM_FISH_RATE,FAM_FISH_Q,famFishTime,jobNeed,jobSurplus,rebalanceJobs,JOBRES,JOB_MARGIN,JOB_DWELL,tradeTick,doTrade,chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
   env:{fert,flowS,flowX,flowY,FERT_HIGH,flowSeason,riverInfo,windNow,windAt,flowLabel,windLabel,COMPASS8,WIND_NAME,FLOW_MS},
-  grids:{tree,rock,ore,water,sap,sapT,road,dist,occ,wear,plev,field,door,attr,cen},guests:()=>guests,buildings:()=>buildings,villagers:()=>villagers};
+  grids:{aq,aqK,tree,rock,ore,water,sap,sapT,road,dist,occ,wear,plev,field,door,attr,cen},guests:()=>guests,buildings:()=>buildings,villagers:()=>villagers};
 })();
 if(typeof module!=='undefined')module.exports=Sim;
 (function(){
 'use strict';
 const {N,CS,W,BT,PATH,S,SC}=Sim;
 const NOGATE={house:1,stall:1,flowers:1,statue:1,plaza:1,well:1,cemetery:1};
-const {tree,rock,ore,water,sap,road,dist,occ,wear,plev,field,door,attr}=Sim.grids;
+const {tree,rock,ore,water,sap,road,dist,occ,wear,plev,field,door,attr,aq,aqK}=Sim.grids;const fert=Sim.env.fert; // v76: la fertilità 0-100 è quella dell'ambiente (v69)
 let attrOn=false,capNow=80,capStoneNow=80;
+// v63: mappa del suolo (tasto L): 0 spenta, 1 fertilità, 2 giacimenti, 3 falde. Si accende da sola con gli strumenti che c'entrano (zone, guardaboschi, cava, miniera, pozzo, rabdomante)
+let ovMode=0;
+const OV_CTX={d1:1,d2:1,d4:1,d5:1,forester:1,quarry:2,mine:2,well:3,dowse:3};
 const COARSE=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 if(COARSE)document.body.classList.add('touch');
 const $=id=>document.getElementById(id);
@@ -4361,6 +4436,31 @@ function curveOn(c,test,w,style){
     }
   }
 }
+// v63: mappa del suolo. Le falde si vedono solo dove sono state scoperte (aqK): il resto resta nascosto.
+const OV_FERT=['rgba(168,112,64,.46)','rgba(206,190,86,.34)','rgba(120,196,76,.36)','rgba(24,150,64,.58)'];
+function ovEff(){return ovMode||OV_CTX[tool]||0;}
+function drawSoilOverlay(m){
+  if(!m)return;
+  g.fillStyle='rgba(18,14,8,.14)';g.fillRect(0,0,TEX,TEX);
+  if(m===1){for(let i=0;i<N*N;i++){if(water[i])continue;g.fillStyle=OV_FERT[fert[i]<25?0:fert[i]<45?1:fert[i]<Sim.env.FERT_HIGH?2:3];g.fillRect((i%N)*PX-.5,((i/N)|0)*PX-.5,PX+1,PX+1);}}
+  else if(m===3){g.fillStyle='rgba(66,148,242,.46)';for(let i=0;i<N*N;i++)if(aqK[i]&&!water[i])g.fillRect((i%N)*PX-.5,((i/N)|0)*PX-.5,PX+1,PX+1);}
+  else if(m===2){
+    for(let i=0;i<N*N;i++){const r=rock[i],o=ore[i];if(!r&&!o)continue;
+      g.fillStyle=r?(r<=6?'rgba(176,176,170,.85)':r>=13?'rgba(255,214,66,.96)':'rgba(238,238,228,.92)'):(o<=6?'rgba(150,104,72,.88)':o>=13?'rgba(255,52,44,.96)':'rgba(226,116,50,.92)');
+      g.beginPath();g.arc(((i%N)+.5)*PX,(((i/N)|0)+.5)*PX,PX*(r||o>=13?1.15:1),0,7);g.fill();}
+  }
+}
+function ovLegend(){
+  const el=$('ovLeg'),m=ovEff(),sw=c=>`<i class="sw" style="background:${c}"></i>`;
+  el.hidden=!m;if(!m)return;
+  el.innerHTML=m===1?`<b>Fertilità del suolo</b> (giardini, campi, boschi)<br>${sw('#a87040')}arida ×0,6-0,8 ${sw('#cebe56')}povera ×0,8-0,95<br>${sw('#78c44c')}buona ×0,95-1,15 ${sw('#189640')}ottima ×1,15-1,4<br>Stessa fertilità del layer 🗺️.`
+   :m===2?`<b>Giacimenti</b> (quantità per cella)<br>${sw('#eeeee4')}roccia ${sw('#e27432')}ferro: normale<br>${sw('#b0b0aa')}${sw('#966848')}povero ${sw('#ffd642')}${sw('#ff342c')}ricco (dura di più)`
+   :`<b>Falde acquifere</b><br>${sw('#4294f2')}falda scoperta: qui si scava il pozzo<br>Le altre falde si trovano con il Rabdomante (B).`;
+}
+// qualità del suolo in parole: f è il moltiplicatore medio (0,6 arido … 1,4 fertile)
+const soilTxt=f=>`${f>=1.16?'ottimo':f>=0.96?'buono':f>=0.8?'povero':'arido'} (${f>=1?'+':''}${Math.round((f-1)*100)}% di resa)`;
+function setOv(n){ovMode=n;$('ovBtn').classList.toggle('on',ovMode>0);ovLegend();groundDirty=true;}
+function toggleOv(){setOv((ovMode+1)%4);}
 function drawGround(){
   if(!zonesOn)hideZoneIcons(0);
   g.drawImage(base,0,0);
@@ -4423,6 +4523,7 @@ function drawGround(){
   g.fillStyle='rgba(150,118,76,.8)';
   for(let i=0;i<N*N;i++)if(door[i]&&!road[i]){g.beginPath();g.arc((i%N+.5)*PX,((i/N|0)+.5)*PX,PX*0.55,0,7);g.fill();}
   if(attrOn){for(let i=0;i<N*N;i++){const a=attr[i];if(Math.abs(a)<0.2)continue;g.fillStyle=a>0?`rgba(70,190,90,${Math.min(.5,a*.09)})`:`rgba(225,70,50,${Math.min(.55,-a*.1)})`;g.fillRect((i%N)*PX,((i/N)|0)*PX,PX,PX);}}
+  drawSoilOverlay(ovEff());
   g.strokeStyle='rgba(60,45,25,.55)';g.lineWidth=10;g.strokeRect(0,0,TEX,TEX);
   gtex.needsUpdate=true;
 }
@@ -4475,14 +4576,14 @@ function rebuildRocks(){
   let n=0;
   for(let i=0;i<N*N;i++){
     if(rock[i]<=0)continue;
-    const sc=0.45+rock[i]*0.075;
+    const sc=0.45+Math.min(rock[i],18)*0.075;
     dummy.position.set(Sim.cx2w(i%N)+(rn(i,2)-.5)*0.6,sc*0.45,Sim.cy2w((i/N)|0)+(rn(i,3)-.5)*0.6);
     dummy.rotation.set(rn(i,4)*3,rn(i,5)*6.28,rn(i,6)*3);dummy.scale.set(sc*(1+rn(i,7)*.4),sc*0.8,sc*(1+rn(i,8)*.3));dummy.updateMatrix();
     rocksM.setMatrixAt(n,dummy.matrix);col.setHSL(0.1,0.04+rn(i,9)*0.05,0.5+rn(i,10)*0.14);rocksM.setColorAt(n,col);n++;
   }
   rocksM.count=n;rocksM.instanceMatrix.needsUpdate=true;if(rocksM.instanceColor)rocksM.instanceColor.needsUpdate=true;
   let m=0;
-  for(let i=0;i<N*N;i++){if(ore[i]<=0)continue;const sc=0.45+ore[i]*0.06;
+  for(let i=0;i<N*N;i++){if(ore[i]<=0)continue;const sc=0.45+Math.min(ore[i],18)*0.06;
     dummy.position.set(Sim.cx2w(i%N)+(rn(i,2)-.5)*.6,sc*.5,Sim.cy2w((i/N)|0)+(rn(i,3)-.5)*.6);dummy.rotation.set(rn(i,4)*2,rn(i,5)*6.28,rn(i,6)*2);dummy.scale.set(sc,sc*.9,sc);dummy.updateMatrix();
     oresM.setMatrixAt(m,dummy.matrix);col.setHSL(0.04+rn(i,9)*.04,0.35,0.3+rn(i,10)*0.1);oresM.setColorAt(m,col);m++;}
   oresM.count=m;oresM.instanceMatrix.needsUpdate=true;if(oresM.instanceColor)oresM.instanceColor.needsUpdate=true;rocksDirty=false;
@@ -5421,7 +5522,7 @@ new ResizeObserver(resize).observe($('app'));resize();
 const TOOLS=[
   {id:'select',label:'Osserva',key:'1',hint:'Clicca un edificio o una casa per vedere famiglia, mestieri e bisogni. Trascina con il tasto sinistro per spostarti sulla mappa.'},
   {id:'d1',label:'Residenziale',key:'2',dt:1,col:0xe3b84a,hint:'Trascina: qui nascono case con giardino, anche lontano dal magazzino.'},
-  {id:'d2',label:'Agricolo',key:'3',dt:2,col:0x9ccf4a,hint:'Trascina: gli abitanti fonderanno qui le fattorie e i campi.'},
+  {id:'d2',label:'Agricolo',key:'3',dt:2,col:0x9ccf4a,hint:'Trascina: gli abitanti fonderanno qui le fattorie e i campi, di preferenza sulla terra fertile (tasto L: mappa del suolo).'},
   {id:'d3',label:'Mercato',key:'4',dt:3,col:0xe0773f,hint:'Trascina: qui le famiglie apriranno i banchi per il baratto.'},
   {id:'d4',label:'Forestale',key:'f',dt:4,col:0x3f9a5d,hint:'Trascina: i guardaboschi pianteranno qui alberi che crescono e si possono tagliare di nuovo.'},
   {id:'d5',label:'Pascolo',key:'p',dt:5,col:0xe8e4d0,hint:'Trascina: l\'ovile nasce solo dentro il pascolo. La zona intorno all\'ovile viene chiusa da un recinto e le pecore restano lì dentro. La lana serve ai tessitori.'},
@@ -5429,9 +5530,9 @@ const TOOLS=[
   {id:'undistrict',label:'Togli zona',key:'5',dt:0,col:0xd9553f,hint:'Trascina per cancellare un quartiere.'},
   {id:'road',label:'Strada',key:'6',hint:'Trascina per tracciare una strada: resta a lungo anche senza passaggi, poi torna sentiero e sparisce. Puoi demolirla.'},
   {id:'wood',label:'Taglialegna',key:'7',hint:'Vicino a un bosco. Rumoroso: le case vicine perdono attrattiva.'},
-  {id:'quarry',label:'Cava',key:'8',hint:'Vicino alle rocce. Molto rumorosa: tienila lontana dalle case.'},
+  {id:'quarry',label:'Cava',key:'8',hint:'Vicino alle rocce. Molto rumorosa: tienila lontana dalle case. I massi più grossi (e le zone gialle della mappa del suolo, tasto L) sono giacimenti ricchi: durano di più.'},
   {id:'forester',label:'Guardaboschi',key:'g',hint:'Pianta alberi nelle zone forestali. Servono circa 2 minuti perché crescano.'},
-  {id:'mine',label:'Miniera',key:'m',hint:'Vicino ai filoni di ferro (rocce scure). Molto rumorosa. Il ferro va al magazzino.'},
+  {id:'mine',label:'Miniera',key:'m',hint:'Vicino ai filoni di ferro (rocce scure). Molto rumorosa. Il ferro va al magazzino. Le zone rosse della mappa del suolo (tasto L) sono filoni ricchi.'},
   {id:'carpenter',label:'Falegnameria',key:'n',hint:'Gli addetti trasformano il legno del magazzino in assi (2 assi per legno). Scuola, ospizio, chiesa, mulino, locanda, magazzino, fabbro, forno, telaio, sartoria, taverna e sala delle feste richiedono assi; senza falegnameria si pagano in legno (2 legni per asse). Un po\' rumorosa.'},
   {id:'mason',label:'Bottega del muratore',key:'y',hint:'I muratori portano i materiali ai cantieri e costruiscono il 60% più in fretta degli altri operai.'},
   {id:'smithy',label:'Fucina del fabbro',key:'',hint:'Trasforma il ferro del magazzino in attrezzi (3 per ferro ogni 10 s) e li porta alle case: con gli attrezzi il giardino rende il 10% in più. Molto più produttiva della bottega di un giardino. Rumorosa.'},
@@ -5466,7 +5567,8 @@ const TOOLS=[
   {id:'flowers',label:'Aiuola',key:'u',hint:'Piccola decorazione: più attrattiva nei dintorni.'},
   {id:'statue',label:'Statua',key:'t',hint:'Monumento: aumenta l\'attrattiva della zona.'},
   {id:'store',label:'Magazzino',key:'9',hint:'Secondo deposito con 3 addetti e scorte fino a 80. Un po\' rumoroso.'},
-  {id:'well',label:'Pozzo',key:'0',hint:'Dà acqua alle case entro 30 celle e rende la zona più piacevole.'},
+  {id:'well',label:'Pozzo',key:'0',hint:'Dà acqua alle case entro 30 celle e rende la zona più piacevole. Si scava solo su una falda scoperta (zone azzurre): le altre si cercano con il Rabdomante.'},
+  {id:'dowse',label:'Rabdomante',key:'b',hint:'Clicca un punto: cerca acqua sotto terra in un raggio di 27 celle e scopre le falde (2 legni). Il pozzo si scava sulle zone azzurre.'},
   {id:'school',label:'Scuola',key:'k',hint:'I bambini dai 6 anni vengono qui al mattino (serve un maestro istruito). Ha 10 posti: chi non trova posto non studia, per gli altri serve un\'altra scuola. Chi sa leggere e scrivere fa migliorare la casa più in fretta e fa rendere di più la bottega. Serve alle case entro 45 celle per salire al livello 4.'},
   {id:'surgeon',label:'Cerusico',key:'',hint:'Bottega del cerusico (il barbiere-chirurgo del Medioevo): chi ne ha cura deve aver frequentato la scuola. Cura i feriti delle case entro 45 celle molto più in fretta che a casa: ferite di guerrieri, lupi e briganti.'},
   {id:'infirmary',label:'Ospizio',key:'o',hint:'Un erborista cura i malati delle case entro 45 celle: guariscono prima e rischiano meno. Frena le epidemie.'},
@@ -5482,7 +5584,7 @@ const CATS=[
   {id:'zone',label:'Zone e strade',ids:['d1','d2','d3','d4','d5','d6','undistrict','road']},
   {id:'prod',label:'Produzione',ids:['wood','quarry','mine','forester','granary','mill']},
   {id:'shop',label:'Botteghe',ids:['carpenter','mason','claypit','brickworks','limekiln','saltworks','butcher','smokehouse','dairy','brewery','winery','smithy','bakery','sheepfold','charcoal','smelter','retting','ropewalk','dyehouse','weaver','tailor','fisher','hunter','mercery']},
-  {id:'serv',label:'Servizi',ids:['store','well','school','infirmary','surgeon','church','inn','tavern','hall','taxoffice']},
+  {id:'serv',label:'Servizi',ids:['store','well','dowse','school','infirmary','surgeon','church','inn','tavern','hall','taxoffice']},
   {id:'deco',label:'Decorazioni',ids:['plaza','flowers','statue']},
   {id:'def',label:'Difesa',ids:['watchtower','barracks']}];
 const CATOF={};CATS.forEach(c=>c.ids.forEach(i=>{CATOF[i]=c.id;}));
@@ -5497,7 +5599,7 @@ for(const t of TOOLS){
   b.innerHTML=`<span class="nm">${t.label}${t.key?`<kbd>${t.key.toUpperCase()}</kbd>`:''}</span><span class="cs">${BT[t.id]?costHTML(BT[t.id].cost):''}</span>`;
   b.addEventListener('click',()=>setTool(t.id));$('tools').appendChild(b);toolBtns[t.id]=b;
 }
-function setTool(id){if(!Sim.owns(id)){toast('Questo progetto non è ancora tuo: compralo tra i Progetti del Re (🏛️).',true);return;}pend=false;hover=null;$('pbar').hidden=true;if(CATOF[id]&&CATOF[id]!==curCat)setCat(CATOF[id]);tool=id;ghost.visible=false;arrow.visible=false;$('rotBtn').style.display=(BT[id]&&!NOGATE[id])?'':'none';for(const k in toolBtns)toolBtns[k].classList.toggle('on',k===id);$('hint').textContent=(TOOL[id].hint||'')+((BT[id]&&!NOGATE[id])?' R = ruota: la freccia gialla è l\'ingresso.':'');if(id!=='select')select(null);if(document.body.classList.contains('touch')&&id!=='select')toast(TOOL[id].hint+(BT[id]?' Tocca o trascina sulla mappa, poi conferma con ✓.':''));}
+function setTool(id){if(!Sim.owns(id)){toast('Questo progetto non è ancora tuo: compralo tra i Progetti del Re (🏛️).',true);return;}pend=false;hover=null;$('pbar').hidden=true;if(CATOF[id]&&CATOF[id]!==curCat)setCat(CATOF[id]);tool=id;ghost.visible=false;arrow.visible=false;$('rotBtn').style.display=(BT[id]&&!NOGATE[id])?'':'none';for(const k in toolBtns)toolBtns[k].classList.toggle('on',k===id);$('hint').textContent=(TOOL[id].hint||'')+((BT[id]&&!NOGATE[id])?' R = ruota: la freccia gialla è l\'ingresso.':'');if(id!=='select')select(null);ovLegend();groundDirty=true;if(document.body.classList.contains('touch')&&id!=='select')toast(TOOL[id].hint+(BT[id]?' Tocca o trascina sulla mappa, poi conferma con ✓.':''));}
 setCat('tools');setTool('select');
 let toastT=0;
 function toast(msg,bad){const t=$('toast');t.textContent=msg;t.classList.toggle('bad',!!bad);t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),5600);}
@@ -5521,7 +5623,7 @@ function refreshSel(){
   else if(b.type==='house'){
     name=Sim.LVNAME[b.level-1];const cap=Sim.CAPS[b.level-1],fl=b.flags,gd=b.goods,fn=Sim.fuelNeed();
     const hd=b.head&&VM(b.head);
-    info=`Famiglia ${hd?esc(hd.fam):''}: ${b.members.length}/${cap} · casa ${b.hw}×${b.hh} · giardino ${Sim.SHAPE_NAME[b.shape]||'a lato'} ${b.gcells.length+b.ext.length} celle (max 24) · giardino: ${b.crop==='veg'?'orto':b.crop==='eggs'?'galline':b.crop==='wood'?'legna da ardere (catasta, ceppo e alberelli)':'allevamento'}${b.pure?' (giardino fisso: staccionata chiara e fiori, resta sempre così)':''}${b.crop==='wood'?' (specializzazione fissa)':''}${b.craft?' · fabbro':''}${b.bake?' · panificio':''}${b.weave?' · tessitore':''}${b.tailor?' · sarto':''}`;
+    info=`Famiglia ${hd?esc(hd.fam):''}: ${b.members.length}/${cap} · casa ${b.hw}×${b.hh} · giardino ${Sim.SHAPE_NAME[b.shape]||'a lato'} ${b.gcells.length+b.ext.length} celle (max 24) · suolo ${soilTxt(Sim.soilOf(b))} · giardino: ${b.crop==='veg'?'orto':b.crop==='eggs'?'galline':b.crop==='wood'?'legna da ardere (catasta, ceppo e alberelli)':'allevamento'}${b.pure?' (giardino fisso: staccionata chiara e fiori, resta sempre così)':''}${b.crop==='wood'?' (specializzazione fissa)':''}${b.craft?' · fabbro':''}${b.bake?' · panificio':''}${b.weave?' · tessitore':''}${b.tailor?' · sarto':''}`;
     if(b.dens)info=info.replace(/ · giardino .*$/,'')+' · casa di mattoni ad alta densità: nessun giardino, cibo e legna dal magazzino';else if(b.merged)info+=' · due case unite: giardino unico';
     const rows=b.members.map(id=>{const v=VM(id);return v?`<div><span class="lk" data-v="${v.id}">${esc(v.name)}</span>${v.id===b.head?' ★':''} (${v.age|0} anni${v.schooled?', istruito':''}${v.ill?', malato':''}): ${esc(Sim.roleText(v))}</div>`:'';}).join('');
     const need=b.level>=Sim.MAXLV?'':('Per migliorare: '+Math.min(3,b.level)+(b.level>1?' tipi':' tipo')+' di cibo, acqua, legna'+(b.level>=2?', chiesa':'')+(b.level>=3?', scuola vicina':'')+(b.level>=4?', zona di qualità ottima (attrattiva 3 o più)':'')+(()=>{const u=Sim.UPC[b.level+1];return u?`, materiali (legno ${u.wood}${u.stone?`, pietra ${u.stone}`:''})`:'';})()+` (${Math.min(25,b.up)}/25)`);
@@ -5533,7 +5635,7 @@ function refreshSel(){
   }
   else if(b.type==='stall'){const o=Sim.buildings().get(b.owner);info=b.open?'Banco aperto: si accettano baratti.':'Banco chiuso.';
     if(o)list=`<div>Merce: ortaggi ${o.goods.veg} · uova ${o.goods.eggs} · pesce ${o.goods.fish} · carne ${o.goods.meat} · pane ${o.goods.bread} · legna ${o.goods.firewood} · attrezzi ${o.goods.tools}</div>`;}
-  else if(b.type==='farm'){const w=Sim.villagers().filter(v=>v.job===b.id);const fc=b.crop||'grain',CN={grain:'grano',flax:'lino',hemp:'canapa',dye:'tintorie',vine:'vigna'},ri=Sim.retInfo(fc==='vine'?'winery':fc==='dye'?'dyehouse':'retting');info=`Campi: ${b.fields.length} · lavorano ${w.length} · coltura: ${CN[fc]}`;
+  else if(b.type==='farm'){const w=Sim.villagers().filter(v=>v.job===b.id);const fc=b.crop||'grain',CN={grain:'grano',flax:'lino',hemp:'canapa',dye:'tintorie',vine:'vigna'},ri=Sim.retInfo(fc==='vine'?'winery':fc==='dye'?'dyehouse':'retting');const sf=b.fields.length?b.fields.reduce((a,i)=>a+Sim.soilF(fert[i]),0)/b.fields.length:1;info=`Campi: ${b.fields.length} · lavorano ${w.length} · coltura: ${CN[fc]} · suolo ${soilTxt(sf)}`;
     list='<div class="sh">Coltura dei campi</div><div>'+['grain','flax','hemp','dye','vine'].map(k=>`<button class="btn sm${k===fc?' on':''}" type="button" data-crop="${k}">${CN[k][0].toUpperCase()+CN[k].slice(1)}</button>`).join(' ')+'</div>'+
       w.map((v,i)=>`<div>Contadino ${i+1}: ${esc(Sim.roleText(v))}</div>`).join('')+(fc==='grain'?"<div>Il grano raccolto va alla famiglia che l'ha fondata.</div>":(fc==='vine'?"<div>L'uva va alla cantina: la famiglia non riceve grano da questa fattoria.</div>":fc==='dye'?'<div>Le piante tintorie vanno alla tintoria: la famiglia non riceve grano da questa fattoria.</div>':`<div>Gli steli di ${CN[fc]} vanno al maceratoio: la famiglia non riceve grano da questa fattoria.</div>`)+(ri.any?'':`<div>Senza ${fc==='vine'?'una cantina':fc==='dye'?'una tintoria':'un maceratoio'} i contadini raccolgono grano.</div>`));}
   else if(b.type==='store'){
@@ -5846,6 +5948,7 @@ cv.addEventListener('pointerdown',e=>{
   if(isDist(tool)){drag={m:tool,a:c,b:c};return;}
   if(tool==='road'){drag={m:'road',last:c};Sim.paintRoad(c.cx,c.cy);return;}
   if(tool==='demolish'){const r=Sim.demolishAt(c.cx,c.cy);if(r&&r!=='ok')toast(r,true);return;}
+  if(tool==='dowse'){const r=Sim.dowse(c.cx,c.cy);toast(r.msg,!r.ok);return;}
   if(BT[tool]){if(touch){hover=c;pend=true;drag={m:'place'};updPbar();return;}const a=anchor(tool,c),r=Sim.place(tool,a.x,a.y,rot);if(!r.ok)toast(r.msg,true);}
 });
 cv.addEventListener('pointermove',e=>{
@@ -5892,6 +5995,7 @@ addEventListener('keydown',e=>{
   if(TK[k])setTool(TK[k]);
   if(k==='r'&&BT[tool]&&!NOGATE[tool]){rotate();}
   if(k==='v')toggleAttr();
+  if(k==='l')toggleOv();
   if(k==='j')toggleZones();
   if(k==='escape'){setTool('select');select(null);}
   if(k===' '){e.preventDefault();setSpeed(speed===0?1:0);}
@@ -5903,6 +6007,7 @@ function toggleZones(){zonesOn=!zonesOn;$('zoneBtn').classList.toggle('on',zones
 $('zoneBtn').addEventListener('click',toggleZones);
 function toggleAttr(){attrOn=!attrOn;$('attrBtn').classList.toggle('on',attrOn);groundDirty=true;}
 $('attrBtn').addEventListener('click',toggleAttr);
+$('ovBtn').addEventListener('click',toggleOv);
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
 $('camL').addEventListener('click',()=>{cam.yaw+=0.4;});$('camR').addEventListener('click',()=>{cam.yaw-=0.4;});
@@ -6632,7 +6737,7 @@ function begin(mode){
   // v42: ogni partita ha una mappa nuova; con ?seme=1234 nell'indirizzo si rivede una mappa già giocata
   let sd=0;try{if(typeof location!=='undefined'){const q=new URLSearchParams(location.search).get('seme');if(q&&/^\d{1,9}$/.test(q))sd=+q;}}catch(e){}
   if(!sd)sd=1+((Math.random()*999999999)|0);
-  Sim.init(sd,mode,curDiff,{story:true});started=true;setTimeout(()=>toast('Valle n. '+sd+'. Per rivederla: aggiungi ?seme='+sd+' all\'indirizzo.'),1500);if(COARSE)setTimeout(()=>toast('Un dito: sposta la mappa. Due dita: pizzica per zoomare, ruota per girare. Scegli una categoria e uno strumento in basso.'),7000);
+  Sim.init(sd,mode,curDiff,{story:true,aquifers:true});started=true;setTimeout(()=>toast('Valle n. '+sd+'. Per rivederla: aggiungi ?seme='+sd+' all\'indirizzo.'),1500);if(COARSE)setTimeout(()=>toast('Un dito: sposta la mappa. Due dita: pizzica per zoomare, ruota per girare. Scegli una categoria e uno strumento in basso.'),7000);
   if(treesDirty)rebuildTrees();if(rocksDirty)rebuildRocks();if(sapsDirty)rebuildSaps();groundDirty=true;
   palKey='';refreshPalette();showLevel();openEnvoy(INTRO);
 }
@@ -6675,6 +6780,7 @@ function frame2(now){
     if(BT[tool]){const a=anchor(tool,hover),ok=!Sim.canPlace(tool,a.x,a.y,rot)&&Sim.afford(tool),[gw,gh]=Sim.dimsOf(BT[tool],rot);setGhost(a.x,a.y,gw,gh,ok,1.2);showArrow(tool,a.x,a.y,rot,ok);}
     else if(isDist(tool)||tool==='road')setGhost(hover.cx,hover.cy,1,1,true,0.2,isDist(tool)?TOOL[tool].col:0xcfc5ae);
     else if(tool==='demolish')setGhost(hover.cx,hover.cy,1,1,false,0.3);
+    else if(tool==='dowse'){const R=Sim.AQ_FIND_R;setGhost(hover.cx-R,hover.cy-R,2*R+1,2*R+1,true,0.1,0x4f9bff);}
   }
   if(drag&&isDist(drag.m)){
     const x0=Math.min(drag.a.cx,drag.b.cx),y0=Math.min(drag.a.cy,drag.b.cy),x1=Math.max(drag.a.cx,drag.b.cx),y1=Math.max(drag.a.cy,drag.b.cy);

@@ -49,7 +49,7 @@ for(const seed of [3,7,11]){
   ok(wc.sur===true,'seed '+seed+': in eccedenza l\'edificio passa a sur');
   ok(wc.workers.length===0,'seed '+seed+': in eccedenza il taglialegna non ha addetti ('+wc.workers.length+')');
   let loaned=0,tradeOK=0;
-  for(const id of crew2){const v=Sim.villagers().find(q=>q.id===id);if(!v)continue;if(v.loan==='wood')loaned++;if(v.trade==='wood')tradeOK++;ok(v.job!==wc.id,'seed '+seed+': chi era al taglialegna non vi resta');}
+  for(const id of crew2){const v=Sim.villagers().find(q=>q.id===id);if(!v||sick.has(id))continue;if(v.loan==='wood')loaned++;if(v.trade==='wood')tradeOK++;ok(v.job!==wc.id,'seed '+seed+': chi era al taglialegna non vi resta');}
   const alive=crew2.filter(id=>!sick.has(id)&&Sim.villagers().find(q=>q.id===id)).length;
   ok(loaned===alive&&alive>0,'seed '+seed+': tutti gli ex addetti sono in prestito ('+loaned+'/'+alive+')');
   ok(tradeOK===alive,'seed '+seed+': il mestiere di base resta Taglialegna ('+tradeOK+'/'+alive+')');

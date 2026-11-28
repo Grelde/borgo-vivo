@@ -2,8 +2,11 @@
 'use strict';
 const {N,CS,W,BT,PATH,S,SC}=Sim;
 const NOGATE={house:1,stall:1,flowers:1,statue:1,plaza:1,well:1,cemetery:1};
-const {tree,rock,ore,water,sap,road,dist,occ,wear,plev,field,door,attr}=Sim.grids;
+const {tree,rock,ore,water,sap,road,dist,occ,wear,plev,field,door,attr,aq,aqK}=Sim.grids;const fert=Sim.env.fert; // v76: la fertilità 0-100 è quella dell'ambiente (v69)
 let attrOn=false,capNow=80,capStoneNow=80;
+// v63: mappa del suolo (tasto L): 0 spenta, 1 fertilità, 2 giacimenti, 3 falde. Si accende da sola con gli strumenti che c'entrano (zone, guardaboschi, cava, miniera, pozzo, rabdomante)
+let ovMode=0;
+const OV_CTX={d1:1,d2:1,d4:1,d5:1,forester:1,quarry:2,mine:2,well:3,dowse:3};
 const COARSE=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 if(COARSE)document.body.classList.add('touch');
 const $=id=>document.getElementById(id);
@@ -145,6 +148,31 @@ function curveOn(c,test,w,style){
     }
   }
 }
+// v63: mappa del suolo. Le falde si vedono solo dove sono state scoperte (aqK): il resto resta nascosto.
+const OV_FERT=['rgba(168,112,64,.46)','rgba(206,190,86,.34)','rgba(120,196,76,.36)','rgba(24,150,64,.58)'];
+function ovEff(){return ovMode||OV_CTX[tool]||0;}
+function drawSoilOverlay(m){
+  if(!m)return;
+  g.fillStyle='rgba(18,14,8,.14)';g.fillRect(0,0,TEX,TEX);
+  if(m===1){for(let i=0;i<N*N;i++){if(water[i])continue;g.fillStyle=OV_FERT[fert[i]<25?0:fert[i]<45?1:fert[i]<Sim.env.FERT_HIGH?2:3];g.fillRect((i%N)*PX-.5,((i/N)|0)*PX-.5,PX+1,PX+1);}}
+  else if(m===3){g.fillStyle='rgba(66,148,242,.46)';for(let i=0;i<N*N;i++)if(aqK[i]&&!water[i])g.fillRect((i%N)*PX-.5,((i/N)|0)*PX-.5,PX+1,PX+1);}
+  else if(m===2){
+    for(let i=0;i<N*N;i++){const r=rock[i],o=ore[i];if(!r&&!o)continue;
+      g.fillStyle=r?(r<=6?'rgba(176,176,170,.85)':r>=13?'rgba(255,214,66,.96)':'rgba(238,238,228,.92)'):(o<=6?'rgba(150,104,72,.88)':o>=13?'rgba(255,52,44,.96)':'rgba(226,116,50,.92)');
+      g.beginPath();g.arc(((i%N)+.5)*PX,(((i/N)|0)+.5)*PX,PX*(r||o>=13?1.15:1),0,7);g.fill();}
+  }
+}
+function ovLegend(){
+  const el=$('ovLeg'),m=ovEff(),sw=c=>`<i class="sw" style="background:${c}"></i>`;
+  el.hidden=!m;if(!m)return;
+  el.innerHTML=m===1?`<b>Fertilità del suolo</b> (giardini, campi, boschi)<br>${sw('#a87040')}arida ×0,6-0,8 ${sw('#cebe56')}povera ×0,8-0,95<br>${sw('#78c44c')}buona ×0,95-1,15 ${sw('#189640')}ottima ×1,15-1,4<br>Stessa fertilità del layer 🗺️.`
+   :m===2?`<b>Giacimenti</b> (quantità per cella)<br>${sw('#eeeee4')}roccia ${sw('#e27432')}ferro: normale<br>${sw('#b0b0aa')}${sw('#966848')}povero ${sw('#ffd642')}${sw('#ff342c')}ricco (dura di più)`
+   :`<b>Falde acquifere</b><br>${sw('#4294f2')}falda scoperta: qui si scava il pozzo<br>Le altre falde si trovano con il Rabdomante (B).`;
+}
+// qualità del suolo in parole: f è il moltiplicatore medio (0,6 arido … 1,4 fertile)
+const soilTxt=f=>`${f>=1.16?'ottimo':f>=0.96?'buono':f>=0.8?'povero':'arido'} (${f>=1?'+':''}${Math.round((f-1)*100)}% di resa)`;
+function setOv(n){ovMode=n;$('ovBtn').classList.toggle('on',ovMode>0);ovLegend();groundDirty=true;}
+function toggleOv(){setOv((ovMode+1)%4);}
 function drawGround(){
   if(!zonesOn)hideZoneIcons(0);
   g.drawImage(base,0,0);
@@ -207,6 +235,7 @@ function drawGround(){
   g.fillStyle='rgba(150,118,76,.8)';
   for(let i=0;i<N*N;i++)if(door[i]&&!road[i]){g.beginPath();g.arc((i%N+.5)*PX,((i/N|0)+.5)*PX,PX*0.55,0,7);g.fill();}
   if(attrOn){for(let i=0;i<N*N;i++){const a=attr[i];if(Math.abs(a)<0.2)continue;g.fillStyle=a>0?`rgba(70,190,90,${Math.min(.5,a*.09)})`:`rgba(225,70,50,${Math.min(.55,-a*.1)})`;g.fillRect((i%N)*PX,((i/N)|0)*PX,PX,PX);}}
+  drawSoilOverlay(ovEff());
   g.strokeStyle='rgba(60,45,25,.55)';g.lineWidth=10;g.strokeRect(0,0,TEX,TEX);
   gtex.needsUpdate=true;
 }
@@ -259,14 +288,14 @@ function rebuildRocks(){
   let n=0;
   for(let i=0;i<N*N;i++){
     if(rock[i]<=0)continue;
-    const sc=0.45+rock[i]*0.075;
+    const sc=0.45+Math.min(rock[i],18)*0.075;
     dummy.position.set(Sim.cx2w(i%N)+(rn(i,2)-.5)*0.6,sc*0.45,Sim.cy2w((i/N)|0)+(rn(i,3)-.5)*0.6);
     dummy.rotation.set(rn(i,4)*3,rn(i,5)*6.28,rn(i,6)*3);dummy.scale.set(sc*(1+rn(i,7)*.4),sc*0.8,sc*(1+rn(i,8)*.3));dummy.updateMatrix();
     rocksM.setMatrixAt(n,dummy.matrix);col.setHSL(0.1,0.04+rn(i,9)*0.05,0.5+rn(i,10)*0.14);rocksM.setColorAt(n,col);n++;
   }
   rocksM.count=n;rocksM.instanceMatrix.needsUpdate=true;if(rocksM.instanceColor)rocksM.instanceColor.needsUpdate=true;
   let m=0;
-  for(let i=0;i<N*N;i++){if(ore[i]<=0)continue;const sc=0.45+ore[i]*0.06;
+  for(let i=0;i<N*N;i++){if(ore[i]<=0)continue;const sc=0.45+Math.min(ore[i],18)*0.06;
     dummy.position.set(Sim.cx2w(i%N)+(rn(i,2)-.5)*.6,sc*.5,Sim.cy2w((i/N)|0)+(rn(i,3)-.5)*.6);dummy.rotation.set(rn(i,4)*2,rn(i,5)*6.28,rn(i,6)*2);dummy.scale.set(sc,sc*.9,sc);dummy.updateMatrix();
     oresM.setMatrixAt(m,dummy.matrix);col.setHSL(0.04+rn(i,9)*.04,0.35,0.3+rn(i,10)*0.1);oresM.setColorAt(m,col);m++;}
   oresM.count=m;oresM.instanceMatrix.needsUpdate=true;if(oresM.instanceColor)oresM.instanceColor.needsUpdate=true;rocksDirty=false;
@@ -1205,7 +1234,7 @@ new ResizeObserver(resize).observe($('app'));resize();
 const TOOLS=[
   {id:'select',label:'Osserva',key:'1',hint:'Clicca un edificio o una casa per vedere famiglia, mestieri e bisogni. Trascina con il tasto sinistro per spostarti sulla mappa.'},
   {id:'d1',label:'Residenziale',key:'2',dt:1,col:0xe3b84a,hint:'Trascina: qui nascono case con giardino, anche lontano dal magazzino.'},
-  {id:'d2',label:'Agricolo',key:'3',dt:2,col:0x9ccf4a,hint:'Trascina: gli abitanti fonderanno qui le fattorie e i campi.'},
+  {id:'d2',label:'Agricolo',key:'3',dt:2,col:0x9ccf4a,hint:'Trascina: gli abitanti fonderanno qui le fattorie e i campi, di preferenza sulla terra fertile (tasto L: mappa del suolo).'},
   {id:'d3',label:'Mercato',key:'4',dt:3,col:0xe0773f,hint:'Trascina: qui le famiglie apriranno i banchi per il baratto.'},
   {id:'d4',label:'Forestale',key:'f',dt:4,col:0x3f9a5d,hint:'Trascina: i guardaboschi pianteranno qui alberi che crescono e si possono tagliare di nuovo.'},
   {id:'d5',label:'Pascolo',key:'p',dt:5,col:0xe8e4d0,hint:'Trascina: l\'ovile nasce solo dentro il pascolo. La zona intorno all\'ovile viene chiusa da un recinto e le pecore restano lì dentro. La lana serve ai tessitori.'},
@@ -1213,9 +1242,9 @@ const TOOLS=[
   {id:'undistrict',label:'Togli zona',key:'5',dt:0,col:0xd9553f,hint:'Trascina per cancellare un quartiere.'},
   {id:'road',label:'Strada',key:'6',hint:'Trascina per tracciare una strada: resta a lungo anche senza passaggi, poi torna sentiero e sparisce. Puoi demolirla.'},
   {id:'wood',label:'Taglialegna',key:'7',hint:'Vicino a un bosco. Rumoroso: le case vicine perdono attrattiva.'},
-  {id:'quarry',label:'Cava',key:'8',hint:'Vicino alle rocce. Molto rumorosa: tienila lontana dalle case.'},
+  {id:'quarry',label:'Cava',key:'8',hint:'Vicino alle rocce. Molto rumorosa: tienila lontana dalle case. I massi più grossi (e le zone gialle della mappa del suolo, tasto L) sono giacimenti ricchi: durano di più.'},
   {id:'forester',label:'Guardaboschi',key:'g',hint:'Pianta alberi nelle zone forestali. Servono circa 2 minuti perché crescano.'},
-  {id:'mine',label:'Miniera',key:'m',hint:'Vicino ai filoni di ferro (rocce scure). Molto rumorosa. Il ferro va al magazzino.'},
+  {id:'mine',label:'Miniera',key:'m',hint:'Vicino ai filoni di ferro (rocce scure). Molto rumorosa. Il ferro va al magazzino. Le zone rosse della mappa del suolo (tasto L) sono filoni ricchi.'},
   {id:'carpenter',label:'Falegnameria',key:'n',hint:'Gli addetti trasformano il legno del magazzino in assi (2 assi per legno). Scuola, ospizio, chiesa, mulino, locanda, magazzino, fabbro, forno, telaio, sartoria, taverna e sala delle feste richiedono assi; senza falegnameria si pagano in legno (2 legni per asse). Un po\' rumorosa.'},
   {id:'mason',label:'Bottega del muratore',key:'y',hint:'I muratori portano i materiali ai cantieri e costruiscono il 60% più in fretta degli altri operai.'},
   {id:'smithy',label:'Fucina del fabbro',key:'',hint:'Trasforma il ferro del magazzino in attrezzi (3 per ferro ogni 10 s) e li porta alle case: con gli attrezzi il giardino rende il 10% in più. Molto più produttiva della bottega di un giardino. Rumorosa.'},
@@ -1250,7 +1279,8 @@ const TOOLS=[
   {id:'flowers',label:'Aiuola',key:'u',hint:'Piccola decorazione: più attrattiva nei dintorni.'},
   {id:'statue',label:'Statua',key:'t',hint:'Monumento: aumenta l\'attrattiva della zona.'},
   {id:'store',label:'Magazzino',key:'9',hint:'Secondo deposito con 3 addetti e scorte fino a 80. Un po\' rumoroso.'},
-  {id:'well',label:'Pozzo',key:'0',hint:'Dà acqua alle case entro 30 celle e rende la zona più piacevole.'},
+  {id:'well',label:'Pozzo',key:'0',hint:'Dà acqua alle case entro 30 celle e rende la zona più piacevole. Si scava solo su una falda scoperta (zone azzurre): le altre si cercano con il Rabdomante.'},
+  {id:'dowse',label:'Rabdomante',key:'b',hint:'Clicca un punto: cerca acqua sotto terra in un raggio di 27 celle e scopre le falde (2 legni). Il pozzo si scava sulle zone azzurre.'},
   {id:'school',label:'Scuola',key:'k',hint:'I bambini dai 6 anni vengono qui al mattino (serve un maestro istruito). Ha 10 posti: chi non trova posto non studia, per gli altri serve un\'altra scuola. Chi sa leggere e scrivere fa migliorare la casa più in fretta e fa rendere di più la bottega. Serve alle case entro 45 celle per salire al livello 4.'},
   {id:'surgeon',label:'Cerusico',key:'',hint:'Bottega del cerusico (il barbiere-chirurgo del Medioevo): chi ne ha cura deve aver frequentato la scuola. Cura i feriti delle case entro 45 celle molto più in fretta che a casa: ferite di guerrieri, lupi e briganti.'},
   {id:'infirmary',label:'Ospizio',key:'o',hint:'Un erborista cura i malati delle case entro 45 celle: guariscono prima e rischiano meno. Frena le epidemie.'},
@@ -1266,7 +1296,7 @@ const CATS=[
   {id:'zone',label:'Zone e strade',ids:['d1','d2','d3','d4','d5','d6','undistrict','road']},
   {id:'prod',label:'Produzione',ids:['wood','quarry','mine','forester','granary','mill']},
   {id:'shop',label:'Botteghe',ids:['carpenter','mason','claypit','brickworks','limekiln','saltworks','butcher','smokehouse','dairy','brewery','winery','smithy','bakery','sheepfold','charcoal','smelter','retting','ropewalk','dyehouse','weaver','tailor','fisher','hunter','mercery']},
-  {id:'serv',label:'Servizi',ids:['store','well','school','infirmary','surgeon','church','inn','tavern','hall','taxoffice']},
+  {id:'serv',label:'Servizi',ids:['store','well','dowse','school','infirmary','surgeon','church','inn','tavern','hall','taxoffice']},
   {id:'deco',label:'Decorazioni',ids:['plaza','flowers','statue']},
   {id:'def',label:'Difesa',ids:['watchtower','barracks']}];
 const CATOF={};CATS.forEach(c=>c.ids.forEach(i=>{CATOF[i]=c.id;}));
@@ -1281,7 +1311,7 @@ for(const t of TOOLS){
   b.innerHTML=`<span class="nm">${t.label}${t.key?`<kbd>${t.key.toUpperCase()}</kbd>`:''}</span><span class="cs">${BT[t.id]?costHTML(BT[t.id].cost):''}</span>`;
   b.addEventListener('click',()=>setTool(t.id));$('tools').appendChild(b);toolBtns[t.id]=b;
 }
-function setTool(id){if(!Sim.owns(id)){toast('Questo progetto non è ancora tuo: compralo tra i Progetti del Re (🏛️).',true);return;}pend=false;hover=null;$('pbar').hidden=true;if(CATOF[id]&&CATOF[id]!==curCat)setCat(CATOF[id]);tool=id;ghost.visible=false;arrow.visible=false;$('rotBtn').style.display=(BT[id]&&!NOGATE[id])?'':'none';for(const k in toolBtns)toolBtns[k].classList.toggle('on',k===id);$('hint').textContent=(TOOL[id].hint||'')+((BT[id]&&!NOGATE[id])?' R = ruota: la freccia gialla è l\'ingresso.':'');if(id!=='select')select(null);if(document.body.classList.contains('touch')&&id!=='select')toast(TOOL[id].hint+(BT[id]?' Tocca o trascina sulla mappa, poi conferma con ✓.':''));}
+function setTool(id){if(!Sim.owns(id)){toast('Questo progetto non è ancora tuo: compralo tra i Progetti del Re (🏛️).',true);return;}pend=false;hover=null;$('pbar').hidden=true;if(CATOF[id]&&CATOF[id]!==curCat)setCat(CATOF[id]);tool=id;ghost.visible=false;arrow.visible=false;$('rotBtn').style.display=(BT[id]&&!NOGATE[id])?'':'none';for(const k in toolBtns)toolBtns[k].classList.toggle('on',k===id);$('hint').textContent=(TOOL[id].hint||'')+((BT[id]&&!NOGATE[id])?' R = ruota: la freccia gialla è l\'ingresso.':'');if(id!=='select')select(null);ovLegend();groundDirty=true;if(document.body.classList.contains('touch')&&id!=='select')toast(TOOL[id].hint+(BT[id]?' Tocca o trascina sulla mappa, poi conferma con ✓.':''));}
 setCat('tools');setTool('select');
 let toastT=0;
 function toast(msg,bad){const t=$('toast');t.textContent=msg;t.classList.toggle('bad',!!bad);t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),5600);}
@@ -1305,7 +1335,7 @@ function refreshSel(){
   else if(b.type==='house'){
     name=Sim.LVNAME[b.level-1];const cap=Sim.CAPS[b.level-1],fl=b.flags,gd=b.goods,fn=Sim.fuelNeed();
     const hd=b.head&&VM(b.head);
-    info=`Famiglia ${hd?esc(hd.fam):''}: ${b.members.length}/${cap} · casa ${b.hw}×${b.hh} · giardino ${Sim.SHAPE_NAME[b.shape]||'a lato'} ${b.gcells.length+b.ext.length} celle (max 24) · giardino: ${b.crop==='veg'?'orto':b.crop==='eggs'?'galline':b.crop==='wood'?'legna da ardere (catasta, ceppo e alberelli)':'allevamento'}${b.pure?' (giardino fisso: staccionata chiara e fiori, resta sempre così)':''}${b.crop==='wood'?' (specializzazione fissa)':''}${b.craft?' · fabbro':''}${b.bake?' · panificio':''}${b.weave?' · tessitore':''}${b.tailor?' · sarto':''}`;
+    info=`Famiglia ${hd?esc(hd.fam):''}: ${b.members.length}/${cap} · casa ${b.hw}×${b.hh} · giardino ${Sim.SHAPE_NAME[b.shape]||'a lato'} ${b.gcells.length+b.ext.length} celle (max 24) · suolo ${soilTxt(Sim.soilOf(b))} · giardino: ${b.crop==='veg'?'orto':b.crop==='eggs'?'galline':b.crop==='wood'?'legna da ardere (catasta, ceppo e alberelli)':'allevamento'}${b.pure?' (giardino fisso: staccionata chiara e fiori, resta sempre così)':''}${b.crop==='wood'?' (specializzazione fissa)':''}${b.craft?' · fabbro':''}${b.bake?' · panificio':''}${b.weave?' · tessitore':''}${b.tailor?' · sarto':''}`;
     if(b.dens)info=info.replace(/ · giardino .*$/,'')+' · casa di mattoni ad alta densità: nessun giardino, cibo e legna dal magazzino';else if(b.merged)info+=' · due case unite: giardino unico';
     const rows=b.members.map(id=>{const v=VM(id);return v?`<div><span class="lk" data-v="${v.id}">${esc(v.name)}</span>${v.id===b.head?' ★':''} (${v.age|0} anni${v.schooled?', istruito':''}${v.ill?', malato':''}): ${esc(Sim.roleText(v))}</div>`:'';}).join('');
     const need=b.level>=Sim.MAXLV?'':('Per migliorare: '+Math.min(3,b.level)+(b.level>1?' tipi':' tipo')+' di cibo, acqua, legna'+(b.level>=2?', chiesa':'')+(b.level>=3?', scuola vicina':'')+(b.level>=4?', zona di qualità ottima (attrattiva 3 o più)':'')+(()=>{const u=Sim.UPC[b.level+1];return u?`, materiali (legno ${u.wood}${u.stone?`, pietra ${u.stone}`:''})`:'';})()+` (${Math.min(25,b.up)}/25)`);
@@ -1317,7 +1347,7 @@ function refreshSel(){
   }
   else if(b.type==='stall'){const o=Sim.buildings().get(b.owner);info=b.open?'Banco aperto: si accettano baratti.':'Banco chiuso.';
     if(o)list=`<div>Merce: ortaggi ${o.goods.veg} · uova ${o.goods.eggs} · pesce ${o.goods.fish} · carne ${o.goods.meat} · pane ${o.goods.bread} · legna ${o.goods.firewood} · attrezzi ${o.goods.tools}</div>`;}
-  else if(b.type==='farm'){const w=Sim.villagers().filter(v=>v.job===b.id);const fc=b.crop||'grain',CN={grain:'grano',flax:'lino',hemp:'canapa',dye:'tintorie',vine:'vigna'},ri=Sim.retInfo(fc==='vine'?'winery':fc==='dye'?'dyehouse':'retting');info=`Campi: ${b.fields.length} · lavorano ${w.length} · coltura: ${CN[fc]}`;
+  else if(b.type==='farm'){const w=Sim.villagers().filter(v=>v.job===b.id);const fc=b.crop||'grain',CN={grain:'grano',flax:'lino',hemp:'canapa',dye:'tintorie',vine:'vigna'},ri=Sim.retInfo(fc==='vine'?'winery':fc==='dye'?'dyehouse':'retting');const sf=b.fields.length?b.fields.reduce((a,i)=>a+Sim.soilF(fert[i]),0)/b.fields.length:1;info=`Campi: ${b.fields.length} · lavorano ${w.length} · coltura: ${CN[fc]} · suolo ${soilTxt(sf)}`;
     list='<div class="sh">Coltura dei campi</div><div>'+['grain','flax','hemp','dye','vine'].map(k=>`<button class="btn sm${k===fc?' on':''}" type="button" data-crop="${k}">${CN[k][0].toUpperCase()+CN[k].slice(1)}</button>`).join(' ')+'</div>'+
       w.map((v,i)=>`<div>Contadino ${i+1}: ${esc(Sim.roleText(v))}</div>`).join('')+(fc==='grain'?"<div>Il grano raccolto va alla famiglia che l'ha fondata.</div>":(fc==='vine'?"<div>L'uva va alla cantina: la famiglia non riceve grano da questa fattoria.</div>":fc==='dye'?'<div>Le piante tintorie vanno alla tintoria: la famiglia non riceve grano da questa fattoria.</div>':`<div>Gli steli di ${CN[fc]} vanno al maceratoio: la famiglia non riceve grano da questa fattoria.</div>`)+(ri.any?'':`<div>Senza ${fc==='vine'?'una cantina':fc==='dye'?'una tintoria':'un maceratoio'} i contadini raccolgono grano.</div>`));}
   else if(b.type==='store'){
@@ -1630,6 +1660,7 @@ cv.addEventListener('pointerdown',e=>{
   if(isDist(tool)){drag={m:tool,a:c,b:c};return;}
   if(tool==='road'){drag={m:'road',last:c};Sim.paintRoad(c.cx,c.cy);return;}
   if(tool==='demolish'){const r=Sim.demolishAt(c.cx,c.cy);if(r&&r!=='ok')toast(r,true);return;}
+  if(tool==='dowse'){const r=Sim.dowse(c.cx,c.cy);toast(r.msg,!r.ok);return;}
   if(BT[tool]){if(touch){hover=c;pend=true;drag={m:'place'};updPbar();return;}const a=anchor(tool,c),r=Sim.place(tool,a.x,a.y,rot);if(!r.ok)toast(r.msg,true);}
 });
 cv.addEventListener('pointermove',e=>{
@@ -1676,6 +1707,7 @@ addEventListener('keydown',e=>{
   if(TK[k])setTool(TK[k]);
   if(k==='r'&&BT[tool]&&!NOGATE[tool]){rotate();}
   if(k==='v')toggleAttr();
+  if(k==='l')toggleOv();
   if(k==='j')toggleZones();
   if(k==='escape'){setTool('select');select(null);}
   if(k===' '){e.preventDefault();setSpeed(speed===0?1:0);}
@@ -1687,6 +1719,7 @@ function toggleZones(){zonesOn=!zonesOn;$('zoneBtn').classList.toggle('on',zones
 $('zoneBtn').addEventListener('click',toggleZones);
 function toggleAttr(){attrOn=!attrOn;$('attrBtn').classList.toggle('on',attrOn);groundDirty=true;}
 $('attrBtn').addEventListener('click',toggleAttr);
+$('ovBtn').addEventListener('click',toggleOv);
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
 $('camL').addEventListener('click',()=>{cam.yaw+=0.4;});$('camR').addEventListener('click',()=>{cam.yaw-=0.4;});
@@ -2416,7 +2449,7 @@ function begin(mode){
   // v42: ogni partita ha una mappa nuova; con ?seme=1234 nell'indirizzo si rivede una mappa già giocata
   let sd=0;try{if(typeof location!=='undefined'){const q=new URLSearchParams(location.search).get('seme');if(q&&/^\d{1,9}$/.test(q))sd=+q;}}catch(e){}
   if(!sd)sd=1+((Math.random()*999999999)|0);
-  Sim.init(sd,mode,curDiff,{story:true});started=true;setTimeout(()=>toast('Valle n. '+sd+'. Per rivederla: aggiungi ?seme='+sd+' all\'indirizzo.'),1500);if(COARSE)setTimeout(()=>toast('Un dito: sposta la mappa. Due dita: pizzica per zoomare, ruota per girare. Scegli una categoria e uno strumento in basso.'),7000);
+  Sim.init(sd,mode,curDiff,{story:true,aquifers:true});started=true;setTimeout(()=>toast('Valle n. '+sd+'. Per rivederla: aggiungi ?seme='+sd+' all\'indirizzo.'),1500);if(COARSE)setTimeout(()=>toast('Un dito: sposta la mappa. Due dita: pizzica per zoomare, ruota per girare. Scegli una categoria e uno strumento in basso.'),7000);
   if(treesDirty)rebuildTrees();if(rocksDirty)rebuildRocks();if(sapsDirty)rebuildSaps();groundDirty=true;
   palKey='';refreshPalette();showLevel();openEnvoy(INTRO);
 }
@@ -2459,6 +2492,7 @@ function frame2(now){
     if(BT[tool]){const a=anchor(tool,hover),ok=!Sim.canPlace(tool,a.x,a.y,rot)&&Sim.afford(tool),[gw,gh]=Sim.dimsOf(BT[tool],rot);setGhost(a.x,a.y,gw,gh,ok,1.2);showArrow(tool,a.x,a.y,rot,ok);}
     else if(isDist(tool)||tool==='road')setGhost(hover.cx,hover.cy,1,1,true,0.2,isDist(tool)?TOOL[tool].col:0xcfc5ae);
     else if(tool==='demolish')setGhost(hover.cx,hover.cy,1,1,false,0.3);
+    else if(tool==='dowse'){const R=Sim.AQ_FIND_R;setGhost(hover.cx-R,hover.cy-R,2*R+1,2*R+1,true,0.1,0x4f9bff);}
   }
   if(drag&&isDist(drag.m)){
     const x0=Math.min(drag.a.cx,drag.b.cx),y0=Math.min(drag.a.cy,drag.b.cy),x1=Math.max(drag.a.cx,drag.b.cx),y1=Math.max(drag.a.cy,drag.b.cy);

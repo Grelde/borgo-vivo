@@ -188,6 +188,9 @@ body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--seri
 .wbar i{display:block;height:100%;background:var(--moss)}
 #hint{position:absolute;left:50%;transform:translateX(-50%);bottom:126px;max-width:min(560px,calc(100% - 32px));text-align:center;font-size:15px;color:var(--parch2);background:rgba(23,17,12,.72);padding:4px 12px;border-radius:12px;pointer-events:none}
 #hint:empty{display:none}
+#ovLeg{position:absolute;left:16px;bottom:calc(138px + var(--sb));max-width:min(300px,calc(100% - 32px));padding:8px 12px;font-size:14px;line-height:1.55;pointer-events:none;z-index:2}
+#ovLeg b{color:var(--gold)}
+#ovLeg i.sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px;border:1px solid rgba(0,0,0,.35)}
 #toast{position:absolute;left:50%;bottom:164px;transform:translate(-50%,8px);max-width:min(520px,calc(100% - 32px));padding:9px 16px;text-align:center;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;font-size:16px}
 #toast.show{opacity:1;transform:translate(-50%,0)}
 #toast.bad{border-color:var(--blood);color:#ffd7cb}
@@ -394,6 +397,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
     <button class="btn on" id="zoneBtn" title="Zone di caccia e pesca (J): icona arco e freccia = caccia, icona pesce = pesca">🏹</button>
     <button class="btn" id="attrBtn" title="Mappa dell'attrattiva (V): verde piacevole, rosso rumoroso">☺</button>
     <button class="btn" id="layBtn" title="Layer della mappa: fertilità del suolo, vento, corrente del fiume">🗺️</button>
+    <button class="btn" id="ovBtn" title="Mappa del suolo (L): fertilità, giacimenti, falde acquifere">🌱</button>
   </div>
   <div id="sel" class="panel" hidden>
     <h3 id="selName"></h3>
@@ -408,6 +412,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
     <button class="btn danger" id="selDemo">Demolisci</button>
   </div>
   <div id="hint"></div>
+  <div id="ovLeg" class="panel" hidden></div>
   <div id="pbar" class="panel" hidden><span id="pName"></span><button class="btn" id="pOk" type="button">✓ Costruisci</button><button class="btn" id="pRot" type="button" title="Ruota l'edificio">⟳</button><button class="btn danger" id="pNo" type="button" title="Annulla">✕</button></div>
   <div id="toast" class="panel"></div>
   <div id="cats" class="panel"></div>

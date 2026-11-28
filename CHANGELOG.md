@@ -1,5 +1,17 @@
 # Changelog
 
+## v76 – 2026-11-28
+Cambio di regole: la fertilità conta davvero, sotto terra scorrono le falde e i pozzi si scavano dove c'è acqua. (Costruita sopra la fertilità 0-100 della v69, che era solo informativa.)
+- **La fertilità rende:** la fertilità del suolo del layer 🗺️ (`Sim.env.fert`, 0-100) ora cambia la resa con `soilF`: ×0,6 sulla terra più magra, ×1,0 a metà, ×1,4 sulla più ottima (media ≈1, l'equilibrio dell'economia non cambia). Vale per i giardini delle case (`soilOf`, media delle celle del giardino), il lavoro dei campi (si lavora più in fretta su terra buona) e la scelta delle zone delle fattorie (preferiscono la terra ottima), e la crescita dei germogli del guardaboschi. I pannelli di casa e fattoria dicono la qualità del suolo («ottimo», «buono», «povero», «arido» e il +/− % di resa).
+- **Giacimenti più o meno ricchi:** pietra e ferro hanno una ricchezza variabile (3-24 per cella, media sempre 10) con zone ricche e povere; i sassi e i filoni più ricchi si vedono più grandi.
+- **Falde acquifere:** 3-5 corpi d'acqua sotterranei a forma di lente (`genAquifers`). **Una falda passa sempre esattamente sotto il Centro Cittadino**: `terrainOK` scarta e rigenera la mappa se non è così, così il primo pozzo si scava vicino al centro. Nelle partite nuove i pozzi si costruiscono solo sulle falde *scoperte* (`S.aqRule`).
+- **Rabdomante (tasto B, Servizi):** per 2 legni scopre le falde nel raggio di 27 celle dal punto scelto (`dowse`); se la zona è già nota o non c'è acqua lo dice. Un messaggio a inizio partita spiega la falda del centro.
+- **Mappa del suolo (tasto L, pulsante 🌱):** si accende da sola con gli strumenti giusti: quartieri, fattorie e guardaboschi mostrano la fertilità (la stessa del layer 🗺️), cava e miniera la ricchezza dei giacimenti, pozzo e Rabdomante le falde (azzurre).
+- **Salvataggi:** nessun cambio di `SAVE_FMT` (resta 1). La fertilità si ricava come prima dal seme; le falde e le falde note viaggiano come griglie opzionali (`aq`, `aqK`). Un salvataggio precedente ricrea le falde dal seme, con tutte le falde note e senza vincoli sui pozzi (`S.aqRule` vale solo per le partite nuove dall'interfaccia; test e vecchie partite scavano pozzi ovunque). `naturalTerrain` ora rimette a posto anche le falde.
+- Test: nuovo `tests/falde.js` (60 mappe: falda sotto il centro, resa e giacimenti, pozzi/Rabdomante, salvataggi). `tests/lavoro-stabile.js` reso robusto contro un abitante che si ammala durante la prova.
+- Da sapere: `tests/lotti.js`, `tests/commercio.js` e `tests/storage.js` falliscono anche senza queste modifiche; `tests/manutenzione.js` usa `Math.random` non fissato e può oscillare; `population` e `legna` non completati in questa sessione.
+- **Non verificato in un browser:** mappa del suolo, legenda, pulsante 🌱 e sovrapposizione con il layer 🗺️ (solo controlli sintattici, build e test su Node).
+
 ## v75 – 2026-11-28
 Funzione nuova: assunzione di una persona istruita da fuori. Gli immigrati istruiti diventano pochi.
 - **Meno istruiti in arrivo:** `IMM_LIT` scende dal 25% al **10%** (viandanti e immigrati). I primi tre della carovana restano istruiti.
