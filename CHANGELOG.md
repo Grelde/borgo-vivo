@@ -9,6 +9,15 @@ Funzione nuova: i cittadini guidano il giocatore per tutta la partita, e si può
 - Non verificato in un browser WebGL: aspetto del tasto 💬 e della scelta nella schermata iniziale.
 
 ## v48 – 2026-11-28
+Funzione nuova: filiera del lino e della canapa (coltura nella fattoria, maceratoio, cordaio, corde).
+- **Coltura per fattoria:** nel pannello della fattoria si sceglie Grano, Lino o Canapa (`b.crop`, salvata). Una fattoria a lino o canapa non dà grano alla famiglia; senza un maceratoio i contadini raccolgono comunque grano. I campi cambiano colore (blu lino, verde canapa).
+- **Maceratoio** (sulla riva, 2 posti): i contadini portano gli steli, 1 stelo → 1 fibra ogni 8 s; scorta massima di steli 24.
+- **Cordaio** (2 posti, 2 assi): 1 fibra di canapa → 3 corde ogni 9 s. Le corde vanno al magazzino (nuova merce, accettazione configurabile).
+- **Telaio:** può lavorare anche la fibra di lino (1 fibra → 3 pezze di tessuto), senza ovile. La lana resta come prima.
+- **Uso delle corde:** si vendono ai mercanti (Valmora 4, Porto Fiorito 7 denari) e rinforzano le riparazioni degli edifici (+50%, 1 corda per riparazione, non per le case).
+- Salvataggi vecchi compatibili (fattorie senza coltura = grano, magazzini accettano le corde).
+- Test: `tests/filiera-lino.js`.
+
 Funzione nuova: la storia guida il giocatore (niente più livelli con obiettivi). Titoli del Re, progetti da comprare, predoni e guerra.
 - **Niente più livelli.** Il pannello degli obiettivi è sostituito da una **guida narrata**: gli abitanti dicono cosa serve ("Servono legno e pietra… indicaci dove costruire il taglialegna"; poi la cava, il quartiere residenziale, ecc.). Sotto, in piccolo, "Il Re concederà il titolo di X quando:" con i requisiti e i conteggi. Su telefono il pannello si ripiega ma la frase della guida resta visibile.
 - **Apertura:** dopo la scelta di lago o fiume compare una pergamena a voce degli abitanti: sono arrivati, hanno scelto te come guida, servono legno e pietra, poi indica dove costruire le case.
