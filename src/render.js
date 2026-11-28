@@ -741,6 +741,22 @@ const BUILD={
     for(let k=0;k<3;k++)cyl(g,.22,.22,.14,10,MAT.cream,-.2+k*.4,.15,1.3,Math.PI/2,0);
     bx(g,.5,.35,.4,MAT.timber,2.6,.2,1.1);cyl(g,.12,.12,.4,8,MAT.hay,2.6,.5,1.1);
     return g;},
+  charcoal(b){const g=new THREE.Group();
+    bx(g,1.8,1.0,1.5,MAT.logD,-1.0,.5,-.9);for(const y of[.2,.5,.8])bx(g,1.86,.05,1.56,MAT.timber,-1.0,y,-.9);
+    gab(g,2.0,1.7,.65,MAT.thatch,1.0,-1.0,-.9);bx(g,.5,.8,.06,MAT.door,-1.0,.4,-.12);
+    // tre cataste di legna coperte di terra (carbonaie), fumo e fascine
+    for(const [x,z] of[[.6,.4],[1.6,.6],[1.1,-.9]]){sph(g,.8,MAT.soil,x,.15,z,1,.8,1);cyl(g,.08,.08,.3,6,MAT.stoneD,x,.9,z);}
+    for(let k=0;k<5;k++)cyl(g,.08,.08,.9,5,MAT.log,-1.9+k*.14,.12,.8,0,Math.PI/2);
+    return g;},
+  smelter(b){const g=new THREE.Group();
+    bx(g,2.4,.9,2.0,MAT.stoneD,-.4,.45,-.6);bx(g,2.5,.1,2.1,MAT.stone,-.4,.95,-.6);
+    // alto forno di pietra con camino e bocca incandescente
+    bx(g,1.2,2.3,1.2,MAT.stoneD,.2,1.15,-.7);bx(g,1.3,.12,1.3,MAT.stone,.2,2.35,-.7);chim(g,.2,2.5,-.7,.8);
+    bx(g,.5,.5,.06,MAT.fire,.2,.5,-.08);bx(g,.35,.3,.06,MAT.fire,.2,1.2,-.08);
+    bx(g,.6,.95,.06,MAT.door,-1.2,.48,.42);
+    for(let k=0;k<3;k++)bx(g,.5,.14,.2,MAT.iron,-1.2+k*.55,.1,1.3);
+    for(const sx of[.9,1.3])bx(g,.4,.3,.4,MAT.rust,sx,.15,1.2);
+    return g;},
   dyehouse(b){const g=new THREE.Group();
     bx(g,2.2,1.2,1.8,MAT.plaster,-.7,.6,-.9);for(const x of[-1.5,-.7,.1])bx(g,.07,1.2,1.84,MAT.timber,x,.6,-.9);
     gab(g,2.4,1.9,.75,MAT.tile,1.2,-.7,-.9);bx(g,.55,.85,.06,MAT.door,-1.0,.42,.02);chim(g,-.2,1.6,-1.3,.7);
@@ -1060,6 +1076,8 @@ const TOOLS=[
   {id:'bakery',label:'Forno del panettiere',key:'',hint:'Trasforma la farina del mulino in pane (3 pagnotte per farina ogni 8 s) e lo porta alle famiglie.'},
   {id:'weaver',label:'Telaio del tessitore',key:'',hint:'Trasforma la lana degli ovili in tessuto (2 per lana ogni 9 s) o la fibra di lino del maceratoio (3 per fibra). Serve un ovile con i pastori, oppure lino e maceratoio.'},
   {id:'retting',label:'Maceratoio',key:'',hint:'Sulla riva di un lago o di un fiume. Macera gli steli di lino e canapa portati dalle fattorie (1 fibra per stelo ogni 8 s). La coltura si sceglie nel pannello della fattoria.'},
+  {id:'charcoal',label:'Carbonaia',key:'',hint:'Vicino a un bosco fitto. Trasforma il legno del magazzino in carbone (2 ogni 3 legni, ogni 10 s). Lavora quando il legno è abbondante (30 o più) o quando la fonderia ha bisogno di carbone.'},
+  {id:'smelter',label:'Fonderia',key:'',hint:'Fonde 2 ferro della miniera con 1 carbone in 2 barre di ferro (ogni 11 s). Il fabbro ricava 5 attrezzi da una barra invece di 3 da un ferro. Le barre si vendono a caro prezzo ai mercanti.'},
   {id:'ropewalk',label:'Cordaio',key:'',hint:'Torce la fibra di canapa del maceratoio in corde (3 per fibra ogni 9 s). Le corde si vendono ai mercanti e rinforzano le riparazioni degli edifici.'},
   {id:'dyehouse',label:'Tintoria',key:'',hint:'Sulla riva di un lago o di un fiume. Tinge il tessuto del telaio con le piante tintorie delle fattorie (1 pezza per pianta ogni 10 s). Il sarto ricava 3 abiti da una pezza tinta, invece di 2.'},
   {id:'tailor',label:'Sartoria',key:'',hint:'Cuce abiti (2 per tessuto ogni 10 s) con il tessuto del telaio e li porta alle case dal livello 3: +3 di felicità. Serve un telaio.'},
@@ -1090,7 +1108,7 @@ const CATS=[
   {id:'tools',label:'Strumenti',ids:['select','pan','demolish']},
   {id:'zone',label:'Zone e strade',ids:['d1','d2','d3','d4','d5','undistrict','road']},
   {id:'prod',label:'Produzione',ids:['wood','quarry','mine','forester','granary','mill']},
-  {id:'shop',label:'Botteghe',ids:['carpenter','mason','smithy','bakery','sheepfold','retting','ropewalk','dyehouse','weaver','tailor','fisher','hunter','mercery']},
+  {id:'shop',label:'Botteghe',ids:['carpenter','mason','smithy','bakery','sheepfold','charcoal','smelter','retting','ropewalk','dyehouse','weaver','tailor','fisher','hunter','mercery']},
   {id:'serv',label:'Servizi',ids:['store','well','school','infirmary','church','inn','tavern','hall']},
   {id:'deco',label:'Decorazioni',ids:['plaza','flowers','statue']},
   {id:'def',label:'Difesa',ids:['watchtower','barracks']}];
@@ -1169,6 +1187,8 @@ function refreshSel(){
       bakery:`Un panettiere trasforma 1 farina in 3 pagnotte ogni ${spec.t} s e le porta alle famiglie. Farina nei mulini: ${S.stock.flour}.`,
       weaver:`Un tessitore trasforma 1 lana in 2 pezze di tessuto ogni ${spec.t} s, o 1 fibra di lino in 3 pezze. La lana viene dagli ovili vicini, la fibra dal maceratoio. Le pezze vanno ai sarti e alle case con il telaio.`,
       retting:`Un maceratore trasforma 1 stelo di lino o canapa in 1 fibra ogni ${spec.t} s. Steli in attesa: lino ${(b.inp||{}).flax|0}, canapa ${(b.inp||{}).hemp|0} (max ${Sim.RET_CAP}) · fibra pronta: lino ${b.out.flaxf|0}, canapa ${b.out.hempf|0}. Il lino va ai telai, la canapa ai cordai. Gli steli li portano i contadini delle fattorie che coltivano lino o canapa.`,
+      charcoal:`Un carbonaio trasforma 3 legni del magazzino in 2 carboni ogni ${spec.t} s. Legno ${S.stock.wood} · carbone ${S.stock.charcoal|0}/${Sim.CHAR_CAP}. Con meno di 30 legni lavora solo se una fonderia ha bisogno di carbone, così i cantieri non restano senza legno.`,
+      smelter:`Un fonditore fonde 2 ferro e 1 carbone in 2 barre ogni ${spec.t} s. Ferro ${S.stock.iron} · carbone ${S.stock.charcoal|0} · barre ${S.stock.bars|0}/${Sim.BAR_CAP}. Il fabbro usa le barre per fare 5 attrezzi ciascuna; senza barre torna al ferro grezzo (3 attrezzi).`,
       dyehouse:`Un tintore tinge 1 pezza di tessuto con 1 pianta tintoria ogni ${spec.t} s. Piante in attesa: ${(b.inp||{}).dye|0} (max ${Sim.RET_CAP}) · pezze tinte pronte: ${b.out.dyed|0}. Il tessuto lo prende dal telaio vicino; il sarto con una pezza tinta cuce 3 abiti invece di 2. Le piante le portano i contadini delle fattorie con la coltura tintorie.`,
       ropewalk:`Un cordaio trasforma 1 fibra di canapa in 3 corde ogni ${spec.t} s. Corde nel magazzino: ${S.stock.rope|0}. Le corde si vendono ai mercanti e rinforzano le riparazioni (+50%).`,
       tailor:`Un sarto trasforma 1 pezza di tessuto in 2 abiti ogni ${spec.t} s; le case dal livello 3 che li ricevono hanno +3 di felicità. Il tessuto viene dai telai.`,
@@ -1226,7 +1246,7 @@ function refreshSel(){
 }
 function selB(){return sel&&Sim.buildings().get(sel);}
 // v36: pannello di accettazione e massimali di Magazzino e Granaio (le righe si creano una volta per edificio, poi si aggiornano solo i numeri)
-const STKNAME={wood:'Legno',stone:'Pietra',iron:'Ferro',planks:'Assi',tools:'Attrezzi',cloth:'Tessuto',clothes:'Abiti',rope:'Corde',grain:'Grano',flour:'Farina',bread:'Pane',fish:'Pesce',meat:'Carne'};
+const STKNAME={wood:'Legno',stone:'Pietra',iron:'Ferro',planks:'Assi',tools:'Attrezzi',cloth:'Tessuto',clothes:'Abiti',rope:'Corde',charcoal:'Carbone',bars:'Barre di ferro',grain:'Grano',flour:'Farina',bread:'Pane',fish:'Pesce',meat:'Carne'};
 let stkCfgFor=null;
 function updStoreCfg(b){
   const box=$('selStore');

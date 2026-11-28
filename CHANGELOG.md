@@ -1,5 +1,14 @@
 # Changelog
 
+## v56 – 2026-11-28
+Funzione nuova: filiera completa del ferro (miniera → carbonaia → fonderia → fucina) e nuove botteghe nell'albero dei blueprint.
+- **Carbonaia** (vicino a un bosco fitto, 2 posti): 3 legni del magazzino → 2 carboni ogni 10 s. Lavora solo se il legno è abbondante (30 o più) o se una fonderia ha bisogno di carbone: i cantieri non restano senza legno.
+- **Fonderia** (2 posti, 2 assi): 2 ferro grezzo + 1 carbone → 2 barre di ferro ogni 11 s.
+- **Fucina:** con una barra cuce **5 attrezzi** (prima 3 per ferro); senza barre torna al ferro grezzo come prima, quindi le partite senza fonderia non cambiano.
+- **Merci nuove:** carbone e barre stanno nel centro e nei Magazzini (accettazione e massimali configurabili) e si salvano; le barre si vendono a Porto Fiorito (15 denari) e Campomaggio (14).
+- **Albero dei blueprint (v52):** nuovi blueprint carbonaia (titolo 4, dopo il guardaboschi) e fonderia (titolo 4, dopo miniera e carbonaia) nel ramo «Legno, pietra e ferro»; maceratoio, cordaio (dopo il maceratoio) e tintoria (titolo 6, dopo maceratoio e telaio) nel ramo «Tessile». Prima di questa versione maceratoio, cordaio e tintoria erano sempre disponibili anche nella modalità storia.
+- Test: `tests/ferro.js`; `tests/albero.js` resta verde.
+
 ## v55 – 2026-11-28
 Funzione nuova: tende dei senza casa.
 - **Regola:** i cittadini che non hanno una casa si costruiscono da soli una **tenda** (2 persone per tenda) vicino al centro del villaggio. La tenda è un cantiere come gli altri: il legno (4) lo portano i costruttori dal magazzino. Di notte chi ha una tenda finita dorme lì, non più nel magazzino.
