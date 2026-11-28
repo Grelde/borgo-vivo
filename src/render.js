@@ -1097,7 +1097,7 @@ Sim.hooks.toast=m=>toast(m);
 // ---------- abitanti ----------
 const TUN=[0x8c2f23,0x2f5d73,0x6a7a3b,0x7c5a2c,0x6b4a7a,0x5d5d5d,0xb0802e],tunMats={};
 const skin=L(0xe0b48c);
-const CARRY={wood:MAT.log,stone:MAT.stoneD,veg:MAT.veg,eggs:MAT.egg,grain:MAT.grain,water:MAT.water,iron:MAT.iron,flour:MAT.flour,fish:MAT.fishM,meat:MAT.meatM,firewood:MAT.fw,bread:MAT.hay,tools:MAT.iron,wool:MAT.wool,cloth:MAT.cloth,clothes:MAT.cloth,planks:MAT.hay};
+const CARRY={wood:MAT.log,stone:MAT.stoneD,veg:MAT.veg,eggs:MAT.egg,grain:MAT.grain,water:MAT.water,iron:MAT.iron,flour:MAT.flour,fish:MAT.fishM,meat:MAT.meatM,game:MAT.meatM,firewood:MAT.fw,bread:MAT.hay,tools:MAT.iron,wool:MAT.wool,cloth:MAT.cloth,clothes:MAT.cloth,planks:MAT.hay};
 const vms=new Map(),vpick=[];
 // v34: carichi visibili. Asse e tronco sulla spalla, sasso in braccio, carretto spinto davanti per pietre, tronchi e minerale.
 // Costruttori e magazzinieri usano gli stessi modelli: li sceglie loadKind() dal carico e da quello che l'abitante sta facendo.
@@ -1273,7 +1273,7 @@ const TOOLS=[
   {id:'smelter',label:'Fonderia',key:'',hint:'Fonde 2 ferro della miniera con 1 carbone in 2 barre di ferro (ogni 11 s). Il fabbro ricava 5 attrezzi da una barra invece di 3 da un ferro. Le barre si vendono a caro prezzo ai mercanti.'},
   {id:'ropewalk',label:'Cordaio',key:'',hint:'Torce la fibra di canapa del maceratoio in corde (3 per fibra ogni 9 s). Le corde si vendono ai mercanti e rinforzano le riparazioni degli edifici.'},
   {id:'saltworks',label:'Salina',key:'',hint:"Sulla riva di un lago o di un fiume. Vasche di evaporazione: +3 sale ogni 8 s per addetto. Il sale serve a macellaio, affumicatoio e caseificio. Le vasche sono rivestite di mattoni."},
-  {id:'butcher',label:'Bottega del macellaio',key:'',hint:"Con la carne in eccedenza nei Granai (oltre alla riserva fresca) e il sale fa 4 conserve da 2 carni. Le conserve sfamano le case quando manca il cibo fresco."},
+  {id:'butcher',label:'Bottega del macellaio',key:'',hint:"Con la carne e la selvaggina in eccedenza nei Granai (oltre alla riserva fresca) e il sale fa 4 conserve da 2 carni. Le conserve sfamano le case quando manca il cibo fresco."},
   {id:'smokehouse',label:'Affumicatoio',key:'',hint:"Con il pesce in eccedenza, sale e legna in abbondanza fa 4 conserve da 2 pesci. Il fumo richiede un comignolo di mattoni."},
   {id:'dairy',label:'Caseificio',key:'',hint:"Serve un ovile con i pastori vicino: il latte e il sale diventano formaggio. Il formaggio sfama le case come le conserve."},
   {id:'brewery',label:'Birrificio',key:'',hint:"Con il grano in eccedenza (oltre la riserva del mulino) e legna fa 3 birre da 2 grani. La taverna serve un boccale al giorno e rende più contento il vicinato."},
@@ -1283,7 +1283,7 @@ const TOOLS=[
   {id:'dyehouse',label:'Tintoria',key:'',hint:'Sulla riva di un lago o di un fiume. Tinge il tessuto del telaio con le piante tintorie delle fattorie (1 pezza per pianta ogni 10 s). Il sarto ricava 3 abiti da una pezza tinta, invece di 2.'},
   {id:'tailor',label:'Sartoria',key:'',hint:'Cuce abiti (2 per tessuto ogni 10 s) con il tessuto del telaio e li porta alle case dal livello 3: +3 di felicità. Serve un telaio.'},
   {id:'fisher',label:'Capanna del pescatore',key:'',hint:'Sulla riva di un lago o di un fiume. Pesce per le famiglie (2 ogni 7 s per pescatore); con il ghiaccio non si pesca.'},
-  {id:'hunter',label:'Capanna del cacciatore',key:'',hint:'Vicino a un bosco fitto. Porta carne alle famiglie (2 ogni 8 s per cacciatore); d\'inverno la selvaggina è scarsa.'},
+  {id:'hunter',label:'Capanna del cacciatore',key:'',hint:'Vicino a un bosco fitto. Porta selvaggina alle famiglie (2 ogni 8 s per cacciatore): è un cibo a sé, diverso dalla carne degli allevamenti. D\'inverno è scarsa.'},
   {id:'sheepfold',label:'Ovile',key:'',hint:'Costruisci l\'ovile dentro una zona Pascolo (tasto P): la zona intorno si chiude con un recinto, i pastori portano le pecore a brucare lì dentro e producono la lana per il tessitore.'},
   {id:'mercery',label:'Merceria',key:'',hint:'Con un merciaio istruito (ci lavora solo chi ha studiato): le botteghe portano qui attrezzi, pane, tessuto e abiti (fino a 40 per merce) e le famiglie entro 135 celle vengono a ritirare ciò che manca. Se è chiusa o lo scaffale è pieno, le botteghe consegnano alle case.'},
   {id:'taxoffice',label:'Ufficio delle Tasse',key:'',hint:'Con un esattore istruito (ci lavora solo chi ha studiato): ogni casa ha un contatore di 7 giorni; quando scade l\'esattore passa a riscuotere la tassa (1 moneta d\'argento a settimana al livello 1, poi 3, 5, 10 e 20) e porta tutto all\'ufficio. Le case che non riesce a visitare non pagano. Chi paga troppo può decidere di non migliorare la casa.'},
@@ -1360,10 +1360,10 @@ function refreshSel(){
     const wk=b.work?`<div><b>Lavori in corso</b>: ${b.work.kind==='up'?'ampliamento della casa':b.work.kind==='garden'?'nuovo giardino':'ampliamento del giardino'} · materiali ${(b.got.wood||0)+(b.got.stone||0)}/${((b.cost||{}).wood||0)+((b.cost||{}).stone||0)} · avanzamento ${Math.round((b.prog||0)*100)}%</div>`:(b.gfull===false?'<div>Orto piccolo: dal livello 2 potrà farsi un giardino recintato (serve legna e un costruttore).</div>':'');
         list=wk+rows+`<div>${shopTxt}</div><div>Felicità <b>${b.well}</b>/100</div><div class="wbar"><i style="width:${b.well}%"></i></div>${needsHtml(b)}${taxHtml(b)}<div>Legna da ardere: ${gd.firewood}/${fn} ${gd.firewood>=fn?'(scorta sufficiente)':'(scorta scarsa)'}</div>`+(S.edicts&&S.edicts.noUpgrade?'<div>Editto in vigore: le case non migliorano.</div>':'')+`${b.ext&&b.ext.length?`<div>Giardino ampliato di ${b.ext.length} celle, verso la strada.</div>`:''}<div>Attività secondaria: ${b.side==='fish'?'pesca (casa vicino all\'acqua)':b.side==='hunt'?'caccia (casa vicino a un bosco tranquillo)':'nessuna'}. ${b.crop==='wood'?'Niente orto né galline: la famiglia va nel bosco a raccogliere la legna e quella in più la baratta al mercato con il cibo.':'Non produce legna: la compra al mercato.'}</div><div>Attrattiva della zona: ${Sim.attrLabel(b.attr)} (${b.attr.toFixed(1)})</div>`+
       `<div class="flags"><span class="${fl.foodUp?'ok':'no'}">Cibo ${b.level}+</span><span class="${fl.water?'ok':'no'}">Acqua</span><span class="${fl.church?'ok':'no'}">Chiesa</span>${b.level>=3?`<span class="${fl.school?'ok':'no'}">Scuola</span>`:''}${b.level>=4?`<span class="${fl.quality?'ok':'no'}">Zona</span>`:''}<span class="${fl.attr?'ok':'no'}">Quiete</span><span class="${fl.heat?'ok':'no'}">Caldo</span><span class="${fl.fuel?'ok':'warn'}">Legna</span><span class="${fl.mat?'ok':'no'}">Materiali</span></div>`+
-      `<div>Scorte: ortaggi ${gd.veg} · uova ${gd.eggs} · grano ${gd.grain} · pesce ${gd.fish} · carne ${gd.meat} · pane ${gd.bread}</div><div>Legna ${gd.firewood} · ferro ${gd.iron} · farina ${gd.flour} · attrezzi ${gd.tools}</div><div>Lana ${gd.wool} · tessuto ${gd.cloth} · abiti ${gd.clothes}</div>`+(need?`<div>${need}</div>`:'<div>Livello massimo raggiunto.</div>');
+      `<div>Scorte: ortaggi ${gd.veg} · uova ${gd.eggs} · grano ${gd.grain} · pesce ${gd.fish} · carne ${gd.meat} · selvaggina ${gd.game|0} · pane ${gd.bread}</div><div>Legna ${gd.firewood} · ferro ${gd.iron} · farina ${gd.flour} · attrezzi ${gd.tools}</div><div>Lana ${gd.wool} · tessuto ${gd.cloth} · abiti ${gd.clothes}</div>`+(need?`<div>${need}</div>`:'<div>Livello massimo raggiunto.</div>');
   }
   else if(b.type==='stall'){const o=Sim.buildings().get(b.owner);info=b.open?'Banco aperto: si accettano baratti.':'Banco chiuso.';
-    if(o)list=`<div>Merce: ortaggi ${o.goods.veg} · uova ${o.goods.eggs} · pesce ${o.goods.fish} · carne ${o.goods.meat} · pane ${o.goods.bread} · legna ${o.goods.firewood} · attrezzi ${o.goods.tools}</div>`;}
+    if(o)list=`<div>Merce: ortaggi ${o.goods.veg} · uova ${o.goods.eggs} · pesce ${o.goods.fish} · carne ${o.goods.meat} · selvaggina ${o.goods.game|0} · pane ${o.goods.bread} · legna ${o.goods.firewood} · attrezzi ${o.goods.tools}</div>`;}
   else if(b.type==='farm'){const w=Sim.villagers().filter(v=>v.job===b.id);const fc=b.crop||'grain',CN={grain:'grano',flax:'lino',hemp:'canapa',dye:'tintorie',vine:'vigna'},ri=Sim.retInfo(fc==='vine'?'winery':fc==='dye'?'dyehouse':'retting');const sf=b.fields.length?b.fields.reduce((a,i)=>a+Sim.soilF(fert[i]),0)/b.fields.length:1;info=`Campi: ${b.fields.length} · lavorano ${w.length} · coltura: ${CN[fc]} · suolo ${soilTxt(sf)}`;
     list='<div class="sh">Coltura dei campi</div><div>'+['grain','flax','hemp','dye','vine'].map(k=>`<button class="btn sm${k===fc?' on':''}" type="button" data-crop="${k}">${CN[k][0].toUpperCase()+CN[k].slice(1)}</button>`).join(' ')+'</div>'+
       w.map((v,i)=>`<div>Contadino ${i+1}: ${esc(Sim.roleText(v))}</div>`).join('')+(fc==='grain'?"<div>Il grano raccolto va alla famiglia che l'ha fondata.</div>":(fc==='vine'?"<div>L'uva va alla cantina: la famiglia non riceve grano da questa fattoria.</div>":fc==='dye'?'<div>Le piante tintorie vanno alla tintoria: la famiglia non riceve grano da questa fattoria.</div>':`<div>Gli steli di ${CN[fc]} vanno al maceratoio: la famiglia non riceve grano da questa fattoria.</div>`)+(ri.any?'':`<div>Senza ${fc==='vine'?'una cantina':fc==='dye'?'una tintoria':'un maceratoio'} i contadini raccolgono grano.</div>`));}
@@ -1386,7 +1386,7 @@ function refreshSel(){
   }
   else if(Sim.WS[b.type]){
     const w=Sim.villagers().filter(v=>v.job===b.id),g=Sim.PROD[b.type],spec=Sim.WS[b.type];
-    const GL={tools:'attrezzi',bread:'pane',cloth:'tessuto',clothes:'abiti',fish:'pesce',meat:'carne',rope:'corde'};
+    const GL={tools:'attrezzi',bread:'pane',cloth:'tessuto',clothes:'abiti',fish:'pesce',meat:'carne',game:'selvaggina',rope:'corde'};
     const DESC={
       carpenter:`Trasforma il legno del magazzino in assi (2 per legno ogni ${spec.t} s per falegname). Legno ${S.stock.wood} · assi ${S.stock.planks}/${Sim.PLANK_CAP}. Le assi servono ai cantieri di scuola, ospizio, chiesa, mulino, locanda, magazzino e botteghe.`,
       smithy:`Un fabbro trasforma 1 ferro in 3 attrezzi ogni ${spec.t} s e li porta alle case (con gli attrezzi il giardino rende il 10% in più). Ferro nel magazzino: ${S.stock.iron}. Se c'è una caserma che ha bisogno di armi, il fabbro forgia prima quelle (1 barra o 2 ferri per un'arma): armi nel magazzino ${S.stock.weapons|0}.`,
@@ -1399,7 +1399,7 @@ function refreshSel(){
       charcoal:`Un carbonaio trasforma 3 legni del magazzino in 2 carboni ogni ${spec.t} s. Legno ${S.stock.wood} · carbone ${S.stock.charcoal|0}/${Sim.CHAR_CAP}. Con meno di 30 legni lavora solo se una fonderia ha bisogno di carbone, così i cantieri non restano senza legno.`,
       smelter:`Un fonditore fonde 2 ferro e 1 carbone in 2 barre ogni ${spec.t} s. Ferro ${S.stock.iron} · carbone ${S.stock.charcoal|0} · barre ${S.stock.bars|0}/${Sim.BAR_CAP}. Il fabbro usa le barre per fare 5 attrezzi ciascuna; senza barre torna al ferro grezzo (3 attrezzi).`,
       saltworks:`Un salinaro ricava 3 sali ogni ${spec.t} s dalle vasche. Sale nei magazzini: ${S.stock.salt|0}/${Sim.SALT_CAP}. Serve a macellaio, affumicatoio e caseificio; senza salina lo si compra in città.`,
-      butcher:`Un macellaio fa 4 conserve con 2 carni e 1 sale ogni ${spec.t} s, ma solo con almeno ${Sim.MEAT_KEEP+2} carni nei Granai (la riserva fresca resta alle case). Carne ${S.stock.meat|0} · sale ${S.stock.salt|0} · conserve ${S.stock.cured|0}/${Sim.CURED_CAP}.`,
+      butcher:`Un macellaio fa 4 conserve con 2 carni e 1 sale ogni ${spec.t} s, ma solo con almeno ${Sim.MEAT_KEEP+2} tra carni e selvaggina nei Granai (la riserva fresca resta alle case). Carne ${S.stock.meat|0} · selvaggina ${S.stock.game|0} · sale ${S.stock.salt|0} · conserve ${S.stock.cured|0}/${Sim.CURED_CAP}.`,
       smokehouse:`Un affumicatore fa 4 conserve con 2 pesci, 1 sale e 1 legno ogni ${spec.t} s, con almeno ${Sim.FISH_KEEP+2} pesci nei Granai e 20 legni. Pesce ${S.stock.fish|0} · sale ${S.stock.salt|0} · conserve ${S.stock.cured|0}/${Sim.CURED_CAP}.`,
       dairy:`Un casaro fa 2 formaggi con 2 latte e 1 sale ogni ${spec.t} s. Il latte lo danno gli ovili vicini (entro ${Sim.BAND} celle). Sale ${S.stock.salt|0} · formaggi ${S.stock.cheese|0}/${Sim.CHEESE_CAP}.`,
       brewery:`Un birraio fa 3 birre con 2 grani e 1 legno ogni ${spec.t} s, con almeno ${Sim.GRAIN_KEEP+2} grani nei Granai e 20 legni. Grano ${S.stock.grain|0} · birra ${S.stock.beer|0}/${Sim.BEER_CAP}. La taverna ne serve una al giorno.`,
@@ -1410,7 +1410,7 @@ function refreshSel(){
       ropewalk:`Un cordaio trasforma 1 fibra di canapa in 3 corde ogni ${spec.t} s. Corde nel magazzino: ${S.stock.rope|0}. Le corde si vendono ai mercanti e rinforzano le riparazioni (+50%).`,
       tailor:`Un sarto trasforma 1 pezza di tessuto in 2 abiti ogni ${spec.t} s; le case dal livello 3 che li ricevono hanno +3 di felicità. Il tessuto viene dai telai.`,
       fisher:`Un pescatore porta 2 pesci ogni ${spec.t} s. Con il ghiaccio non si pesca.`,
-      hunter:`Un cacciatore porta 2 pezzi di carne ogni ${spec.t} s; d'inverno la selvaggina è scarsa.`,
+      hunter:`Un cacciatore porta 2 pezzi di selvaggina ogni ${spec.t} s; d'inverno la selvaggina è scarsa.`,
       tavern:`Con almeno un taverniere, chi abita entro ${Sim.FUN.tavern.r} celle ha +${Sim.FUN.tavern.joy} di felicità.`,
       hall:`Con almeno un musicante, chi abita entro ${Sim.FUN.hall.r} celle ha +${Sim.FUN.hall.joy} di felicità.`}[b.type];
     info=`Al lavoro: ${w.length} su ${b.want}`+(g?` · pronti: ${GL[g]} ${b.out[g]}/${Sim.OUTCAP}`:'')+(b.type==='carpenter'?` · assi ${S.stock.planks}/${Sim.PLANK_CAP}`:'');
@@ -1446,8 +1446,8 @@ function refreshSel(){
   }
   else if(b.type==='flowers'||b.type==='statue')info='Abbellimento: rende più piacevole la zona e attira nuovi abitanti.';
   else if(b.type==='granary'){const si=b.state==='done'?Sim.storeInfo(b):null;
-    info=si?`Contiene ${si.tot}/${si.total} · grano ${S.stock.grain} · farina ${S.stock.flour} · pane ${S.stock.bread} · pesce ${S.stock.fish} · carne ${S.stock.meat}`:'Granaio in costruzione.';
-    list='<div>Accoglie il cibo che non viene dai giardini: grano delle fattorie, farina del mulino, pane del forno, pesce e carne dei pescatori e dei cacciatori. Il raccolto dei giardini resta alle case. Il mugnaio ritira il grano.</div>';}
+    info=si?`Contiene ${si.tot}/${si.total} · grano ${S.stock.grain} · farina ${S.stock.flour} · pane ${S.stock.bread} · pesce ${S.stock.fish} · carne ${S.stock.meat} · selvaggina ${S.stock.game|0}`:'Granaio in costruzione.';
+    list='<div>Accoglie il cibo che non viene dai giardini: grano delle fattorie, farina del mulino, pane del forno, pesce dei pescatori, selvaggina dei cacciatori e carne. Il raccolto dei giardini resta alle case. Il mugnaio ritira il grano.</div>';}
   else if(b.type==='well')info=`Acqua per le case entro ${Sim.WELL_R} celle. Luogo piacevole.`;
   else if(b.type==='watchtower')info=`Arcieri: tirano al nemico più vicino entro ${Sim.TOWER_R} celle (${Sim.TOWER_DPS} colpi al secondo). Predoni uccisi finora: ${S.raid.killed}.`;
   else if(b.type==='barracks'){const w=Sim.villagers().filter(v=>v.job===b.id);info=`Guerrieri: ${w.length}/${b.want}. Escono quando arrivano i nemici: senza arma valgono quanto un brigante, con un'arma 5/3 (ne usano una ciascuno, torna in magazzino se sopravvivono). Armi nel magazzino: ${S.stock.weapons|0}. Se un guerriero non basta, i cittadini vicini combattono con 1/3 della forza di un brigante e rischiano di morire.`;}
@@ -2234,11 +2234,30 @@ function popJoy(st){
   h+='<h4>I più scontenti</h4><div class="popList">'+low.map(v=>{const w=whyV(v);return popRow(`<span class="lk" data-v="${v.id}">${esc(v.name)} ${esc(v.fam)}</span> · ${v.age|0} anni${w.length?' · '+esc(w.join(', ')):''}`,v.joy);}).join('')+'</div>';
   return h;
 }
+// v74: scheda del Cibo: che cibi ci sono nel borgo, nei Granai/Magazzini (scorte comuni) e nelle case (dispense delle famiglie)
+const FOOD_LIST=[['meat','Carne'],['fish','Pesce'],['veg','Ortaggi'],['game','Selvaggina'],['eggs','Uova'],['bread','Pane'],['grain','Grano'],['flour','Farina'],['cured','Conserve'],['cheese','Formaggio'],['beer','Birra'],['wine','Vino']];
+function foodCounts(){
+  const S2=Sim.S,st={},ho={};let nh=0;
+  for(const [k] of FOOD_LIST){st[k]=Math.max(0,Math.floor(S2.stock[k]||0));ho[k]=0;}
+  for(const b of Sim.buildings().values()){if(b.type!=='house'||b.state!=='done'||!b.goods)continue;nh++;for(const [k] of FOOD_LIST)ho[k]+=Math.max(0,Math.floor(b.goods[k]||0));}
+  return {st,ho,nh};
+}
+function popFood(st){
+  const c=foodCounts();let h='';
+  const tS=FOOD_LIST.reduce((a,[k])=>a+c.st[k],0),tH=FOOD_LIST.reduce((a,[k])=>a+c.ho[k],0);
+  h+=`<div class="kv"><div>Nei Granai e Magazzini<b>${tS}</b></div><div>Nelle case<b>${tH}</b></div><div>Tipi di cibo<b>${FOOD_LIST.filter(([k])=>c.st[k]+c.ho[k]>0).length}/${FOOD_LIST.length}</b></div></div>`;
+  h+='<h4>Che cibi abbiamo</h4><div class="row"><span><i>Cibo</i></span><b><i>Granai · Case</i></b></div>';
+  for(const [k,n] of FOOD_LIST){const tot=c.st[k]+c.ho[k];h+=popRow(`<span style="opacity:${tot?1:.45}">${n}</span>`,`<span style="opacity:${tot?1:.45}">${c.st[k]} · ${c.ho[k]}</span>`);}
+  const kinds=['meat','fish','veg','game','eggs'].filter(k=>c.st[k]+c.ho[k]>0).length;
+  h+=`<div class="popTip"><b>Varietà.</b> Gli abitanti stanno meglio se mangiano cibi diversi (carne, pesce, ortaggi, selvaggina, uova, pane…): ${kinds} dei 5 cibi freschi sono presenti. La selvaggina arriva dai cacciatori e dalle case che cacciano; la carne viene dagli allevamenti.</div>`;
+  h+=`<p style="opacity:.75;font-size:12px">La farina diventa pane al forno. Le conserve (carne e pesce sotto sale) durano a lungo. Il cibo nelle case è la dispensa delle famiglie (${c.nh} case).</p>`;
+  return h;
+}
 function renderPop(st){
   if(!popOpen)return;
   st=st||Sim.stats();
   document.querySelectorAll('#pop .popTabs .btn').forEach(b=>b.classList.toggle('on',b.dataset.tab===popTab));
-  const h=popTab==='joy'?popJoy(st):popPeople(st);
+  const h=popTab==='joy'?popJoy(st):popTab==='food'?popFood(st):popPeople(st);
   if(h===popHtml)return;
   // conserva la posizione di scorrimento quando il contenuto si aggiorna
   const box=$('popBox'),body=$('popBody'),ql=e=>e.querySelector?e.querySelector('.popList'):null,bs=box.scrollTop,ol=ql(body),ls=ol?ol.scrollTop:0;
@@ -2256,7 +2275,7 @@ $('pop').addEventListener('click',ev=>{
 $('popClose').addEventListener('click',closePop);
 // Esc chiude prima la scheda dell'abitante, se aperta (capture: gira prima dell'altro gestore)
 addEventListener('keydown',ev=>{if(ev.key==='Escape'&&popOpen&&$('card').hidden)closePop();},true);
-for(const [id,tab] of [['chipPop','pop'],['chipJoy','joy']]){
+for(const [id,tab] of [['chipPop','pop'],['chipJoy','joy'],['chipFood','food']]){
   const el=$(id);
   el.addEventListener('click',()=>openPop(tab));
   el.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();ev.stopPropagation();openPop(tab);}});

@@ -8,8 +8,8 @@ const PATH=3,ROADT=20,WMAX=28,MAXP=4,NEEDP=[1,2,4,8],DUR=[0,20,40,80,240],PCOST=
 // v26: il giorno dura DAY secondi (era 100). TK riporta ai ritmi 'per giorno' di prima i fenomeni calcolati a ogni secondo (produzione, malattie, rischi, immigrazione).
 // v58: il giorno dura 300 s (era 150) ma la notte resta di 27 s (9 dopo la mezzanotte + 18 prima): in percentuale è il 9% del giorno invece del 18%. Le ore del giorno si ridistribuiscono sui 273 s restanti (tabella TL più sotto).
 const DAY=300,DK=DAY/100,TK=100/DAY,STORE_CAP=1000,CENTER_CAP=80,BUFCAP=8,GRAIN_CAP=1000,FLOUR_CAP=40,SAPLING_T=140;
-const TYPES=['veg','eggs','grain','fish','meat','bread'];
-const GN={veg:'ortaggi',eggs:'uova',grain:'grano',fish:'pesce',meat:'carne',bread:'pane',firewood:'legna da ardere',tools:'attrezzi',iron:'ferro',flour:'farina',wool:'lana',cloth:'tessuto',clothes:'abiti'};
+const TYPES=['veg','eggs','grain','fish','meat','game','bread'];
+const GN={veg:'ortaggi',eggs:'uova',grain:'grano',fish:'pesce',meat:'carne',game:'selvaggina',bread:'pane',firewood:'legna da ardere',tools:'attrezzi',iron:'ferro',flour:'farina',wool:'lana',cloth:'tessuto',clothes:'abiti'};
 const GOODS=TYPES.concat(['firewood','tools','iron','flour','wool','cloth','clothes']);
 const TRADE=TYPES.concat(['firewood','tools','cloth','clothes']);
 const CAPS=[3,4,5,6,7],MAXLV=5,QUAL5=3,WELL_R=30,CHURCH_R=54,SCHOOL_R=45,KEEP=2,LVNAME=['Capanna','Casa','Casa a due piani','Casa signorile','Palazzo'];
@@ -138,9 +138,9 @@ const TOWNS={
 const ROUTE_IDS=['w','n','e','s'];
 const TGN={wood:'legno',stone:'pietra',planks:'assi',iron:'ferro',tools:'attrezzi',bread:'pane',fish:'pesce',meat:'carne',cloth:'tessuto',clothes:'abiti',rope:'corde',bars:'barre di ferro',weapons:'armi',hides:'pelli',leather:'cuoio',shoes:'scarpe',salt:'sale',cured:'conserve',cheese:'formaggio',beer:'birra',wine:'vino'};
 // si vende solo sopra T_KEEP (più il fabbisogno delle case per cibo, attrezzi e abiti) e si compra solo sotto T_TARGET: così non si compra e vende lo stesso bene
-const T_KEEP={hides:16,leather:10,shoes:12,salt:12,cured:16,cheese:10,beer:10,wine:10,weapons:99,bars:10,rope:8,wood:60,stone:45,iron:24,planks:18,tools:14,bread:20,cloth:14,clothes:12,fish:25,meat:25},T_TARGET={hides:0,leather:0,shoes:0,salt:6,cured:0,cheese:0,beer:0,wine:0,weapons:6,bars:0,rope:0,wood:30,stone:20,iron:10,planks:10,tools:8,bread:10,cloth:6,clothes:6,fish:10,meat:10};
+const T_KEEP={hides:16,leather:10,shoes:12,salt:12,cured:16,cheese:10,beer:10,wine:10,weapons:99,bars:10,rope:8,wood:60,stone:45,iron:24,planks:18,tools:14,bread:20,cloth:14,clothes:12,fish:25,meat:25,game:25},T_TARGET={hides:0,leather:0,shoes:0,salt:6,cured:0,cheese:0,beer:0,wine:0,weapons:6,bars:0,rope:0,wood:30,stone:20,iron:10,planks:10,tools:8,bread:10,cloth:6,clothes:6,fish:10,meat:10,game:10};
 const mkRoutes=()=>ROUTE_IDS.map(id=>({id,open:false,next:0,visits:0,earned:0,spent:0,last:-1,blocked:false}));
-const S={t:0,mode:'lake',extra:{},stock:{wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0},inflight:{wood:0,stone:0,iron:0},grow:0,barters:0,helps:0,visits:0,settled:0,season:0,year:1,frozen:false,day:0,f:0.06,ph:'work',wh:{wood:0,stone:0,iron:0},xf:{wood:0,stone:0,iron:0},edicts:EDICT0(),births:0,deaths:0,buried:0,unburied:0,
+const S={t:0,mode:'lake',extra:{},stock:{wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,game:0},inflight:{wood:0,stone:0,iron:0},grow:0,barters:0,helps:0,visits:0,settled:0,season:0,year:1,frozen:false,day:0,f:0.06,ph:'work',wh:{wood:0,stone:0,iron:0},xf:{wood:0,stone:0,iron:0},edicts:EDICT0(),births:0,deaths:0,buried:0,unburied:0,
   deathsBy:{age:0,cold:0,hunger:0,ill:0},plague:{on:false,since:0,dead:0},inherits:0,cured:0,sickTot:0,moves:0,left:0,att:{joy:0,unemp:0,a:0,bonus:0},made:{},delivered:0,
   coins:COINS0,fin:mkFin(),taxDay:-1,taxRate:'normal',ledger:{snap:null,rows:[]},routes:mkRoutes(),tradeOpt:{sell:true,buy:true},tlog:[],trade:{sold:0,bought:0,visits:0},
   story:false,rank:0,proj:{},msgs:[],raid:{next:0,repelled:0,killed:0,lost:0,stolen:0,bands:{},seq:0},wolf:{next:0,seq:0,arm:0,killed:0,lost:0,eaten:0,bitten:0,dead:0,bands:{}},war:{phase:'none',at:0,wave:0,hold:0,defeats:0,killed:0},rk:0};
@@ -149,7 +149,7 @@ const acc={a1:0,a05:0,farm:0,attr:99};
 const told={};
 function tell(k,msg){if(told[k])return;told[k]=1;hooks.toast(msg);}
 const JOBSTATES=new Set(['toCenterT','toWhT','toTree','toRock','chop','mine','toWork','wait','toField','till','toHomeF','toGranary','toPlant','plant','toMill','mill','toShop','toShore','shop','toGraze','graze','toSupply','toInnSup','toTax','tax','toTaxDep']);
-const ERRKEY={wool:'wool',cloth:'cloth',iron:'iron',flour:'flour',wood:'firewood',hunt:'meat',fish:'fish'};
+const ERRKEY={wool:'wool',cloth:'cloth',iron:'iron',flour:'flour',wood:'firewood',hunt:'game',fish:'fish'};
 // fabbisogno di legna da ardere per casa: scorta minima per stare tranquilli (più alta d'autunno e d'inverno)
 const fuelNeed=()=>S.season>=2?4:2;
 const fuelCap=()=>S.edicts.woodDuty?20:12;
@@ -180,7 +180,7 @@ const heldCenter=r=>Math.max(0,S.stock[r]-S.wh[r]-S.xf[r]);
 // Il centro cittadino resta com'era: 80 per ogni materiale, non configurabile. Le scorte restano un contatore per merce (S.stock); la loro suddivisione fra edifici è calcolata da layout().
 const GRAN_TOTAL=1000;
 const STORE_KEYS=['wood','stone','iron','planks','tools','cloth','clothes','rope','charcoal','bars','weapons','clay','bricks','lime','salt','hides','leather','shoes'];
-const GRAN_KEYS=['grain','flour','bread','fish','meat','cured','cheese','beer','wine'];
+const GRAN_KEYS=['grain','flour','bread','fish','meat','game','cured','cheese','beer','wine'];
 const CENTER_KEYS=['wood','stone','iron','planks','charcoal','bars','clay','bricks','lime','salt','cured','cheese','beer','wine','hides','leather','shoes'];
 const ALLKEYS=STORE_KEYS.concat(GRAN_KEYS);
 const keysOf=b=>b.type==='granary'?GRAN_KEYS:(b.center?CENTER_KEYS:STORE_KEYS);
@@ -478,7 +478,7 @@ function init(sd,mode,diff,opt){
   gate.fill(0);gatedSet.clear();
   occ.fill(0);field.fill(0);lastStep.fill(0);wear.fill(0);plev.fill(0);phit.fill(0);pexp.fill(0);attr.fill(0);sapT.fill(0);
   buildings.clear();stCache=null;villagers=[];vmap.clear();reg.clear();resv.clear();plantResv.clear();nextId=1;guests.length=0;
-  S.t=0;S.festA=[];S.fests=0;festSeq=0;S.edicts=EDICT0();S.births=0;S.deaths=0;S.buried=0;S.unburied=0;S.extra={};S.wh={wood:0,stone:0,iron:0};S.xf={wood:0,stone:0,iron:0};S.stock={wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,rope:0,charcoal:0,bars:0,weapons:0,clay:0,bricks:0,lime:0,salt:0,cured:0,cheese:0,beer:0,wine:0,hides:0,leather:0,shoes:0};S.inflight={wood:0,stone:0,iron:0};S.grow=0;S.left=0;S.att={joy:0,unemp:0,a:0,bonus:0};S.pet=[];S.petNext=0;S.petSeq=0;S.petOk=0;S.petNo=0;S.petLate=0;S.arrivedFam=0;S.barters=0;S.helps=0;S.visits=0;S.settled=0;S.season=0;S.year=1;S.frozen=false;acc.a1=0;acc.a05=0;acc.farm=0;acc.attr=99;for(const k in told)delete told[k];
+  S.t=0;S.festA=[];S.fests=0;festSeq=0;S.edicts=EDICT0();S.births=0;S.deaths=0;S.buried=0;S.unburied=0;S.extra={};S.wh={wood:0,stone:0,iron:0};S.xf={wood:0,stone:0,iron:0};S.stock={wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,game:0,rope:0,charcoal:0,bars:0,weapons:0,clay:0,bricks:0,lime:0,salt:0,cured:0,cheese:0,beer:0,wine:0,hides:0,leather:0,shoes:0};S.inflight={wood:0,stone:0,iron:0};S.grow=0;S.left=0;S.att={joy:0,unemp:0,a:0,bonus:0};S.pet=[];S.petNext=0;S.petSeq=0;S.petOk=0;S.petNo=0;S.petLate=0;S.arrivedFam=0;S.barters=0;S.helps=0;S.visits=0;S.settled=0;S.season=0;S.year=1;S.frozen=false;acc.a1=0;acc.a05=0;acc.farm=0;acc.attr=99;for(const k in told)delete told[k];
   S.deathsBy={age:0,cold:0,hunger:0,ill:0};S.plague={on:false,since:0,dead:0};S.inherits=0;S.cured=0;S.sickTot=0;S.moves=0;S.made={};S.delivered=0;S.coins=COINS0;S.fin=mkFin();S.taxDay=-1;S.taxRate='normal';S.ledger={snap:null,rows:[]};S.routes=mkRoutes();S.tradeOpt={sell:true,buy:true};S.tlog=[];S.trade={sold:0,bought:0,visits:0};
   S.story=!!(opt&&opt.story);S.rank=0;S.proj={};S.msgs=[];S.raid=raid0();S.wolf=wolf0();S.war=war0();S.rk=0;
   let okT=false,att=0;const base=(sd||7)|0;
@@ -532,7 +532,7 @@ function addBuilding(type,x,y,done,o){
   if(type==='sheepfold')Object.assign(b,{owner:o.owner||null,fields:[],pen:[],buf:0});
   if(type==='inn')Object.assign(b,{pantry:0,guestsIn:0,horses:0});
   if(type==='school'||type==='infirmary')b.pupils=0;
-  if(WS[type])b.out={tools:0,bread:0,cloth:0,clothes:0,fish:0,meat:0,rope:0,flaxf:0,hempf:0,dyed:0};
+  if(WS[type])b.out={tools:0,bread:0,cloth:0,clothes:0,fish:0,meat:0,game:0,rope:0,flaxf:0,hempf:0,dyed:0};
   if(type==='retting'||type==='dyehouse'||type==='winery')b.inp={flax:0,hemp:0,dye:0,vine:0};
   if(type==='farm')b.crop='grain';
   if(type==='mercery')b.shelf={tools:0,bread:0,cloth:0,clothes:0};
@@ -1017,7 +1017,7 @@ function startTransfer(v,b){
 // FAM_FISH_RATE = 0,5 della resa del pescatore (pesci al secondo di pesca). Una gita porta FAM_FISH_Q pesci e dura quanto serve per quella resa.
 const FISH_CYCLE=2,FAM_FISH_RATE=0.5,FAM_FISH_Q=2;
 const famFishTime=()=>WS.fisher.t*(FAM_FISH_Q/FISH_CYCLE)/FAM_FISH_RATE;
-const OUTCAP=30,BAND=135,PROD={smithy:'tools',bakery:'bread',weaver:'cloth',tailor:'clothes',fisher:'fish',hunter:'meat',ropewalk:'rope'};
+const OUTCAP=30,BAND=135,PROD={smithy:'tools',bakery:'bread',weaver:'cloth',tailor:'clothes',fisher:'fish',hunter:'game',ropewalk:'rope'};
 // v38: Merceria. Con un merciaio al lavoro, le botteghe portano qui attrezzi, pane, tessuto e abiti (scaffali fino a SHELFCAP per merce) invece di consegnarli alle case; le famiglie
 // mandano un adulto a ritirare ciò che manca (commissione 'merc'). Pesce e carne restano consegne dirette. Se la merceria è chiusa o lo scaffale è pieno si consegna alle case come prima.
 const MERC=['tools','bread','cloth','clothes'],SHELFCAP=40,MERC_LOT=6,MERC_LOW={tools:1,bread:2,cloth:2,clothes:1};
@@ -1148,7 +1148,7 @@ const WS={
   brickworks:{t:10,why:'Servono argilla (cava) e combustibile (carbone, o legno in abbondanza) nel magazzino, o il magazzino dei mattoni è pieno',can:b=>S.stock.clay>=2&&(S.stock.charcoal>=1||S.stock.wood>=30)&&S.stock.bricks<BRICK_CAP&&stockRoom('bricks')>=3,run:b=>{S.stock.clay-=2;if(S.stock.charcoal>=1)S.stock.charcoal--;else S.stock.wood-=3;S.stock.bricks=Math.min(BRICK_CAP,S.stock.bricks+3);}},
   limekiln:{t:10,why:'Servono pietra in abbondanza (o un cantiere che chiede calce) e combustibile (carbone, o legno in abbondanza), o il magazzino della calce è pieno',can:b=>S.stock.stone>=3&&(S.stock.stone>=25||matWanted('lime'))&&(S.stock.charcoal>=1||S.stock.wood>=30)&&S.stock.lime<LIME_CAP&&stockRoom('lime')>=2,run:b=>{S.stock.stone-=3;if(S.stock.charcoal>=1)S.stock.charcoal--;else S.stock.wood-=3;S.stock.lime=Math.min(LIME_CAP,S.stock.lime+2);}},
   saltworks:{t:8,why:'Il magazzino del sale è pieno',can:b=>S.stock.salt<SALT_CAP&&stockRoom('salt')>=3,run:b=>{S.stock.salt=Math.min(SALT_CAP,S.stock.salt+3);}},
-  butcher:{t:9,why:'Servono carne in eccedenza nei Granai (oltre alla riserva fresca) e sale, o il magazzino delle conserve è pieno',can:b=>S.stock.meat>=MEAT_KEEP+2&&S.stock.salt>=1&&S.stock.cured<CURED_CAP&&stockRoom('cured')>=4,run:b=>{S.stock.meat-=2;S.stock.salt--;S.stock.cured=Math.min(CURED_CAP,S.stock.cured+4);if(hideRoom())S.stock.hides++;}},
+  butcher:{t:9,why:'Servono carne in eccedenza nei Granai (oltre alla riserva fresca) e sale, o il magazzino delle conserve è pieno',can:b=>S.stock.meat+S.stock.game>=MEAT_KEEP+2&&S.stock.salt>=1&&S.stock.cured<CURED_CAP&&stockRoom('cured')>=4,run:b=>{if(S.stock.game>=2)S.stock.game-=2;else if(S.stock.meat>=2)S.stock.meat-=2;else{S.stock.game=0;S.stock.meat=Math.max(0,S.stock.meat-1);}S.stock.salt--;S.stock.cured=Math.min(CURED_CAP,S.stock.cured+4);if(hideRoom())S.stock.hides++;}},
   smokehouse:{t:10,why:'Servono pesce in eccedenza nei Granai (oltre alla riserva fresca), sale e legna in abbondanza, o il magazzino delle conserve è pieno',can:b=>S.stock.fish>=FISH_KEEP+2&&S.stock.salt>=1&&S.stock.wood>=20&&S.stock.cured<CURED_CAP&&stockRoom('cured')>=4,run:b=>{S.stock.fish-=2;S.stock.salt--;S.stock.wood--;S.stock.cured=Math.min(CURED_CAP,S.stock.cured+4);}},
   dairy:{t:10,why:'Servono latte (ovile con i pastori vicino) e sale, o il magazzino dei formaggi è pieno',can:b=>!!milkSrc(b)&&S.stock.salt>=1&&S.stock.cheese<CHEESE_CAP&&stockRoom('cheese')>=2,run:b=>{const o=milkSrc(b);if(o){o.milk-=2;S.stock.salt--;S.stock.cheese=Math.min(CHEESE_CAP,S.stock.cheese+2);}}},
   brewery:{t:10,why:'Servono grano in eccedenza nei Granai (oltre alla riserva del mulino) e legna in abbondanza, o il magazzino della birra è pieno',can:b=>S.stock.grain>=GRAIN_KEEP+2&&S.stock.wood>=20&&S.stock.beer<BEER_CAP&&stockRoom('beer')>=3,run:b=>{S.stock.grain-=2;S.stock.wood--;S.stock.beer=Math.min(BEER_CAP,S.stock.beer+3);}},
@@ -1162,7 +1162,7 @@ const WS={
   tailor:{t:10,why:'Serve tessuto: costruisci un telaio del tessitore',can:b=>b.out.clothes<OUTCAP&&(!!dyedSrc(b)||!!clothSrc(b)),run:b=>{const d=dyedSrc(b);if(d){d.out.dyed--;b.out.clothes+=3;return;}const o=clothSrc(b);if(o){if(o.type==='mercery')o.shelf.cloth--;else o.out.cloth--;b.out.clothes+=2;}}},
   dyehouse:{t:10,why:'Servono piante tintorie (fattoria con la coltura tintorie) e tessuto dal telaio',can:b=>b.inp.dye>=1&&b.out.dyed<OUTCAP&&!!clothSrc(b),run:b=>{const o=clothSrc(b);if(o){if(o.type==='mercery')o.shelf.cloth--;else o.out.cloth--;b.inp.dye--;b.out.dyed++;}}},
   fisher:{t:7,why:'Con il ghiaccio non si pesca (o le scorte di pesce sono piene)',can:b=>!S.frozen&&b.out.fish<OUTCAP,run:b=>{b.out.fish+=FISH_CYCLE;}},
-  hunter:{t:8,why:"D'inverno la selvaggina è scarsa (o le scorte di carne sono piene)",can:b=>b.out.meat<OUTCAP&&(S.season!==3||Math.random()<0.5),run:b=>{b.out.meat+=2;if(hideRoom())S.stock.hides++;}},
+  hunter:{t:8,why:"D'inverno la selvaggina è scarsa (o le scorte di carne sono piene)",can:b=>b.out.game<OUTCAP&&(S.season!==3||Math.random()<0.5),run:b=>{b.out.game+=2;if(hideRoom())S.stock.hides++;}},
   tavern:{t:12,can:b=>true,run:b=>{}},
   hall:{t:14,can:b=>true,run:b=>{}},
   mercery:{t:10,can:b=>true,run:b=>{}}
@@ -1173,7 +1173,7 @@ function needOfGood(h,g){
   switch(g){
     case 'tools':return Math.max(0,2-gd);
     case 'bread':return Math.max(0,5-gd);
-    case 'fish':case 'meat':return Math.max(0,5-gd);
+    case 'fish':case 'meat':case 'game':return Math.max(0,5-gd);
     case 'cloth':return h.tailor?Math.max(0,4-gd):0;
     case 'clothes':return h.level>=3&&!h.tailor?Math.max(0,2-gd):0;
   }
@@ -1291,7 +1291,7 @@ function cancelFest(id){
 function festTakeFood(){
   // v53: il cibo della festa viene dalle scorte dei Granai (pane, pesce, carne), non dalle case
   let best=null,bq=0;
-  for(const k of ['bread','fish','meat','cured','cheese'])if(Math.floor(S.stock[k]||0)>bq){bq=Math.floor(S.stock[k]);best=k;}
+  for(const k of ['bread','fish','meat','game','cured','cheese'])if(Math.floor(S.stock[k]||0)>bq){bq=Math.floor(S.stock[k]);best=k;}
   if(!best)return false;S.stock[best]--;return true;
 }
 function festTick(){
@@ -1456,7 +1456,7 @@ function startErrand(v,h){
   }
   if(!kind&&Math.random()<0.3){
     // v71: tutte le case vicine a un lago o a un fiume pescano (anche le vecchie con side diverso); chi ha anche un bosco tranquillo alterna con la caccia
-    const wantFish=h.goods.fish<8&&!S.frozen&&fishOK(h.hx,h.hy),wantHunt=h.side==='hunt'&&h.goods.meat<8&&huntOK(h.hx,h.hy);
+    const wantFish=h.goods.fish<8&&!S.frozen&&fishOK(h.hx,h.hy),wantHunt=h.side==='hunt'&&h.goods.game<8&&huntOK(h.hx,h.hy);
     if(wantFish&&(!wantHunt||Math.random()<0.5)){tgt=shoreTarget(h.cell,66);if(tgt>=0)kind='fish';}
     if(!kind&&wantHunt){tgt=treeTarget(h.cell,48,true);if(tgt>=0)kind='hunt';}
   }
@@ -1746,7 +1746,7 @@ function updV(v,dt){
     case 'mill':v.timer-=dt*workRate(v);if(v.timer<=0){if(S.stock.grain>=2){S.stock.grain-=2;S.stock.flour=Math.min(capFlour(),S.stock.flour+2);}v.inside=false;v.state='idle';}break;
     case 'doErr':v.timer-=dt;if(v.timer<=0){
       const h=buildings.get(v.home),k=v.err&&v.err.kind;
-      v.carry=k==='fish'?'fish':k==='hunt'?'meat':'wood';v.cq=k==='fish'?FAM_FISH_Q:k==='wood'?3:1;
+      v.carry=k==='fish'?'fish':k==='hunt'?'game':'wood';v.cq=k==='fish'?FAM_FISH_Q:k==='wood'?3:1;
       if(h&&route(v,h.cell,h.id))v.state='toHomeErr';else{v.carry=null;v.err=null;v.state='idle';}
     }break;
     case 'tend':
@@ -1782,7 +1782,7 @@ function setJob(v,b){
 // al loro edificio appena la scorta scende sotto la soglia. Per non far cambiare lavoro a ogni istante, l'edificio può cambiare
 // stato (`b.sur`) al massimo ogni JOB_DWELL secondi. Vale per tutti i mestieri che producono una merce con scorta (non per
 // maestro, oste, muratore, magazziniere, contadini di famiglia e simili, che non hanno una scorta da pareggiare).
-const JOBRES={wood:'wood',forester:'wood',quarry:'stone',mine:'iron',carpenter:'planks',smithy:'tools',bakery:'bread',weaver:'cloth',tailor:'clothes',fisher:'fish',hunter:'meat',ropewalk:'rope',charcoal:'charcoal',smelter:'bars'};
+const JOBRES={wood:'wood',forester:'wood',quarry:'stone',mine:'iron',carpenter:'planks',smithy:'tools',bakery:'bread',weaver:'cloth',tailor:'clothes',fisher:'fish',hunter:'game',ropewalk:'rope',charcoal:'charcoal',smelter:'bars'};
 const JOB_MARGIN=1.5,JOB_DWELL=DAY*2;
 // fabbisogno = riserva del paese (T_KEEP, la stessa che il commercio non vende) + ciò che manca ai cantieri + ciò che chiedono le case
 function jobNeed(r){
@@ -2873,7 +2873,7 @@ function spawnGuest(){
 // ---- v44: commercio, carovane e rotte (tramite la Merceria) ----
 // Il merciaio tratta con le carovane: vende ciò che il paese ha in più e compra ciò che manca, a denari. Attrezzi, pane, tessuto e abiti passano dagli scaffali della merceria
 // (e dalle scorte dei magazzini); legno, pietra, ferro e assi dal magazzino; pesce e carne dalle scorte del granaio.
-const TRADE_STOCK={wood:1,stone:1,iron:1,planks:1,rope:1,bars:1,weapons:1,salt:1,cured:1,cheese:1,beer:1,wine:1,hides:1,leather:1,shoes:1},TRADE_FOOD={fish:1,meat:1};
+const TRADE_STOCK={wood:1,stone:1,iron:1,planks:1,rope:1,bars:1,weapons:1,salt:1,cured:1,cheese:1,beer:1,wine:1,hides:1,leather:1,shoes:1},TRADE_FOOD={fish:1,meat:1,game:1};
 const heldOf=g=>g==='wood'||g==='stone'||g==='iron'?heldCenter(g):S.stock[g];
 const openMerceries=()=>{const r=[];for(const o of buildings.values())if(merceryOpen(o))r.push(o);return r;};
 function needAll(g){let n=0;for(const h of buildings.values())if(h.type==='house'&&h.state==='done'&&h.members.length)n+=Math.ceil(needOfGood(h,g));return n;}
@@ -3898,7 +3898,7 @@ function stats(){
   let roads=0,saps=0;const dc=[0,0,0,0,0,0,0];for(let i=0;i<N*N;i++){roads+=road[i];dc[dist[i]]++;saps+=sap[i];}
   for(let k=0;k<7;k++)dc[k]=Math.round(dc[k]/9);roads=Math.round(roads/SC);
   let jobs=0;for(const v of villagers)if(v.job)jobs++;
-  food=Math.floor((S.stock.bread||0)+(S.stock.fish||0)+(S.stock.meat||0)+(S.stock.cured||0)+(S.stock.cheese||0)); // v53: viveri pronti nei Granai (il grano e la farina hanno il loro contatore)
+  food=Math.floor((S.stock.bread||0)+(S.stock.fish||0)+(S.stock.meat||0)+(S.stock.game||0)+(S.stock.cured||0)+(S.stock.cheese||0)); // v53: viveri pronti nei Granai (il grano e la farina hanno il loro contatore)
   return {pop:villagers.length,jobs,slots,masters,avgSkill:skN?skSum/skN:0,far,avgCommute:cdN?cdSum/cdN:0,commuters:cdN,houses,cap:cap+S.att.bonus,capHouses:cap,capBonus:S.att.bonus,att:S.att,sites,roads,dc,built,levels,food,farms,stalls,hungry,barters:S.barters,helps:S.helps,stock:S.stock,extra:extraTotal(),capRes:capTotal(),capStone:capRes('stone'),capGrain:capGrain(),capFlour:capFlour(),
     avgAttr:houses?asum/houses:0,maxAttr:houses?amax:0,day:S.day,ph:S.ph,f:S.f,herds,crafters,bakers,fishers,hunters,tools,saps,weavers,tailors,clothes,season:S.season,year:S.year,visits:S.visits,settled:S.settled,guests:guests.length,children:kids,schooled,births:S.births,deaths:S.deaths,buried:S.buried,
     sick,plagueN,plague:S.plague.on,avgWell:houses?wsum/houses:0,avgJoy:villagers.length?villagers.reduce((a,v)=>a+v.joy,0)/villagers.length:0,unhappy:villagers.filter(v=>v.joy<35).length,left:S.left,fire,fireNeed,inherits:S.inherits,cured:S.cured,moves:S.moves,deathsBy:S.deathsBy,pupils,coins:S.coins,routesOpen:S.routes.filter(r=>r.open).length};
@@ -3936,6 +3936,12 @@ function importState(d){
   const ids=new Set();
   for(const b of bl){if(!b||!Number.isInteger(b.id)||!BT[b.type]||!Number.isFinite(b.x)||!Number.isFinite(b.y)||ids.has(b.id))bad('edificio non valido');ids.add(b.id);}
   for(const v of vl){if(!v||!Number.isInteger(v.id)||!Number.isFinite(v.x)||!Number.isFinite(v.z)||ids.has(v.id))bad('abitante non valido');ids.add(v.id);}
+  // v74: la selvaggina è un cibo a sé. Nei salvataggi vecchi la caccia dava carne: la carne dei cacciatori diventa selvaggina, le case ricevono la voce nuova
+  for(const b of bl){
+    if(b.goods&&typeof b.goods==='object'&&!Number.isFinite(b.goods.game)){b.goods.game=0;if(b.type==='house'&&b.side==='hunt'&&b.crop!=='herd'){b.goods.game=b.goods.meat|0;b.goods.meat=0;}}
+    if(b.ate&&typeof b.ate==='object'&&!Number.isFinite(b.ate.game))b.ate.game=-999;
+    if(b.out&&typeof b.out==='object'&&!Number.isFinite(b.out.game)){b.out.game=0;if(b.type==='hunter'){b.out.game=b.out.meat|0;b.out.meat=0;}}
+  }
   // v60.1: i salvataggi precedenti alla v59 non hanno i bisogni dell'abitante (n, nv, nc): si danno valori di riserva, altrimenti il gioco si ferma a ogni passo
   for(const v of vl){
     if(!v.n||typeof v.n!=='object')v.n={};
@@ -3956,7 +3962,7 @@ function importState(d){
   else{const R2=mulberry((Math.imul(d.seed|0,2246822519)^0x9e3779b9)>>>0);genAquifers(R2);aqK.set(aq);} // salvataggio precedente alla v76: le falde si ricreano dal seme (la fertilità si ricava da sola, v69); le falde sono tutte note e i pozzi già costruiti restano dove sono
   for(const k of Object.keys(S))delete S[k];
   Object.assign(S,Sx);lastStep.fill(S.t||0);
-  S.extra=(S.extra&&typeof S.extra==='object')?S.extra:{};S.edicts=Object.assign(EDICT0(),S.edicts);S.stock=Object.assign({wood:0,stone:0,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,rope:0,charcoal:0,bars:0,weapons:0,clay:0,bricks:0,lime:0,salt:0,cured:0,cheese:0,beer:0,wine:0,hides:0,leather:0,shoes:0},S.stock);
+  S.extra=(S.extra&&typeof S.extra==='object')?S.extra:{};S.edicts=Object.assign(EDICT0(),S.edicts);S.stock=Object.assign({wood:0,stone:0,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,game:0,rope:0,charcoal:0,bars:0,weapons:0,clay:0,bricks:0,lime:0,salt:0,cured:0,cheese:0,beer:0,wine:0,hides:0,leather:0,shoes:0},S.stock);
   for(const k of ['wh','xf','inflight'])S[k]=Object.assign({wood:0,stone:0,iron:0},S[k]);
   S.coins=Number.isFinite(S.coins)?S.coins:COINS0;S.fin=Object.assign(mkFin(),S.fin);if(!TAX_RATES[S.taxRate])S.taxRate='normal';if(!S.ledger||!Array.isArray(S.ledger.rows))S.ledger={snap:null,rows:[]};S.taxDay=Number.isFinite(S.taxDay)?S.taxDay:-1;{const rt=Array.isArray(S.routes)?S.routes:[];S.routes=mkRoutes().map(r=>Object.assign(r,rt.find(x=>x&&x.id===r.id)||{}));}S.tradeOpt=Object.assign({sell:true,buy:true},S.tradeOpt);S.tlog=Array.isArray(S.tlog)?S.tlog:[];S.trade=Object.assign({sold:0,bought:0,visits:0},S.trade);
   S.pet=Array.isArray(S.pet)?S.pet.filter(p=>p&&Number.isFinite(p.id)&&Number.isFinite(p.exp)):[];S.petNext=S.petNext||0;S.petSeq=S.petSeq|0;S.petOk=S.petOk|0;S.petNo=S.petNo|0;S.petLate=S.petLate|0;S.arrivedFam=S.arrivedFam|0;

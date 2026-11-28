@@ -1,5 +1,11 @@
 # Changelog
 
+## v84 – 2026-11-28
+Funzione nuova: Selvaggina e scheda del Cibo.
+- **La selvaggina è un cibo a sé (`game`):** i cacciatori e le case che cacciano non producono più «carne» (che resta quella degli allevamenti) ma selvaggina. Ha la sua scorta nei Granai (`GRAN_KEYS`), il suo prezzo di commercio (`TRADE_FOOD`, `T_KEEP/T_TARGET`), si porta nelle case, si mangia e conta come tipo di cibo diverso per la varietà della dieta (`TYPES`). Il macellaio fa le conserve con carne o selvaggina. Piccolo spostamento di bilanciamento: un cibo fresco in più per la varietà.
+- **Salvataggi vecchi:** `importState` dà la voce `game` a case, edifici e scorte; la carne dei cacciatori (e delle case che cacciano senza allevamento) diventa selvaggina.
+- **Scheda del Cibo:** il riquadro «Cibo» in alto è cliccabile e apre il pannello con la scheda «Cibo»: Carne, Pesce, Ortaggi, Selvaggina, Uova (più pane, grano, farina, conserve, formaggio, birra, vino) con le quantità nei Granai/Magazzini e nelle case, e quanti dei 5 cibi freschi sono presenti. Testi dei pannelli di cacciatore, macellaio e Granaio aggiornati.
+- Test: nuovo `tests/cibo.js`; aggiornati `storage`, `conserve`, `workshops`. Grafica non verificata in un browser WebGL.
 ## v82 – 2026-11-28
 Funzione nuova: famiglie che chiedono di fermarsi, anche senza case libere. Il giocatore sceglie se accettarle.
 - **Richieste (`S.pet`, `petitionTick`):** quando il paese ha almeno 8 abitanti, ogni tanto una famiglia (1-2 adulti e 0-3 bambini, con cognome) si presenta ai confini e chiede di fermarsi. Al massimo 2 richieste in attesa. L'intervallo è di 4-8 giorni diviso per `petitionRate()` = 0,4 + 1,6 × attrattiva `S.att.a` (limitato tra 0,25 e 2): più il paese è felice e ha lavoro, più famiglie bussano. Con l'editto «Blocca l'immigrazione» o la quarantena non arriva nessuno.

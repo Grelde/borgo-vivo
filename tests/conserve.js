@@ -74,7 +74,7 @@ ok((S.made.winery|0)>0&&S.stock.wine>0,'vino prodotto: '+S.stock.wine+' ('+(S.ma
 feed=false;
 console.log('5) conserve alle case senza cibo fresco');
 const h=done('house')[0];
-for(const k of Object.keys(h.goods))if(['veg','eggs','grain','fish','meat','bread'].includes(k))h.goods[k]=0;
+for(const k of Object.keys(h.goods))if(['veg','eggs','grain','fish','meat','game','bread'].includes(k))h.goods[k]=0;
 S.stock.cured=3;S.stock.cheese=2;
 ok(Sim._t.eatOne(h,null)===true&&S.stock.cured===2,'la casa mangia una conserva: '+S.stock.cured);
 S.stock.cured=0;ok(Sim._t.eatOne(h,null)===true&&S.stock.cheese===1,'poi il formaggio: '+S.stock.cheese);

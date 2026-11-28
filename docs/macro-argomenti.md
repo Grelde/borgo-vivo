@@ -87,3 +87,5 @@ Da fare: dominio/indirizzo pubblico; controllare la scorta di legna (oggi ~50-12
 - Valori di bilanciamento sono stime.
 - Il trasferimento dei materiali del centro è un contatore, non un inventario fisico.
 - v34: la grafica dei carichi (assi, tronco, carretto) non è stata provata in un browser WebGL: misure e posizioni sono stime.
+
+Selvaggina e scheda del Cibo (v84): `game` è un cibo a sé in `TYPES` (case: `goods.game`, `ate.game`), nel Granaio (`GRAN_KEYS`), nel commercio (`TRADE_FOOD`, `T_KEEP/T_TARGET`) e nelle uscite del cacciatore (`PROD.hunter='game'`, `b.out.game`, `JOBRES.hunter`, `ERRKEY.hunt`). Il macellaio consuma carne o selvaggina. La scheda «Cibo» (`popFood`, `FOOD_LIST` in `render.js`) si apre dal riquadro Cibo (`chipFood`) nel pannello `#pop` e mostra le scorte per tipo in Granai/Magazzini e case. Migrazione dei salvataggi in `importState`.

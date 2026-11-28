@@ -79,6 +79,7 @@ ok(Sim.place('fisher',20,20,0).ok===false,'il pescatore lontano dall\'acqua è r
 run(15);
 ok((S.made.fisher|0)>0||S.frozen,'pesca: '+(S.made.fisher|0)+' cicli');
 ok((S.made.hunter|0)>0,'caccia: '+(S.made.hunter|0)+' cicli');
+{const hb=Sim.buildings().get(hu.id);ok(hb&&(hb.out.meat|0)===0&&((hb.out.game|0)+(S.stock.game|0)+Sim.villagers().length>0),'v84: il cacciatore produce selvaggina (non carne)');ok(Sim.GRAN_KEYS.includes('game'),'v84: la selvaggina ha il suo posto nei Granai');}
 
 console.log('6) taverna e sala delle feste');
 const j0=Sim.villagers().reduce((a,v)=>a+v.joy,0)/Math.max(1,Sim.villagers().length);

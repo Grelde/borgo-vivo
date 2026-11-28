@@ -19,7 +19,7 @@ for(const seed of [7,12]){
   const b=[...Sim.buildings().values()].find(q=>q.type==='hunter'&&q.state==='done');
   ok(!!b&&b.workers.length>=1,'seed '+seed+': cacciatore al lavoro');if(!b||!b.workers.length)continue;
   // senza bosco raggiungibile: lavora in bottega come prima
-  S.season=1;b.shore=-1;b.shoreTry=S.t+1e9;b.out.meat=0;S.stock.meat=0;const m0=S.made.hunter|0;run(3);
+  S.season=1;b.shore=-1;b.shoreTry=S.t+1e9;b.out.game=0;S.stock.game=0;const m0=S.made.hunter|0;run(3);
   ok((S.made.hunter|0)>m0,'seed '+seed+': senza bosco il cacciatore lavora comunque in bottega ('+((S.made.hunter|0)-m0)+' cicli)');
   b.shore=undefined;b.shoreTry=0;
   const id=b.workers[0];
