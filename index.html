@@ -328,7 +328,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v68</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v69.1</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -1032,7 +1032,7 @@ const isSite=b=>b.state==='site'||!!b.work;
 const siteCell=s=>s.type==='house'?s.gc:s.cell;
 function uncommitted(res){
   let v=S.stock[res]||0;
-  for(const b of buildings.values())if(isSite(b)){const c=costRes(b);v-=(c[res]||0)-b.got[res]-b.fly[res];}
+  for(const b of buildings.values())if(isSite(b)){const c=costRes(b);v-=(c[res]||0)-(b.got[res]||0)-(b.fly[res]||0);}   // v65.1: got/fly non hanno corde, barre, armi: prima davano NaN (e denari NaN al commercio) con un cantiere aperto
   return v;
 }
 function afford(type){const c=costOf(type);return MATS.every(k=>uncommitted(k)>=(c[k]||0));}

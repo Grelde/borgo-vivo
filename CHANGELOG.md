@@ -1,5 +1,8 @@
 # Changelog
 
+## v69.1 – 2026-11-28
+Correzione: `uncommitted()` (scorte libere per il commercio e i cantieri) dava NaN per corde, barre di ferro e armi quando c'era un cantiere aperto, perché `b.got` e `b.fly` non hanno quelle chiavi; il commercio ne ricavava denari NaN. Ora i valori mancanti valgono 0. Il bug c'era già nella v63 (il test `tests/commercio.js` passava o falliva a caso a seconda di un cantiere aperto durante la visita).
+
 ## v69 – 2026-11-28
 Nuova funzione: bussola e layer ambientali (fertilità del suolo, vento, corrente del fiume). Per ora sono informazione e grafica: non cambiano ancora la resa dei campi né i lavori.
 - **Bussola:** in cima ai comandi in alto a destra. La N rossa indica il nord (l'alto della mappa, riga 0 della griglia) e ruota con la telecamera; con la vista iniziale il nord sta in alto a destra. Un clic (o Invio) porta il nord in alto.

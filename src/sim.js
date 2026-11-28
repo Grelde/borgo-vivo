@@ -610,7 +610,7 @@ const isSite=b=>b.state==='site'||!!b.work;
 const siteCell=s=>s.type==='house'?s.gc:s.cell;
 function uncommitted(res){
   let v=S.stock[res]||0;
-  for(const b of buildings.values())if(isSite(b)){const c=costRes(b);v-=(c[res]||0)-b.got[res]-b.fly[res];}
+  for(const b of buildings.values())if(isSite(b)){const c=costRes(b);v-=(c[res]||0)-(b.got[res]||0)-(b.fly[res]||0);}   // v65.1: got/fly non hanno corde, barre, armi: prima davano NaN (e denari NaN al commercio) con un cantiere aperto
   return v;
 }
 function afford(type){const c=costOf(type);return MATS.every(k=>uncommitted(k)>=(c[k]||0));}
