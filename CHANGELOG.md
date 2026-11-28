@@ -1,5 +1,8 @@
 # Changelog
 
+## v86 – 2026-11-28
+Ritocco dell'interfaccia: nel pannello di Magazzino e Granaio l'elenco «Cosa accettare» è diviso in gruppi che si comprimono ed espandono con un clic (Materiali da costruzione, Metalli e armi, Tessuti, pelli e corde, Cibo; le merci nuove non classificate finiscono in «Altro»). Accanto al titolo di ogni gruppo si vede quanto ne contiene l'edificio; lo stato aperto/chiuso resta tra una selezione e l'altra. Nuove merci: basta aggiungerle a `STK_GROUPS` in `render.js`. Test: `tests/magazzino-gruppi.js` (DOM vero in Chromium). Non verificato nel gioco completo in un browser WebGL.
+
 ## v85 – 2026-11-28
 Funzione nuova: sottobosco con le bacche sotto gli alberi e bosco protetto (zona da non tagliare).
 - **Sottobosco:** ogni albero può avere ai piedi un cespuglio (macchie decise dal seme, circa un terzo degli alberi: `undP`, `genUnder`). Non è un dato a parte: `under(i)` = albero **e** macchia, quindi **tagliando l'albero sparisce anche il sottobosco**, e ogni albero nuovo (foresta rinfoltita o piantata dal guardaboschi) lo riporta se cade in una macchia. Nulla da salvare: dopo il caricamento ricompare identico.

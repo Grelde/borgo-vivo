@@ -177,6 +177,10 @@ body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--seri
 #selStore{display:flex;flex-direction:column;gap:5px;margin:0 0 10px;font-size:14px;color:var(--parch2)}
 #selStore[hidden]{display:none}
 #selStore .sh{font:700 12px/1.2 var(--disp);letter-spacing:.06em;text-transform:uppercase;color:var(--gold)}
+#selStore .sgh{width:100%;text-align:left;background:rgba(0,0,0,.22);color:var(--gold);border:1px solid var(--line);border-radius:4px;padding:4px 6px;margin-top:4px;font:700 12px/1.2 var(--disp);letter-spacing:.04em;cursor:pointer}
+#selStore .sgh .sgn{font-weight:400;opacity:.8;margin-left:4px}
+#selStore .sgb{display:flex;flex-direction:column;gap:4px;padding:4px 0 2px}
+#selStore .sgb[hidden]{display:none}
 #selStore .sr{display:flex;align-items:center;gap:6px}
 #selStore .sr label{flex:1;display:flex;align-items:center;gap:6px;cursor:pointer}
 #selStore .sr input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--gold)}
@@ -342,7 +346,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v85</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v86</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -5961,6 +5965,10 @@ function refreshSel(){
 function selB(){return sel&&Sim.buildings().get(sel);}
 // v36: pannello di accettazione e massimali di Magazzino e Granaio (le righe si creano una volta per edificio, poi si aggiornano solo i numeri)
 const STKNAME={weapons:'Armi',wood:'Legno',stone:'Pietra',iron:'Ferro',planks:'Assi',tools:'Attrezzi',cloth:'Tessuto',clothes:'Abiti',rope:'Corde',charcoal:'Carbone',bars:'Barre di ferro',clay:'Argilla',bricks:'Mattoni',lime:'Calce',salt:'Sale',hides:'Pelli',leather:'Cuoio',shoes:'Scarpe',cured:'Conserve',cheese:'Formaggio',beer:'Birra',wine:'Vino',grain:'Grano',flour:'Farina',bread:'Pane',fish:'Pesce',meat:'Carne'};
+// v85: l'elenco delle merci di Magazzino e Granaio è diviso in gruppi che si comprimono ed espandono (lo stato si ricorda tra una selezione e l'altra)
+const STK_GROUPS=[['Materiali da costruzione',['wood','stone','planks','clay','bricks','lime','salt']],['Metalli e armi',['iron','bars','tools','weapons']],['Tessuti, pelli e corde',['cloth','clothes','rope','hides','leather','shoes']],['Cibo',['grain','flour','bread','fish','meat','game','cured','cheese','beer','wine']]];
+const stkClosed={};
+function stkGroupOf(k){for(const [n,ks] of STK_GROUPS)if(ks.includes(k))return n;return 'Altro';}
 let stkCfgFor=null;
 function updStoreCfg(b){
   const box=$('selStore');
@@ -5969,7 +5977,11 @@ function updStoreCfg(b){
   const si=Sim.storeInfo(b);
   if(stkCfgFor!==b.id){
     stkCfgFor=b.id;
-    box.innerHTML=`<div class="sh">Cosa accettare</div>`+si.pol.map(p=>`<div class="sr" data-r="${p.k}"><label><input type="checkbox" data-k="${p.k}" ${p.on?'checked':''}>${STKNAME[p.k]}</label><span class="held"></span><input type="number" min="0" max="${si.total}" step="50" data-m="${p.k}" value="${p.max}" aria-label="Massimale ${STKNAME[p.k]}"></div>`).join('')+`<div class="sn" id="stkNote"></div>`;
+    const row=p=>`<div class="sr" data-r="${p.k}"><label><input type="checkbox" data-k="${p.k}" ${p.on?'checked':''}>${STKNAME[p.k]}</label><span class="held"></span><input type="number" min="0" max="${si.total}" step="50" data-m="${p.k}" value="${p.max}" aria-label="Massimale ${STKNAME[p.k]}"></div>`;
+    const gn=[...STK_GROUPS.map(g=>g[0]),'Altro'];let h=`<div class="sh">Cosa accettare</div>`;
+    for(const n of gn){const ps=si.pol.filter(p=>stkGroupOf(p.k)===n);if(!ps.length)continue;
+      h+=`<div class="sg" data-g="${n}"><button type="button" class="sgh" data-gh="${n}" aria-expanded="${!stkClosed[n]}"><span class="car">${stkClosed[n]?'▸':'▾'}</span> ${n} <span class="sgn"></span></button><div class="sgb" ${stkClosed[n]?'hidden':''}>${ps.map(row).join('')}</div></div>`;}
+    box.innerHTML=h+`<div class="sn" id="stkNote"></div>`;
   }
   for(const p of si.pol){
     const row=box.querySelector(`[data-r="${p.k}"]`);if(!row)continue;
@@ -5979,9 +5991,16 @@ function updStoreCfg(b){
     row.classList.toggle('off',!p.on);
     row.querySelector('.held').textContent=p.held;
   }
+  for(const g of box.querySelectorAll('.sg')){let n=0;for(const r of g.querySelectorAll('.sr'))n+=+(r.querySelector('.held').textContent)||0;const c=g.querySelector('.sgn');if(c)c.textContent=n?`(${n})`:'';}
   const ex=Sim.S.extra||{},exl=Object.keys(ex).filter(k=>ex[k]>0).map(k=>STKNAME[k]+' '+ex[k]);
   $('stkNote').textContent=`In tutto ${si.tot}/${si.total}: il posto è condiviso fra le merci accettate, ogni massimale limita la singola merce. Conta solo ciò che è nei Granai, nei Magazzini e nel Centro.`+(exl.length?` Senza posto (non conta): ${exl.join(', ')}.`:'');
 }
+$('selStore').addEventListener('click',ev=>{
+  const h=ev.target&&ev.target.closest&&ev.target.closest('[data-gh]');if(!h)return;
+  const n=h.getAttribute('data-gh'),g=h.parentNode,body=g&&g.querySelector('.sgb');if(!body)return;
+  stkClosed[n]=!stkClosed[n];body.hidden=!!stkClosed[n];h.setAttribute('aria-expanded',String(!stkClosed[n]));
+  const car=h.querySelector('.car');if(car)car.textContent=stkClosed[n]?'▸':'▾';
+});
 $('selStore').addEventListener('change',ev=>{
   const t=ev.target;if(!sel||!t||!t.getAttribute)return;
   const k=t.getAttribute('data-k'),m=t.getAttribute('data-m');
