@@ -328,7 +328,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v70</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v71</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -1348,6 +1348,10 @@ function startTransfer(v,b){
 // ---- v32: botteghe e laboratori ----
 // Ogni addetto compie cicli di WS[tipo].t secondi dentro l'edificio; il prodotto resta in b.out e lo porta a casa chi ne ha più bisogno.
 // A parità di tempo una bottega vera rende molto più di quella di un giardino (fabbro: 3 attrezzi per ferro ogni 10 s contro 1 ogni ~30 s).
+// v71: pesca. Il pescatore fa FISH_CYCLE pesci ogni WS.fisher.t secondi. Chi pesca per la famiglia (qualsiasi casa vicina a lago o fiume) rende la metà:
+// FAM_FISH_RATE = 0,5 della resa del pescatore (pesci al secondo di pesca). Una gita porta FAM_FISH_Q pesci e dura quanto serve per quella resa.
+const FISH_CYCLE=2,FAM_FISH_RATE=0.5,FAM_FISH_Q=2;
+const famFishTime=()=>WS.fisher.t*(FAM_FISH_Q/FISH_CYCLE)/FAM_FISH_RATE;
 const OUTCAP=30,BAND=135,PROD={smithy:'tools',bakery:'bread',weaver:'cloth',tailor:'clothes',fisher:'fish',hunter:'meat',ropewalk:'rope'};
 // v38: Merceria. Con un merciaio al lavoro, le botteghe portano qui attrezzi, pane, tessuto e abiti (scaffali fino a SHELFCAP per merce) invece di consegnarli alle case; le famiglie
 // mandano un adulto a ritirare ciò che manca (commissione 'merc'). Pesce e carne restano consegne dirette. Se la merceria è chiusa o lo scaffale è pieno si consegna alle case come prima.
@@ -1462,7 +1466,7 @@ const WS={
   ropewalk:{t:9,why:'Serve fibra di canapa: coltiva canapa in una fattoria e costruisci un maceratoio',can:b=>b.out.rope<OUTCAP&&!!fibreSrc(b,'hempf'),run:b=>{const o=fibreSrc(b,'hempf');if(o){o.out.hempf--;b.out.rope+=3;}}},
   tailor:{t:10,why:'Serve tessuto: costruisci un telaio del tessitore',can:b=>b.out.clothes<OUTCAP&&(!!dyedSrc(b)||!!clothSrc(b)),run:b=>{const d=dyedSrc(b);if(d){d.out.dyed--;b.out.clothes+=3;return;}const o=clothSrc(b);if(o){if(o.type==='mercery')o.shelf.cloth--;else o.out.cloth--;b.out.clothes+=2;}}},
   dyehouse:{t:10,why:'Servono piante tintorie (fattoria con la coltura tintorie) e tessuto dal telaio',can:b=>b.inp.dye>=1&&b.out.dyed<OUTCAP&&!!clothSrc(b),run:b=>{const o=clothSrc(b);if(o){if(o.type==='mercery')o.shelf.cloth--;else o.out.cloth--;b.inp.dye--;b.out.dyed++;}}},
-  fisher:{t:7,why:'Con il ghiaccio non si pesca (o le scorte di pesce sono piene)',can:b=>!S.frozen&&b.out.fish<OUTCAP,run:b=>{b.out.fish+=2;}},
+  fisher:{t:7,why:'Con il ghiaccio non si pesca (o le scorte di pesce sono piene)',can:b=>!S.frozen&&b.out.fish<OUTCAP,run:b=>{b.out.fish+=FISH_CYCLE;}},
   hunter:{t:8,why:"D'inverno la selvaggina è scarsa (o le scorte di carne sono piene)",can:b=>b.out.meat<OUTCAP&&(S.season!==3||Math.random()<0.5),run:b=>{b.out.meat+=2;}},
   tavern:{t:12,can:b=>true,run:b=>{}},
   hall:{t:14,can:b=>true,run:b=>{}},
@@ -1753,8 +1757,10 @@ function startErrand(v,h){
     if(h.woodSpot>=0){tgt=h.woodSpot;kind='wood';}
   }
   if(!kind&&Math.random()<0.3){
-    if(h.side==='fish'&&h.goods.fish<8&&!S.frozen&&fishOK(h.hx,h.hy)){tgt=shoreTarget(h.cell,66);if(tgt>=0)kind='fish';}
-    else if(h.side==='hunt'&&h.goods.meat<8&&huntOK(h.hx,h.hy)){tgt=treeTarget(h.cell,48,true);if(tgt>=0)kind='hunt';}
+    // v71: tutte le case vicine a un lago o a un fiume pescano (anche le vecchie con side diverso); chi ha anche un bosco tranquillo alterna con la caccia
+    const wantFish=h.goods.fish<8&&!S.frozen&&fishOK(h.hx,h.hy),wantHunt=h.side==='hunt'&&h.goods.meat<8&&huntOK(h.hx,h.hy);
+    if(wantFish&&(!wantHunt||Math.random()<0.5)){tgt=shoreTarget(h.cell,66);if(tgt>=0)kind='fish';}
+    if(!kind&&wantHunt){tgt=treeTarget(h.cell,48,true);if(tgt>=0)kind='hunt';}
   }
   if(!kind)return false;
   if(!route(v,tgt,tocc)){if(kind==='wood'){h.woodSpot=-1;h.woodTry=S.t+20;}return false;}
@@ -1903,7 +1909,7 @@ function onArrive(v){
         if(q<=0){v.state='idle';break;}
         S.stock[k]-=q;v.carry=k;v.cq=q;
         if(route(v,h.cell,h.id))v.state='toHomeErr';else{S.stock[k]+=q;v.carry=null;v.state='idle';}
-      }else{v.state='doErr';v.timer=k==='wood'?4:6;}
+      }else{v.state='doErr';v.timer=k==='wood'?4:k==='fish'?famFishTime():6;}
       break;}
     case 'toHomeErr':{
       const h=buildings.get(v.home);
@@ -2025,7 +2031,7 @@ function updV(v,dt){
     case 'mill':v.timer-=dt*workRate(v);if(v.timer<=0){if(S.stock.grain>=2){S.stock.grain-=2;S.stock.flour=Math.min(capFlour(),S.stock.flour+2);}v.inside=false;v.state='idle';}break;
     case 'doErr':v.timer-=dt;if(v.timer<=0){
       const h=buildings.get(v.home),k=v.err&&v.err.kind;
-      v.carry=k==='fish'?'fish':k==='hunt'?'meat':'wood';v.cq=k==='fish'?2:k==='wood'?3:1;
+      v.carry=k==='fish'?'fish':k==='hunt'?'meat':'wood';v.cq=k==='fish'?FAM_FISH_Q:k==='wood'?3:1;
       if(h&&route(v,h.cell,h.id))v.state='toHomeErr';else{v.carry=null;v.err=null;v.state='idle';}
     }break;
     case 'tend':
@@ -2472,7 +2478,7 @@ function trySpawnHouse(){
       let crop=wood?'wood':veg<eggs?'veg':eggs<veg?'eggs':(hash(cd.x,cd.y)<.5?'veg':'eggs');
       // attività secondaria (indipendente dal giardino): pesca vicino all'acqua, caccia vicino a un bosco tranquillo; altrimenti nessuna
       const r=hash(cd.x*5,cd.y*3);let side='none';
-      if(fishOK(cd.x,cd.y)&&r<0.5)side='fish';
+      if(fishOK(cd.x,cd.y))side='fish';
       else if(huntOK(cd.x,cd.y)&&r<0.7)side='hunt';
       // circa il 35% dei giardini di cibo è "puro": non diventa mai allevamento né bottega (il giardino della legna è già fisso)
       const pt=(nh-nw+1)*0.35;
@@ -4119,7 +4125,7 @@ return {TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWa
   TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,WAGE_JOB,EDU_JOBS,CITY_RANK,WAGE_OWE_CAP,wageJob,wageOf,wagePayer,TAX_WEEK,TAX_POUCH,WAGE,WAGE_SEC,SILVER_GOLD,TAX_MARGIN,MSELL,MSELL_KEEP,MSELL_LIM,taxOf,money,taxActive,taxStats,taxDue,taxRefuses,merceryTakes,merceryBuy,merceryBuyer,jobless,kingJob,cityMakes,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
   setFarmCrop,fibreCrop,sinkOf,CHAR_CAP,BAR_CAP,CLAY_CAP,BRICK_CAP,LIME_CAP,MATS,retInfo,RET_CAP,DIFFS,diffOf,maintStats,condOf,condLabel,maintainable,REPAIR_BELOW,WORN_AT,
   STORE_KEYS,GRAN_KEYS,GRAN_TOTAL,CENTER_CAP,setPolicy,storeInfo,stockRoom,capRes,reconcileStock,extraTotal,festTakeFood,
-  _t:{jobNeed,jobSurplus,rebalanceJobs,JOBRES,JOB_MARGIN,JOB_DWELL,tradeTick,doTrade,chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
+  _t:{FISH_CYCLE,FAM_FISH_RATE,FAM_FISH_Q,famFishTime,jobNeed,jobSurplus,rebalanceJobs,JOBRES,JOB_MARGIN,JOB_DWELL,tradeTick,doTrade,chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
   env:{fert,flowS,flowX,flowY,FERT_HIGH,flowSeason,riverInfo,windNow,windAt,flowLabel,windLabel,COMPASS8,WIND_NAME,FLOW_MS},
   grids:{tree,rock,ore,water,sap,sapT,road,dist,occ,wear,plev,field,door,attr,cen},guests:()=>guests,buildings:()=>buildings,villagers:()=>villagers};
 })();

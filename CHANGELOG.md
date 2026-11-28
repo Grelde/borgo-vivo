@@ -1,5 +1,13 @@
 # Changelog
 
+## v71 – 2026-11-28
+Funzione nuova: pesca di famiglia — ogni casa vicina a un lago o a un fiume pesca in autonomia, con metà della resa del pescatore.
+- **Chi pesca:** tutte le case con abbastanza acqua attorno (`fishOK`: almeno 27 celle d'acqua entro 18 celle) mandano un abitante a pescare da solo, quando in casa ci sono meno di 8 pesci e non c'è ghiaccio. Prima pescava solo circa metà di queste case; ora tutte (le nuove case vicine all'acqua nascono con `side:'fish'`, e anche le case già esistenti o salvate pescano, qualunque fosse il loro `side`). Chi ha vicino anche un bosco tranquillo alterna pesca e caccia.
+- **Resa:** il pescatore fa `FISH_CYCLE` = 2 pesci ogni 7 s di pesca (0,286 pesci/s). La famiglia rende `FAM_FISH_RATE` = **0,5** volte tanto: una gita porta 2 pesci (`FAM_FISH_Q`) e dura 14 s sulla riva (`famFishTime()` = tempo del pescatore × 2 pesci / 2 / 0,5). Prima rendeva 2 pesci in 6 s, più del pescatore. Il tempo di una gita non dipende da bravura o umore (il pescatore sì), quindi con un pescatore bravo il rapporto scende sotto 0,5.
+- Si pesca sempre in una cella di riva (`shoreTarget`, entro 66 celle dalla casa), come il pescatore dalla v66.1.
+- Test: nuovo `tests/pesca-famiglie.js` (rapporto di resa 0,5 sulle costanti, tutte le case vicine all'acqua pescano, le case lontane no, si pesca sempre sulla riva, resa misurata 0,49 volte il pescatore su due mappe).
+- Non verificato in un browser WebGL: il pescatore di famiglia resta fermo sulla riva senza animazione di pesca. Da giocare: con 27 case a lago le gite sono molte (circa 20 al giorno) e il pesce abbonda: se serve si abbassa la probabilità della gita (oggi 30% a ogni uscita).
+
 ## v70 – 2026-11-28
 Funzione nuova: i nuovi abitanti arrivano in città a piedi.
 - Chi si trasferisce non compare più alla porta di casa: nasce su una cella libera del **bordo della mappa** (il lato più vicino alla casa scelta, con ripiego sugli altri lati) e cammina fino alla casa. Se nessun lato ha un cammino, compare alla porta come prima.
