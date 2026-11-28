@@ -954,6 +954,18 @@ const BUILD={
     for(const [x,z] of[[1.5,.9],[2.3,.9],[1.9,1.6]]){cyl(g,.38,.38,.7,10,MAT.timber,x,.35,z);for(const y of[.15,.55])cyl(g,.4,.4,.04,10,MAT.iron,x,y,z);}
     for(let i=0;i<6;i++)bx(g,.08,.9,.04,MAT.fw,-.3+i*.12,.45,1.0);
     return g;},
+  armory(b){const g=new THREE.Group();
+    bx(g,2.6,1.3,2.0,MAT.stone,-.6,.65,-1.0);bx(g,2.7,.1,2.1,MAT.timber,-.6,1.3,-1.0);gab(g,2.9,1.9,.8,MAT.tile,1.1,-.6,-1.0);bx(g,.6,.9,.06,MAT.door,-1.0,.45,.02);chim(g,.4,2.0,-1.4,.8);
+    // rastrelliera con lance e spade, incudine e scudo alla parete
+    bx(g,2.0,.06,.1,MAT.timber,1.4,1.0,1.0);bx(g,2.0,.06,.1,MAT.timber,1.4,.4,1.0);for(let i=0;i<5;i++){bx(g,.05,1.6,.05,MAT.log,.7+i*.35,.8,1.0);bx(g,.1,.18,.05,MAT.iron,.7+i*.35,1.68,1.0);}
+    bx(g,.5,.3,.3,MAT.iron,-.3,.15,1.2);bx(g,.4,.5,.05,MAT.fw,-1.9,.8,-.1);
+    return g;},
+  bowyer(b){const g=new THREE.Group();
+    bx(g,2.0,1.0,1.6,MAT.log,-.5,.5,-.8);bx(g,2.1,.1,1.7,MAT.timber,-.5,1.0,-.8);gab(g,2.3,1.6,.65,MAT.thatch,1.0,-.5,-.8);bx(g,.5,.8,.06,MAT.door,-.9,.4,.02);
+    // archi appesi, fascio di frecce e bersaglio di paglia
+    for(const x of[.5,.9,1.3]){bx(g,.05,1.0,.05,MAT.timber,x,.7,1.0);bx(g,.02,1.0,.02,MAT.rope||MAT.fw,x+.08,.7,1.0);}
+    cyl(g,.15,.15,.7,8,MAT.fw,1.9,.35,.9);cyl(g,.45,.45,.1,12,MAT.thatch,2.4,.7,1.7,0,Math.PI/2);bx(g,.06,.7,.06,MAT.timber,2.4,.35,1.6);
+    return g;},
   wheelwright(b){const g=new THREE.Group();
     bx(g,2.4,1.1,1.8,MAT.log,-.6,.55,-.9);bx(g,2.5,.1,1.9,MAT.timber,-.6,1.1,-.9);gab(g,2.7,1.7,.75,MAT.thatch,1.1,-.6,-.9);bx(g,.6,.85,.06,MAT.door,-.9,.42,.02);
     // carro con le ruote cerchiate e ruota appoggiata
@@ -1345,6 +1357,8 @@ const TOOLS=[
   {id:'church',label:'Chiesa',key:'c',hint:'Serve alle case entro 54 celle per salire dal livello 2 in su. Molto attraente.'},
   {id:'watchtower',label:'Torre di guardia',key:'',hint:'Gli arcieri tirano ai predoni e ai soldati nemici entro 24 celle. Mettila vicino ai magazzini e al centro: i predoni cercano le scorte.'},
   {id:'barracks',label:'Caserma',key:'',hint:'Dà il mestiere di guerriero a 2 abitanti. Quando arrivano i nemici escono incontro a loro: a mani nude valgono quanto un brigante, con un\'arma (la forgia il fabbro o si importa) 5/3.'},
+  {id:'armory',label:'Armeria',key:'',hint:"Dopo la caserma (Difesa, titolo 5). Quando la caserma ha bisogno di armi, l'armaiolo fa 2 lance da 1 asse + 1 barra (o 2 ferri) oppure 1 spada da 1 barra + 1 carbone + 1 cuoio: il doppio del fabbro per ciclo."},
+  {id:'bowyer',label:"Bottega dell'arcaio",key:'',hint:"Dopo la torre di guardia (Difesa, titolo 5). Quando la caserma ha bisogno di armi, l'arcaio fa 2 archi con frecce da 1 asse + 1 corda."},
   {id:'demolish',label:'Demolisci',key:'x',hint:'Clicca un edificio, una casa, una strada o un sentiero.'},
   {id:'pan',label:'Muovi',key:'h',hint:'Trascina per spostare la mappa.'}
 ];
@@ -1356,7 +1370,7 @@ const CATS=[
   {id:'shop',label:'Botteghe',ids:['carpenter','sawmill','cooper','wheelwright','mason','claypit','brickworks','limekiln','saltworks','butcher','smokehouse','dairy','brewery','winery','tannery','cobbler','smithy','bakery','sheepfold','charcoal','smelter','retting','ropewalk','dyehouse','weaver','tailor','fisher','hunter','mercery']},
   {id:'serv',label:'Servizi',ids:['store','well','dowse','school','infirmary','surgeon','church','inn','tavern','hall','taxoffice']},
   {id:'deco',label:'Decorazioni',ids:['plaza','flowers','statue']},
-  {id:'def',label:'Difesa',ids:['watchtower','barracks']}];
+  {id:'def',label:'Difesa',ids:['watchtower','barracks','armory','bowyer']}];
 const CATOF={};CATS.forEach(c=>c.ids.forEach(i=>{CATOF[i]=c.id;}));
 const catBtns={};
 let curCat='tools';
@@ -1448,6 +1462,8 @@ function refreshSel(){
       cobbler:`Un calzolaio fa 2 scarpe con 1 cuoio ogni ${spec.t} s. Cuoio ${S.stock.leather|0} · scarpe ${S.stock.shoes|0}/${Sim.SHOE_CAP}. Copertura del paese: ${Math.round(Sim.shoeCover()*100)}% (benessere fino a +3 a copertura piena).`,
       sawmill:`Un segantino ricava 3 assi da 1 legno ogni ${spec.t} s. Legno ${S.stock.wood|0} · assi ${S.stock.planks|0}/${Sim.PLANK_CAP||24}.`,
       cooper:`Un bottaio fa 2 botti con 2 assi e 1 barra (o 1 ferro) ogni ${spec.t} s. Assi ${S.stock.planks|0} · barre ${S.stock.bars|0} · botti ${S.stock.barrels|0}/${Sim.BARREL_CAP}. Ogni botte dà +1 a birra, vino e conserve.`,
+      armory:`Un armaiolo fa 2 lance (1 asse + 1 barra o 2 ferri) o 1 spada (1 barra + 1 carbone + 1 cuoio) ogni ${spec.t} s, solo se la caserma ha bisogno di armi. Armi ${S.stock.weapons|0} (lance ${(Sim._t.wt().spear)|0} · spade ${(Sim._t.wt().sword)|0} · archi ${(Sim._t.wt().bow)|0}).`,
+      bowyer:`Un arcaio fa 2 archi con frecce da 1 asse + 1 corda ogni ${spec.t} s, solo se la caserma ha bisogno di armi. Assi ${S.stock.planks|0} · corde ${S.stock.rope|0} · armi ${S.stock.weapons|0}.`,
       wheelwright:`Un carradore fa 1 carro con 3 assi e 1 barra (o 1 ferro) ogni ${spec.t} s. Assi ${S.stock.planks|0} · barre ${S.stock.bars|0} · carri ${S.stock.carts|0}/${Sim.CART_CAP}. Con un carro si trasportano ${Sim.CART_AUX} pezzi a viaggio.`,
       winery:`Un vinaio spreme 3 uve in 2 vini ogni ${spec.t} s. Uva in attesa: ${(b.inp||{}).vine|0} (max ${Sim.RET_CAP}) · vino ${S.stock.wine|0}/${Sim.WINE_CAP}. Scegli la coltura vigna in una fattoria; la taverna serve il vino prima della birra.`,
       dyehouse:`Un tintore tinge 1 pezza di tessuto con 1 pianta tintoria ogni ${spec.t} s. Piante in attesa: ${(b.inp||{}).dye|0} (max ${Sim.RET_CAP}) · pezze tinte pronte: ${b.out.dyed|0}. Il tessuto lo prende dal telaio vicino; il sarto con una pezza tinta cuce 3 abiti invece di 2. Le piante le portano i contadini delle fattorie con la coltura tintorie.`,

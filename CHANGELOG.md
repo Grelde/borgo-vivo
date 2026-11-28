@@ -1,5 +1,12 @@
 # Changelog
 
+## v91 – 2026-11-28
+Funzione nuova: filiera 8, armi (armeria e arcaio).
+- **Armeria** (ramo Difesa, titolo 5, dopo la caserma): l'armaiolo fa 2 **lance** da 1 asse (non impegnata nei cantieri) + 1 barra (o 2 ferri), oppure 1 **spada** da 1 barra + 1 carbone + 1 cuoio (una spada ogni 2 lance). Il doppio del fabbro per ciclo.
+- **Bottega dell'arcaio** (Difesa, titolo 5, dopo la torre di guardia): 2 **archi** con frecce da 1 asse + 1 corda.
+- Producono solo quando la caserma ha bisogno di armi (`WEAPON_PER_POST`), direttamente nel totale `weapons` che usano caserma e difesa; `S.wtype` tiene il conto per tipo (lance, spade, archi) mostrato nel pannello. Il fabbro continua a poter forgiare armi.
+- Grafica, hint, pannelli, mestieri (armaiolo, arcaio) e salari. Test: `tests/armi.js`. Le piume di gallina non esistono ancora nel gioco: le frecce usano solo assi e corda.
+
 ## v90 – 2026-11-28
 Funzione nuova: filiera 7, segheria, bottaio e carradore.
 - **Segheria** (ramo Legno, titolo 5, dopo il falegname): sulla riva di lago o fiume (ruota ad acqua), 2 posti; 1 legno → **3 assi** (il falegname ne fa 2).
