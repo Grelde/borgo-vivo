@@ -1772,6 +1772,15 @@ function needsHtml(b){
   const n=Sim.needsOf(b),row=(t,v,m)=>`<div class="need"><span>${v>=m?'✓':'✗'} ${t}</span><b>${v}/${m}</b></div>`;
   return row('Cibo',n.food,30)+row('Casa (caldo, legna, quiete, spazio)',Math.round(n.home),25)+row('Acqua (pozzo vicino)',n.water,25)+(n.hasChurch?row('Chiesa vicina',n.church,20):'<div class="need"><span>• Chiesa: serve dal livello 2</span><b>–</b></div>');
 }
+function villagerNeedsHtml(v){
+  if(!v.n)return '';
+  const hb=v.home&&Sim.buildings().get(v.home);
+  return '<h4>Bisogni</h4>'+Object.keys(Sim.NEEDS).map(k=>{
+    if(k==='church'&&!(hb&&hb.level>=2))return '';
+    const m=Math.round(v.n[k]),low=m<Sim.NEED_LOW;
+    return `<div class="need"><span>${Sim.NEEDS[k].n}${low?' · lo cerca':''}</span><b>${m}%</b></div><div class="bar"><i style="width:${m}%${low?';background:var(--blood,#a33)':''}"></i></div>`;
+  }).join('');
+}
 function skillHtml(sk){
   const ks=Object.keys(sk||{}).filter(k=>sk[k]>=1).sort((a,b)=>sk[b]-sk[a]);if(!ks.length)return '';
   return '<h4>Bravura</h4>'+ks.map(k=>{const l=Sim.skLevel({sk},k),p=Math.round((sk[k]%Sim.XPL)/Sim.XPL*100);return `<div class="need"><span>${Sim.TRADENAME[k]||k}: ${Sim.SKNAME[l]} (livello ${l})</span><b>${l>=Sim.SKMAX?'massimo':p+'%'}</b></div>`;}).join('');
@@ -1792,6 +1801,7 @@ function renderCard(){
   if(dead)h+=`<p>${r.trade?Sim.TRADENAME[r.trade]:'Nessun mestiere'}${r.inh?' <span class="tag">ereditato</span>':''}</p><p>${r.cause?({age:'Morto di vecchiaia.',cold:'Morto di freddo.',hunger:'Morto di fame.',ill:'Morto di malattia.',left:'Ha lasciato il paese perché infelice.'})[r.cause]||'':''}</p>`;
   else{h+=`<p>${child?(age<6?'Gioca in giardino':'Gioca e studia'):esc(Sim.roleText(v))}${v.trade&&!child?` · mestiere: ${Sim.TRADENAME[v.trade]}`:''}${v.inh?' <span class="tag">ereditato</span>':''}</p>`;}
   if(!dead&&v.job){const cd=Math.round(Sim.commuteOf(v));h+=`<p>Casa-lavoro: ${cd} celle${cd>Sim.COMMUTE_OK?' <span class="tag bad">troppo lontano: scontento</span>':''}</p>`;}
+  if(!dead)h+=villagerNeedsHtml(v);
   h+=skillHtml(dead?r.sk:v.sk);
   h+='<h4>Istruzione</h4>';
   const sch=dead?r.schooled:v.schooled;

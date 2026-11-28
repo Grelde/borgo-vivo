@@ -309,7 +309,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v58</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v59</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -738,7 +738,7 @@ function addVillager(x,z,age,fam,parTrait){
   if(age===undefined)age=20+Math.random()*20;
   const sex=Math.random()<0.5?'M':'F',name=pick(sex==='M'?MNAMES:FNAMES),fm=fam||pick(FAMS);
   const v={age,child:age<14,edu:0,schooled:false,sd:false,life:62+Math.random()*20,xr:null,id:nextId++,x,z,cell:w2cell(x,z),path:[],state:'idle',carry:null,cq:0,cargo:null,task:null,job:null,home:null,stall:null,timer:0,cool:0,fa:0,moving:false,inside:false,
-    target:-1,day:-1,ate:false,drew:false,prayed:false,next:'sleep',sleepPh:'',helpH:0,err:null,duty:false,
+    target:-1,day:-1,next:'sleep',n:{water:55+Math.random()*45,food:55+Math.random()*45,rest:60+Math.random()*40,church:50+Math.random()*50,social:50+Math.random()*50},nv:0.85+Math.random()*0.3,nc:null,helpH:0,err:null,duty:false,
     name,fam:fm,sex,ill:null,immT:0,trade:null,sk:{},inh:false,sch:null,trait:parTrait!==undefined?parTrait:rollTrait(),joy:50,sad:0};
   reg.set(v.id,{id:v.id,name,fam:fm,sex,born:S.t-age*AGEY,died:null,cause:null,ageD:null,par:[],kids:[],log:[],trade:null,sk:null,inh:false,schooled:false,trait:v.trait});
   villagers.push(v);vmap.set(v.id,v);hooks.villager(v);return v;
@@ -1555,8 +1555,9 @@ function startErrand(v,h){
 function eatOne(b,v){
   let pick=null,old=1e9;
   for(const tp of TYPES)if(b.goods[tp]>0&&b.ate[tp]<old){old=b.ate[tp];pick=tp;}
-  if(pick){if(!(v&&v.schooled&&Math.random()<EDU_SAVE))b.goods[pick]--;b.ate[pick]=S.t;b.hungry=Math.max(0,b.hungry-15);}
-  else b.hungry=Math.min(300,b.hungry+30);
+  if(pick){if(!(v&&v.schooled&&Math.random()<EDU_SAVE))b.goods[pick]--;b.ate[pick]=S.t;b.hungry=Math.max(0,b.hungry-15);return true;}
+  b.hungry=Math.min(300,b.hungry+10); // senza cibo ci riprova più tardi
+  return false;
 }
 function goHome(v,kind){
   const h=buildings.get(v.home);if(!h||h.state!=='done')return false;
@@ -1567,8 +1568,8 @@ function goHome(v,kind){
 }
 function arriveHome(v,h){
   v.inside=true;v.carry=null;v.path=[];v.moving=false;
-  if(v.next==='eat'){eatOne(h,v);v.ate=true;v.state='eat';v.timer=5;}
-  else{v.state='sleep';v.sleepPh=S.ph;}
+  if(v.next==='eat'){const ok=eatOne(h,v);v.n.food=ok?100:Math.max(v.n.food,45);v.state='eat';v.timer=5;}
+  else v.state='sleep';
 }
 function goTo(v,type,h,state){
   const t=nearestOf(type,h.cell,105);if(!t)return false;
@@ -1582,28 +1583,17 @@ function goHomeAfter(v){
 const inClass=()=>S.ph==='work'&&(S.f<TL.lunch0||(S.edicts.schoolMandatory&&S.f<DUSK));
 function schoolFor(v){let best=null,bd=1e9;for(const b of buildings.values()){if(b.type!=='school'||b.state!=='done'||!b.workers.length||(b.pupils|0)>=SCHOOL_CAP)continue;const d=Math.hypot(b.cell%N-v.cell%N,(b.cell/N|0)-(v.cell/N|0));if(d<bd){bd=d;best=b;}}return best;}
 function decide(v){
-  const h=v.home&&buildings.get(v.home),ph=S.ph,dusk=ph==='work'&&S.f>=DUSK&&!!h;
-  // i malati restano a letto
+  const h=v.home&&buildings.get(v.home);
+  // i malati restano a letto: mangiano e dormono a casa
   if(v.ill){
-    if(h&&h.state==='done'&&goHome(v,ph==='meal'&&!v.ate?'eat':'sleep'))return;
+    if(h&&h.state==='done'&&goHome(v,v.n.food<NEED_LOW?'eat':'sleep'))return;
     v.state='wait';v.timer=3;return;
   }
   // v37: durante la festa di paese tutti vanno in piazza (una volta a festa)
-  if(ph!=='night'&&(v.festCool||0)<=S.t&&S.festA&&S.festA.some(q=>q.on)&&goFest(v))return;
-  if(ph!=='work'||dusk){
-    // al calare della sera tutti si avvicinano a casa; pasto, sera e notte si passano lì
-    if(!h||h.state!=='done'){
-      if(ph==='night'){const tn=v.tentId&&buildings.get(v.tentId);if(tn&&tn.state==='done'&&route(v,tn.cell,tn.id)){v.state='toStoreSleep';return;}const st=nearestStore(v.cell);if(st&&route(v,st.cell,st.id)){v.state='toStoreSleep';return;}}
-      v.state='wait';v.timer=3;return;
-    }
-    if(ph==='meal'){if(!v.ate&&goHome(v,'eat'))return;}
-    else if(ph==='evening'||dusk){
-      if(h.level>=3&&!v.drew&&goTo(v,'well',h,'toWell'))return;
-      if(h.level>=2&&!v.prayed&&goTo(v,'church',h,'toChurch'))return;
-      if(goHome(v,'sleep'))return;
-    }else if(ph==='night'){if(goHome(v,'sleep'))return;}
-    v.state='wait';v.timer=3;return;
-  }
+  if(S.ph!=='night'&&(v.festCool||0)<=S.t&&S.festA&&S.festA.some(q=>q.on)&&goFest(v))return;
+  // v58: i bisogni (acqua, cibo, riposo, chiesa, compagnia) guidano la giornata; il più basso sotto il 20% passa avanti a tutto
+  const nk=pickNeed(v);
+  if(nk&&doNeed(v,nk,h))return;
   if(v.child){
     if(v.cool<=0){v.cool=1.5+Math.random()*2;
       const sc=schoolFor(v);
@@ -1630,7 +1620,8 @@ function onArrive(v){
     case 'toField':v.state='till';v.timer=5;break;
     case 'toBuild':v.state='build';break;
     case 'toGraze':v.state='graze';v.timer=6;break;
-    case 'toStoreSleep':v.inside=true;v.state='sleep';v.sleepPh=S.ph;break;
+    case 'toStoreSleep':v.inside=true;v.state='sleep';break;
+    case 'toPlaza':v.state='chat';v.timer=6+Math.random()*4;break;
     case 'toSupply':{
       const sp=v.sup,hh=sp&&buildings.get(sp.h),inn=v.job&&buildings.get(v.job);
       const take=hh?Math.min(sp.q,hh.goods[sp.tp]-KEEP):0;
@@ -1722,7 +1713,7 @@ function onArrive(v){
       if(s&&isSite(s)){s.got[task.res]+=n;s.fly[task.res]=Math.max(0,s.fly[task.res]-n);}else if(task)S.stock[task.res]+=n;
       v.carry=null;v.cq=0;v.task=null;
       // il costruttore che ha portato il carico al suo cantiere si rimette a costruire
-      if(task&&task.own&&s&&isSite(s)&&S.ph==='work'&&!(S.f>=DUSK&&v.home)){v.target=s.id;v.bw=0;v.state='build';}else v.state='idle';
+      if(task&&task.own&&s&&isSite(s)){v.target=s.id;v.bw=0;v.state='build';}else v.state='idle';
       break;}
   }
 }
@@ -1776,21 +1767,21 @@ function abortTask(v){
   }
   v.carry=null;v.cargo=null;v.err=null;v.task=null;v.sup=null;v.rep=null;v.path=[];v.moving=false;v.state='idle';
 }
-const NIGHTOK=new Set(['toHomeLife','sleep','toStoreSleep','idle','wait']);
 function updV(v,dt){
-  if(S.ph==='night'&&v.home&&!v.inside&&!NIGHTOK.has(v.state))abortTask(v);
-  if(v.day!==S.day){v.day=S.day;v.ate=false;v.drew=false;v.prayed=false;v.sd=false;}
+  // bisogno critico (sotto il 6%): lascia ciò che sta facendo
+  if(!v.inside&&!LIFEST.has(v.state)&&(v.n.rest<6||v.n.food<6||v.n.water<6))abortTask(v);
+  if(v.day!==S.day){v.day=S.day;v.sd=false;}
   v.cool=Math.max(0,v.cool-dt);
   switch(v.state){
     case 'idle':v.moving=false;decide(v);break;
     case 'toSchool':case 'toCenterT':case 'toWhT':case 'toStore':case 'toSite':case 'toTree':case 'toRock':case 'toWork':case 'toField':case 'toHomeF':case 'toGarden':case 'toStall':case 'toMarket':case 'toHomeT':
-    case 'toHomeLife':case 'toWell':case 'toChurch':case 'toHelp':case 'toCollect':case 'toStoreC':case 'toErr':case 'toHomeErr':case 'toPlant':case 'toMill':case 'toShop':case 'toDeliver':case 'toStockG':case 'toGranary':case 'toGraze':case 'toBuild':case 'toStoreSleep':case 'toSupply':case 'toInnSup':case 'toFest':case 'toRepair':case 'toRetting':
+    case 'toHomeLife':case 'toWell':case 'toChurch':case 'toPlaza':case 'toHelp':case 'toCollect':case 'toStoreC':case 'toErr':case 'toHomeErr':case 'toPlant':case 'toMill':case 'toShop':case 'toDeliver':case 'toStockG':case 'toGranary':case 'toGraze':case 'toBuild':case 'toStoreSleep':case 'toSupply':case 'toInnSup':case 'toFest':case 'toRepair':case 'toRetting':
       if(moveV(v,dt))onArrive(v);break;
     case 'fest':{v.moving=false;v.timer-=dt;const fb=buildings.get(v.festB);if(v.timer<=0||!fb||!fb.fest||fb.fest.st!=='on')v.state='idle';break;}
     case 'chop':case 'mine':case 'till':
       v.timer-=dt*workRate(v);if(v.timer<=0)endGather(v);break;
     case 'build':{v.moving=false;const bb=buildings.get(v.target);
-      if(!bb||!isSite(bb)||S.ph!=='work'||(S.f>=DUSK&&v.home)){v.state='idle';v.bw=0;break;}
+      if(!bb||!isSite(bb)){v.state='idle';v.bw=0;break;}
       if(siteIdle(bb)){
         // niente da costruire con i materiali arrivati: il costruttore va al magazzino a prendere quelli per il suo cantiere
         if(haulTo(v,bb,true)){v.bw=0;break;}
@@ -1810,12 +1801,13 @@ function updV(v,dt){
     case 'tend':
       v.moving=false;v.timer-=dt;if(v.timer<=0)v.state='idle';break;
     case 'learn':{v.moving=false;const sc=v.sch&&buildings.get(v.sch);{const tc=sc&&sc.workers.length?vmap.get(sc.workers[0]):null;v.edu+=dt*(S.edicts.schoolMandatory?1.6:1)*(1+SK_WORK*(tc?skLevel(tc,'school'):0));}if(!inClass()||!sc||sc.state!=='done'||!sc.workers.length){v.inside=false;v.sd=!(S.edicts.schoolMandatory&&S.ph==='meal');v.sch=null;v.state='idle';}break;}
-    case 'draw':v.timer-=dt;if(v.timer<=0){v.drew=true;v.carry='water';goHomeAfter(v);}break;
-    case 'pray':v.timer-=dt;if(v.timer<=0){v.prayed=true;v.prayT=S.t;goHomeAfter(v);}break;
+    case 'draw':v.timer-=dt;if(v.timer<=0){v.n.water=100;v.carry='water';goHomeAfter(v);}break;
+    case 'chat':v.moving=false;v.timer-=dt;if(v.timer<=0){v.n.social=100;v.state='idle';}break;
+    case 'pray':v.timer-=dt;if(v.timer<=0){v.n.church=100;v.prayT=S.t;goHomeAfter(v);}break;
     case 'repair':v.moving=false;v.timer-=dt;if(v.timer<=0)endRepair(v);break;
     case 'helpTend':v.timer-=dt;if(v.timer<=0){const h=buildings.get(v.helpH);if(h){if(h.crop!=='wood'){const k=gardenGood(h.crop);h.goods[k]=Math.min(gardenCap(h.crop),h.goods[k]+2);}S.helps++;}v.state='idle';}break;
     case 'eat':v.timer-=dt;if(v.timer<=0){v.inside=false;v.state='idle';}break;
-    case 'sleep':if(S.ph!==v.sleepPh){v.inside=false;v.state='idle';}break;
+    case 'sleep':v.n.rest=Math.min(100,v.n.rest+dt*REST_REC);if(!v.ill&&((v.n.rest>=100&&S.ph!=='night'&&S.ph!=='evening')||v.n.food<8||v.n.water<8)){v.inside=false;v.state='idle';}break;
     case 'keep':{
       v.moving=false;v.timer-=dt;
       const st=buildings.get(v.stall),h=buildings.get(v.home);
@@ -2200,7 +2192,8 @@ function joyOf(v){
   let s=(!h||h.state!=='done')?20:h.well;
   if(v.ill)s-=15;
   {const cd=commuteOf(v);if(cd>COMMUTE_OK)s-=Math.min(COMMUTE_MAX,(cd-COMMUTE_OK)*COMMUTE_PEN);}
-  if(h&&h.level>=2&&v.prayT!==undefined&&S.t-v.prayT<DAY*2)s+=6; // andare in chiesa consola
+  if(h&&h.level>=2&&h.flags.church&&v.n.church>=40)s+=6; // andare in chiesa consola
+  for(const k of NK)if(v.n[k]<25)s-=(25-v.n[k])*0.4; // bisogni insoddisfatti pesano (fino a 10 punti ciascuno)
   if(h&&h.state==='done'){s+=h.fun||0;s+=festJoy(h);if(h.level>=3&&h.goods.clothes>=1)s+=3;} // v32: taverna e sala delle feste vicine, abiti in casa
   if(v.trait==='brontolone')s-=18;
   else if(v.trait==='litigioso')s-=6;
@@ -2214,12 +2207,60 @@ const EDU_WORK=1.25,EDU_SAVE=0.25;
 const XPL=DAY*12,SKMAX=4,SK_WORK=0.12,SKNAME=['Apprendista','Praticante','Esperto','Provetto','Maestro'];
 const skLevel=(v,type)=>Math.min(SKMAX,Math.floor(((v.sk&&v.sk[type])||0)/XPL));
 function skillTick(v){
-  const jb=v.job&&buildings.get(v.job);if(!jb||v.child||v.ill||S.ph!=='work')return;
+  const jb=v.job&&buildings.get(v.job);if(!jb||v.child||v.ill||LIFEST.has(v.state)||v.inside)return;
   const t=jb.type,before=skLevel(v,t);v.sk[t]=(v.sk[t]||0)+1;
   const after=skLevel(v,t);
   if(after>before){logV(v,'Diventa '+SKNAME[after].toLowerCase()+' come '+TRADENAME[t]+' (livello '+after+').');if(after>=SKMAX)tell('master','Un abitante è diventato maestro del suo mestiere: lavora molto meglio e chi ha quel mestiere lo riprende volentieri.');}
 }
 const jobSkill=v=>{const jb=v.job&&buildings.get(v.job);return jb?skLevel(v,jb.type):0;};
+// ---- bisogni per abitante (v58) ----
+// Ogni abitante ha indicatori 0-100 che calano nel tempo, ciascuno con un proprio decadimento: giorni (di DAY secondi) per scendere da 100 a 20.
+// Sotto NEED_LOW cerca di soddisfare il bisogno; completato, torna a 100. Acqua, cibo e riposo sono quotidiani; chiesa e compagnia hanno ritmi più lunghi.
+const NEEDS={water:{days:0.8,n:'Acqua'},food:{days:1.0,n:'Cibo'},rest:{days:0.75,n:'Riposo'},church:{days:4,n:'Chiesa'},social:{days:6,n:'Compagnia'}};
+const NEED_LOW=20,BEDTIME=65,NK=Object.keys(NEEDS),REST_REC=100/(0.4*DAY);
+const LIFEST=new Set(['toHomeLife','sleep','eat','toWell','draw','toChurch','pray','toPlaza','chat','toStoreSleep','wait','idle']);
+function needsTick(v,hasPlaza){
+  const n=v.n,h=v.home&&buildings.get(v.home),sl=v.state==='sleep',c=80/DAY*v.nv;
+  const act=(v.state==='chop'||v.state==='mine'||v.state==='till'||v.state==='build')?1.3:1;
+  const circ=S.ph==='night'?2.2:S.ph==='evening'?1.5:S.ph==='meal'?1:0.8; // di notte si è più stanchi
+  n.food=Math.max(0,n.food-c/NEEDS.food.days*(sl?0.5:1)*act);
+  n.water=Math.max(0,n.water-c/NEEDS.water.days*(sl?0.5:1)*act);
+  if(!sl)n.rest=Math.max(0,n.rest-c/NEEDS.rest.days*circ*act);
+  if(h&&h.state==='done'&&h.level>=2)n.church=Math.max(0,n.church-c/NEEDS.church.days);else n.church=100; // la chiesa conta dal livello 2
+  if(hasPlaza)n.social=Math.max(0,n.social-c/NEEDS.social.days);else n.social=100;
+  if(!h||h.state!=='done'){n.food=Math.max(n.food,30);n.water=Math.max(n.water,30);} // chi non ha casa si arrangia
+}
+function pickNeed(v,onlyHome){
+  // la sera e la notte si va a letto già a riposo medio (65%): è l'ora di dormire; di giorno solo quando si è davvero stanchi (20%)
+  const bed=S.ph==='night'||S.ph==='evening';
+  let bk=null,bm=1e9;
+  for(const k of NK){
+    if(onlyHome&&k!=='food'&&k!=='rest')continue;
+    const lim=k==='rest'&&bed?BEDTIME:NEED_LOW,val=v.n[k];
+    if(val<lim&&((v.nc&&v.nc[k])||0)<=S.t&&val-lim<bm){bm=val-lim;bk=k;}
+  }
+  return bk;
+}
+const needCool=(v,k,sec)=>{if(!v.nc)v.nc={};v.nc[k]=S.t+sec;};
+function nearTo(v,type,cell,maxd,state){
+  const t=nearestOf(type,cell,maxd);if(!t||!route(v,t.cell,t.id))return false;v.state=state;return true;
+}
+// prova a soddisfare un bisogno; true se ha iniziato un'azione
+function doNeed(v,k,h){
+  const home=h&&h.state==='done';
+  switch(k){
+    case 'food':if(home&&goHome(v,'eat'))return true;needCool(v,k,DAY*0.15);return false;
+    case 'rest':
+      if(home&&goHome(v,'sleep'))return true;
+      {const tn=v.tentId&&buildings.get(v.tentId);if(tn&&tn.state==='done'&&route(v,tn.cell,tn.id)){v.state='toStoreSleep';return true;}
+       const st=nearestStore(v.cell);if(st&&route(v,st.cell,st.id)){v.state='toStoreSleep';return true;}}
+      v.inside=false;v.state='sleep';v.moving=false;return true; // dorme dove si trova
+    case 'water':if(nearTo(v,'well',home?h.cell:v.cell,105,'toWell'))return true;v.n.water=Math.max(v.n.water,45);return false; // senza pozzo: acqua di botte
+    case 'church':if(home&&h.level>=2&&nearTo(v,'church',h.cell,105,'toChurch'))return true;needCool(v,k,DAY*0.5);return false;
+    case 'social':if(nearTo(v,'plaza',home?h.cell:v.cell,105,'toPlaza'))return true;needCool(v,k,DAY*0.5);return false;
+  }
+  return false;
+}
 const workRate=v=>(v.trait==='pigro'?0.6:1)*(v.joy<35?0.8:1)*(v.schooled?EDU_WORK:1)*(1+SK_WORK*jobSkill(v))*(v.job?condF(buildings.get(v.job)):1);
 function birthTick(b){
   if(S.t<b.birthT)return;
@@ -2331,10 +2372,11 @@ function killV(v,cause){
 }
 function lifeTick(){
   const dead=[],leavers=[];
+  let hasPlaza=false;for(const b of buildings.values())if(b.type==='plaza'&&b.state==='done'){hasPlaza=true;break;}
   for(const v of villagers){
     v.age+=1/AGEY;
     const h=v.home&&buildings.get(v.home);
-    v.joy=joyOf(v);skillTick(v);
+    needsTick(v,hasPlaza);v.joy=joyOf(v);skillTick(v);
     // chi resta a lungo molto infelice se ne va (mai sotto gli 8 abitanti)
     if(!v.child&&v.joy<25)v.sad++;else v.sad=Math.max(0,v.sad-2);
     if(v.sad>=DAY*1.5&&villagers.length-leavers.length>8)leavers.push(v);
@@ -3209,6 +3251,7 @@ function roleText(v){
     case 'eat':return 'Mangia a casa';
     case 'toHomeLife':return v.ill?'Torna a casa, malato':v.next==='eat'?'Torna a casa per il pasto':'Torna a casa';
     case 'toWell':case 'draw':return "Prende l'acqua al pozzo";
+    case 'toPlaza':case 'chat':return 'Si ferma a chiacchierare in piazza';
     case 'toChurch':case 'pray':return 'Prega in chiesa';
     case 'toFest':case 'fest':return 'Alla festa di paese';
     case 'toHelp':case 'helpTend':return "Aiuta un'altra famiglia";
@@ -3329,7 +3372,7 @@ function importState(d){
   hooks.trees();hooks.rocks();hooks.saps();hooks.ground();
 }
 return {TL,startHouseWork,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
-  reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
+  reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,NEEDS,NEED_LOW,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
   TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
   setFarmCrop,fibreCrop,sinkOf,CHAR_CAP,BAR_CAP,retInfo,RET_CAP,DIFFS,diffOf,maintStats,condOf,condLabel,maintainable,REPAIR_BELOW,WORN_AT,
@@ -5112,6 +5155,15 @@ function needsHtml(b){
   const n=Sim.needsOf(b),row=(t,v,m)=>`<div class="need"><span>${v>=m?'✓':'✗'} ${t}</span><b>${v}/${m}</b></div>`;
   return row('Cibo',n.food,30)+row('Casa (caldo, legna, quiete, spazio)',Math.round(n.home),25)+row('Acqua (pozzo vicino)',n.water,25)+(n.hasChurch?row('Chiesa vicina',n.church,20):'<div class="need"><span>• Chiesa: serve dal livello 2</span><b>–</b></div>');
 }
+function villagerNeedsHtml(v){
+  if(!v.n)return '';
+  const hb=v.home&&Sim.buildings().get(v.home);
+  return '<h4>Bisogni</h4>'+Object.keys(Sim.NEEDS).map(k=>{
+    if(k==='church'&&!(hb&&hb.level>=2))return '';
+    const m=Math.round(v.n[k]),low=m<Sim.NEED_LOW;
+    return `<div class="need"><span>${Sim.NEEDS[k].n}${low?' · lo cerca':''}</span><b>${m}%</b></div><div class="bar"><i style="width:${m}%${low?';background:var(--blood,#a33)':''}"></i></div>`;
+  }).join('');
+}
 function skillHtml(sk){
   const ks=Object.keys(sk||{}).filter(k=>sk[k]>=1).sort((a,b)=>sk[b]-sk[a]);if(!ks.length)return '';
   return '<h4>Bravura</h4>'+ks.map(k=>{const l=Sim.skLevel({sk},k),p=Math.round((sk[k]%Sim.XPL)/Sim.XPL*100);return `<div class="need"><span>${Sim.TRADENAME[k]||k}: ${Sim.SKNAME[l]} (livello ${l})</span><b>${l>=Sim.SKMAX?'massimo':p+'%'}</b></div>`;}).join('');
@@ -5132,6 +5184,7 @@ function renderCard(){
   if(dead)h+=`<p>${r.trade?Sim.TRADENAME[r.trade]:'Nessun mestiere'}${r.inh?' <span class="tag">ereditato</span>':''}</p><p>${r.cause?({age:'Morto di vecchiaia.',cold:'Morto di freddo.',hunger:'Morto di fame.',ill:'Morto di malattia.',left:'Ha lasciato il paese perché infelice.'})[r.cause]||'':''}</p>`;
   else{h+=`<p>${child?(age<6?'Gioca in giardino':'Gioca e studia'):esc(Sim.roleText(v))}${v.trade&&!child?` · mestiere: ${Sim.TRADENAME[v.trade]}`:''}${v.inh?' <span class="tag">ereditato</span>':''}</p>`;}
   if(!dead&&v.job){const cd=Math.round(Sim.commuteOf(v));h+=`<p>Casa-lavoro: ${cd} celle${cd>Sim.COMMUTE_OK?' <span class="tag bad">troppo lontano: scontento</span>':''}</p>`;}
+  if(!dead)h+=villagerNeedsHtml(v);
   h+=skillHtml(dead?r.sk:v.sk);
   h+='<h4>Istruzione</h4>';
   const sch=dead?r.schooled:v.schooled;

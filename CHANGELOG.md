@@ -1,5 +1,15 @@
 # Changelog
 
+## v59 – 2026-11-28
+Cambio di regole: la giornata dell'abitante è guidata dai bisogni, non dalle ore.
+- **Indicatori per abitante (0-100)**, ognuno con il proprio decadimento (giorni di `DAY` per scendere da 100 a 20): Acqua 0,8, Cibo 1, Riposo 0,75 (quotidiani); Chiesa 4 (dal livello 2) e Compagnia 6 (se esiste una piazza). Lavorare li consuma più in fretta (×1,3); nel sonno cibo e acqua calano della metà; il riposo cala di più di sera e di notte.
+- **Sotto il 20% l'abitante cerca di soddisfare il bisogno** (il più basso passa prima): mangia a casa, beve al pozzo (senza pozzo: acqua di botte, 45%), dorme a casa/tenda/magazzino, prega in chiesa, chiacchiera in piazza; completato, l'indicatore torna a 100. Sotto il 6% lascia anche il lavoro in corso.
+- **Sonno:** di sera e di notte si va a letto già a riposo 65% e si dorme fino al mattino; di giorno si dorme solo sotto il 20% e ci si sveglia a 100 (recupero 0,4 giorni per l'intera barra). Sparisce la fascia fissa dei pasti, della sera e del ritorno a casa al tramonto: pasto, acqua e chiesa avvengono quando servono. Giorno e notte restano per luce, mercato, festa, scuola e stalli.
+- **Felicità:** un bisogno sotto il 25% toglie fino a 10 punti; con chiesa vicina e indicatore sopra il 40% +6 (prima: preghiera negli ultimi 2 giorni). Senza cibo disponibile il pasto si ritenta più tardi (fame della casa +10 per tentativo invece di +30 al giorno).
+- **Scheda:** sezione "Bisogni" con barre e "lo cerca"; ruolo "Si ferma a chiacchierare in piazza". Tutti i livelli di casa ora vanno al pozzo quando serve (prima solo dal livello 3, la sera).
+- Misura (`tests/bisogni.js`, 4 giorni con giorno di 300 s): di notte dorme l'85%, di sera il 60%, di giorno il 17% (stanchi o ancora a letto al mattino). `tests/population.js` (4 annate, confronto con la v57): popolazione 130 contro 141, morti 48 contro 50, stessa carestia in annata 3, felicità 89 contro 89.
+- Limiti: la giornata dei bambini e la scuola restano a orario; il traffico al pozzo è più alto (l'acqua ora serve a tutti). Le soglie 20%, 65% (sera) e 6% e i decadimenti sono da tarare giocando. Test `storage` e `workshops` troppo lenti per la prova automatica (lenti anche prima). Grafica non provata in un browser WebGL.
+
 ## v58 – 2026-11-28
 Cambio di ritmo: il giorno dura il doppio, la notte resta uguale.
 - **Giorno da 300 s** (era 150): `DAY=300`. La notte dura ancora **27 s** (9 s dopo la mezzanotte e 18 s prima), quindi in percentuale passa dal 18% al 9% del giorno. Il giorno "con la luce" passa da 123 s a 273 s.
