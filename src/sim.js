@@ -46,6 +46,9 @@ const BT={
   brewery:{name:'Birrificio',w:6,h:6,cost:{wood:14,stone:6,planks:4},time:12,slots:2,want:1},
   tannery:{name:'Conceria',w:6,h:6,cost:{wood:12,stone:4,bricks:4,lime:2},time:11,slots:2,want:1,need:'water'},
   cobbler:{name:'Bottega del calzolaio',w:6,h:6,cost:{wood:10,stone:2,planks:2},time:10,slots:2,want:1},
+  sawmill:{name:'Segheria',w:6,h:6,cost:{wood:16,stone:6,planks:4},time:12,slots:2,want:1,need:'water'},
+  cooper:{name:'Bottega del bottaio',w:6,h:6,cost:{wood:12,stone:2,planks:2},time:10,slots:2,want:1},
+  wheelwright:{name:'Bottega del carradore',w:6,h:6,cost:{wood:12,stone:4,planks:2},time:10,slots:2,want:1},
   winery:{name:'Cantina',w:6,h:6,cost:{wood:16,stone:6,planks:4,bricks:4,lime:2},time:13,slots:2,want:1},
   fisher:{name:'Capanna del pescatore',w:6,h:6,cost:{wood:8,stone:0},time:8,slots:2,want:1,need:'water'},
   hunter:{name:'Capanna del cacciatore',w:6,h:6,cost:{wood:8,stone:0},time:8,slots:2,want:1,need:'forest'},
@@ -74,7 +77,7 @@ const BT={
   barracks:{name:'Caserma',w:6,h:6,cost:{wood:26,stone:12,planks:4,bricks:6,lime:4},time:16,slots:3,want:2}
 };
 // attrattiva: [forza, raggio in celle]. Positivo = piacevole, negativo = rumore e disagio.
-const ATTR={church:[4,36],tannery:[-3.5,24],well:[2.5,24],stall:[1.2,18],wood:[-3,24],quarry:[-4.5,33],mine:[-5,36],farm:[-1.5,18],forester:[0.6,18],granary:[-0.8,15],mill:[-1.5,21],inn:[1,21],sheepfold:[-0.8,15],school:[1,18],infirmary:[0.5,15],cemetery:[-0.5,15],plaza:[3.2,30],flowers:[0.9,12],statue:[2,21],carpenter:[-1.2,18],mason:[-1.2,18],smithy:[-1.8,21],bakery:[0.4,15],weaver:[-0.3,12],tailor:[0.2,12],mercery:[0.8,18],fisher:[-0.3,12],hunter:[-0.4,12],tavern:[1.6,24],hall:[2.6,30],taxoffice:[-0.5,15]};
+const ATTR={church:[4,36],sawmill:[-2.5,21],tannery:[-3.5,24],well:[2.5,24],stall:[1.2,18],wood:[-3,24],quarry:[-4.5,33],mine:[-5,36],farm:[-1.5,18],forester:[0.6,18],granary:[-0.8,15],mill:[-1.5,21],inn:[1,21],sheepfold:[-0.8,15],school:[1,18],infirmary:[0.5,15],cemetery:[-0.5,15],plaza:[3.2,30],flowers:[0.9,12],statue:[2,21],carpenter:[-1.2,18],mason:[-1.2,18],smithy:[-1.8,21],bakery:[0.4,15],weaver:[-0.3,12],tailor:[0.2,12],mercery:[0.8,18],fisher:[-0.3,12],hunter:[-0.4,12],tavern:[1.6,24],hall:[2.6,30],taxoffice:[-0.5,15]};
 ATTR.watchtower=[0.4,15];ATTR.barracks=[-0.6,15];ATTR.surgeon=[0.3,15];
 const DECO={flowers:1,statue:1};
 const NOGATE={house:1,stall:1,flowers:1,statue:1,plaza:1,well:1,cemetery:1,tent:1};
@@ -98,7 +101,7 @@ const DIS={
   flux:{n:'Dissenteria',dur:[30,60],mort:0.0007},
   plague:{n:'Peste',dur:[70,120],mort:0.0035}
 };
-const TRADENAME={granary:'granaiolo',wood:'taglialegna',quarry:'cavatore',mine:'minatore',forester:'guardaboschi',farm:'contadino',store:'magazziniere',mill:'mugnaio',school:'maestro',inn:'oste',sheepfold:'pastore',infirmary:'erborista',carpenter:'falegname',mason:'muratore',smithy:'fabbro',bakery:'panettiere',weaver:'tessitore',tailor:'sarto',fisher:'pescatore',hunter:'cacciatore',tavern:'taverniere',hall:'musicante',mercery:'merciaio',claypit:'argillaio',brickworks:'fornaciaio',limekiln:'calcinaio',saltworks:'salinaro',tannery:'conciatore',cobbler:'calzolaio',butcher:'macellaio',smokehouse:'affumicatore',dairy:'casaro',brewery:'birraio',winery:'vinaio',retting:'maceratore',ropewalk:'cordaio',dyehouse:'tintore',charcoal:'carbonaio',smelter:'fonditore',barracks:'guerriero',surgeon:'cerusico',taxoffice:'esattore'};
+const TRADENAME={granary:'granaiolo',wood:'taglialegna',quarry:'cavatore',mine:'minatore',forester:'guardaboschi',farm:'contadino',store:'magazziniere',mill:'mugnaio',school:'maestro',inn:'oste',sheepfold:'pastore',infirmary:'erborista',carpenter:'falegname',mason:'muratore',smithy:'fabbro',bakery:'panettiere',weaver:'tessitore',tailor:'sarto',fisher:'pescatore',hunter:'cacciatore',tavern:'taverniere',hall:'musicante',mercery:'merciaio',claypit:'argillaio',brickworks:'fornaciaio',limekiln:'calcinaio',saltworks:'salinaro',tannery:'conciatore',sawmill:'segantino',cooper:'bottaio',wheelwright:'carradore',cobbler:'calzolaio',butcher:'macellaio',smokehouse:'affumicatore',dairy:'casaro',brewery:'birraio',winery:'vinaio',retting:'maceratore',ropewalk:'cordaio',dyehouse:'tintore',charcoal:'carbonaio',smelter:'fonditore',barracks:'guerriero',surgeon:'cerusico',taxoffice:'esattore'};
 // tratti di carattere (negativi): ogni abitante ne ha al massimo uno; i figli lo ereditano da un genitore con probabilità 35%
 const TRAITS={pigro:{n:'Pigro',d:'Lavora più lentamente e controvoglia.'},cagionevole:{n:'Cagionevole',d:'Si ammala più facilmente.'},brontolone:{n:'Brontolone',d:'Si lamenta di tutto: è sempre meno felice degli altri.'},litigioso:{n:'Litigioso',d:'Litiga con chi vive in casa e ne abbassa la felicità.'}};
 const TRAITK=Object.keys(TRAITS);
@@ -135,15 +138,15 @@ const EDICT0=()=>({noUpgrade:false,noImmig:false,birthBonus:false,schoolMandator
 const TAX_WEEK=7,TAX_POUCH=16,WAGE=1,SILVER_GOLD=10; // v64: 1 denaro = 1 moneta d'argento; 10 d'argento = 1 d'oro
 const COINS0=80,VISIT_CAP=6,CARAVAN_GAP=220,TRADE_STAY=8,MAXCARAV=3,BUY_SHARE=0.5; // a ogni visita il merciaio spende al massimo la metà dei denari in cassa (così si può risparmiare per le rotte)
 const TOWNS={
-  w:{id:'w',name:'Valmora',side:'ovest',desc:'Borgo di fondovalle, famoso per lana e tessuti.',cost:60,sells:{cloth:5,clothes:11,fish:2},buys:{wood:3,stone:4,bread:3,rope:4,cheese:6,beer:4,leather:7,shoes:9}},
-  n:{id:'n',name:'Rocca Alta',side:'nord',desc:'Città di montagna con miniere di ferro e fucine.',cost:150,sells:{iron:6,tools:9,stone:3,weapons:16,salt:3},buys:{bread:4,meat:4,clothes:14,wood:3,cured:7,beer:5,wine:10,shoes:8}},
-  e:{id:'e',name:'Porto Fiorito',side:'est',desc:'Porto sul fiume: assi di legno, pesce e tessuti da lontano.',cost:300,sells:{planks:4,fish:2,cloth:5,salt:2},buys:{iron:9,tools:12,stone:4,planks:6,rope:7,bars:15,cured:8,cheese:7,wine:11,leather:8,hides:3}},
-  s:{id:'s',name:'Campomaggio',side:'sud',desc:'Piana fertile con una grande fiera: pane, carne e attrezzi.',cost:500,sells:{bread:2,meat:3,tools:9,weapons:18},buys:{cloth:7,clothes:14,iron:8,planks:6,fish:3,bars:14,beer:5,wine:12,cured:6,shoes:10,leather:7}}
+  w:{id:'w',name:'Valmora',side:'ovest',desc:'Borgo di fondovalle, famoso per lana e tessuti.',cost:60,sells:{cloth:5,clothes:11,fish:2},buys:{wood:3,stone:4,bread:3,rope:4,cheese:6,beer:4,leather:7,shoes:9,barrels:6}},
+  n:{id:'n',name:'Rocca Alta',side:'nord',desc:'Città di montagna con miniere di ferro e fucine.',cost:150,sells:{iron:6,tools:9,stone:3,weapons:16,salt:3},buys:{bread:4,meat:4,clothes:14,wood:3,cured:7,beer:5,wine:10,shoes:8,carts:13}},
+  e:{id:'e',name:'Porto Fiorito',side:'est',desc:'Porto sul fiume: assi di legno, pesce e tessuti da lontano.',cost:300,sells:{planks:4,fish:2,cloth:5,salt:2},buys:{iron:9,tools:12,stone:4,planks:6,rope:7,bars:15,cured:8,cheese:7,wine:11,leather:8,hides:3,barrels:7,carts:14}},
+  s:{id:'s',name:'Campomaggio',side:'sud',desc:'Piana fertile con una grande fiera: pane, carne e attrezzi.',cost:500,sells:{bread:2,meat:3,tools:9,weapons:18},buys:{cloth:7,clothes:14,iron:8,planks:6,fish:3,bars:14,beer:5,wine:12,cured:6,shoes:10,leather:7,carts:15,barrels:6}}
 };
 const ROUTE_IDS=['w','n','e','s'];
 const TGN={wood:'legno',stone:'pietra',planks:'assi',iron:'ferro',tools:'attrezzi',bread:'pane',fish:'pesce',meat:'carne',cloth:'tessuto',clothes:'abiti',rope:'corde',bars:'barre di ferro',weapons:'armi',hides:'pelli',leather:'cuoio',shoes:'scarpe',salt:'sale',cured:'conserve',cheese:'formaggio',beer:'birra',wine:'vino'};
 // si vende solo sopra T_KEEP (più il fabbisogno delle case per cibo, attrezzi e abiti) e si compra solo sotto T_TARGET: così non si compra e vende lo stesso bene
-const T_KEEP={hides:16,leather:10,shoes:12,salt:12,cured:16,cheese:10,beer:10,wine:10,weapons:99,bars:10,rope:8,wood:60,stone:45,iron:24,planks:18,tools:14,bread:20,cloth:14,clothes:12,fish:25,meat:25,game:25},T_TARGET={hides:0,leather:0,shoes:0,salt:6,cured:0,cheese:0,beer:0,wine:0,weapons:6,bars:0,rope:0,wood:30,stone:20,iron:10,planks:10,tools:8,bread:10,cloth:6,clothes:6,fish:10,meat:10,game:10};
+const T_KEEP={barrels:12,carts:6,hides:16,leather:10,shoes:12,salt:12,cured:16,cheese:10,beer:10,wine:10,weapons:99,bars:10,rope:8,wood:60,stone:45,iron:24,planks:18,tools:14,bread:20,cloth:14,clothes:12,fish:25,meat:25,game:25},T_TARGET={barrels:0,carts:0,hides:0,leather:0,shoes:0,salt:6,cured:0,cheese:0,beer:0,wine:0,weapons:6,bars:0,rope:0,wood:30,stone:20,iron:10,planks:10,tools:8,bread:10,cloth:6,clothes:6,fish:10,meat:10,game:10};
 const mkRoutes=()=>ROUTE_IDS.map(id=>({id,open:false,next:0,visits:0,earned:0,spent:0,last:-1,blocked:false}));
 const S={t:0,mode:'lake',extra:{},stock:{wood:30,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,game:0},inflight:{wood:0,stone:0,iron:0},grow:0,barters:0,helps:0,visits:0,settled:0,season:0,year:1,frozen:false,day:0,f:0.06,ph:'work',wh:{wood:0,stone:0,iron:0},xf:{wood:0,stone:0,iron:0},edicts:EDICT0(),births:0,deaths:0,buried:0,unburied:0,
   deathsBy:{age:0,cold:0,hunger:0,ill:0},plague:{on:false,since:0,dead:0},inherits:0,cured:0,sickTot:0,moves:0,left:0,att:{joy:0,unemp:0,a:0,bonus:0},made:{},delivered:0,
@@ -184,7 +187,7 @@ const heldCenter=r=>Math.max(0,S.stock[r]-S.wh[r]-S.xf[r]);
 // Magazzino: materiali da costruzione + prodotti degli artigiani (fabbro, tessitore, sarto). Granaio: cibo che non viene dai giardini (fattorie, mulino, forno, pesca, caccia).
 // Il centro cittadino resta com'era: 80 per ogni materiale, non configurabile. Le scorte restano un contatore per merce (S.stock); la loro suddivisione fra edifici è calcolata da layout().
 const GRAN_TOTAL=1000,ITEM_CAP=100;
-const STORE_KEYS=['wood','stone','iron','planks','tools','cloth','clothes','rope','charcoal','bars','weapons','clay','bricks','lime','salt','hides','leather','shoes'];
+const STORE_KEYS=['wood','stone','iron','planks','tools','cloth','clothes','rope','charcoal','bars','weapons','clay','bricks','lime','salt','hides','leather','shoes','barrels','carts'];
 const GRAN_KEYS=['grain','flour','bread','fish','meat','game','cured','cheese','beer','wine'];
 const CENTER_KEYS=['wood','stone','iron','clay']; // v89: solo materie prime
 const ALLKEYS=STORE_KEYS.concat(GRAN_KEYS);
@@ -481,7 +484,7 @@ function init(sd,mode,diff,opt){
   gate.fill(0);gatedSet.clear();
   occ.fill(0);field.fill(0);lastStep.fill(0);wear.fill(0);plev.fill(0);phit.fill(0);pexp.fill(0);attr.fill(0);sapT.fill(0);
   buildings.clear();stCache=null;villagers=[];vmap.clear();reg.clear();resv.clear();plantResv.clear();nextId=1;guests.length=0;
-  S.t=0;S.festA=[];S.fests=0;festSeq=0;S.edicts=EDICT0();S.births=0;S.deaths=0;S.buried=0;S.unburied=0;S.extra={};S.wh={wood:0,stone:0,iron:0};S.xf={wood:0,stone:0,iron:0};S.stock={wood:30,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,game:0,rope:0,charcoal:0,bars:0,weapons:0,clay:0,bricks:0,lime:0,salt:0,cured:0,cheese:0,beer:0,wine:0,hides:0,leather:0,shoes:0};S.inflight={wood:0,stone:0,iron:0};S.grow=0;S.left=0;S.att={joy:0,unemp:0,a:0,bonus:0};S.pet=[];S.petNext=0;S.petSeq=0;S.petOk=0;S.petNo=0;S.petLate=0;S.arrivedFam=0;S.barters=0;S.helps=0;S.visits=0;S.settled=0;S.season=0;S.year=1;S.frozen=false;acc.a1=0;acc.a05=0;acc.farm=0;acc.attr=99;for(const k in told)delete told[k];
+  S.t=0;S.cartTrips=0;S.festA=[];S.fests=0;festSeq=0;S.edicts=EDICT0();S.births=0;S.deaths=0;S.buried=0;S.unburied=0;S.extra={};S.wh={wood:0,stone:0,iron:0};S.xf={wood:0,stone:0,iron:0};S.stock={wood:30,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,game:0,rope:0,charcoal:0,bars:0,weapons:0,clay:0,bricks:0,lime:0,salt:0,cured:0,cheese:0,beer:0,wine:0,hides:0,leather:0,shoes:0,barrels:0,carts:0};S.inflight={wood:0,stone:0,iron:0};S.grow=0;S.left=0;S.att={joy:0,unemp:0,a:0,bonus:0};S.pet=[];S.petNext=0;S.petSeq=0;S.petOk=0;S.petNo=0;S.petLate=0;S.arrivedFam=0;S.barters=0;S.helps=0;S.visits=0;S.settled=0;S.season=0;S.year=1;S.frozen=false;acc.a1=0;acc.a05=0;acc.farm=0;acc.attr=99;for(const k in told)delete told[k];
   S.deathsBy={age:0,cold:0,hunger:0,ill:0};S.plague={on:false,since:0,dead:0};S.inherits=0;S.cured=0;S.sickTot=0;S.moves=0;S.made={};S.delivered=0;S.coins=COINS0;S.fin=mkFin();S.taxDay=-1;S.taxRate='normal';S.ledger={snap:null,rows:[]};S.routes=mkRoutes();S.tradeOpt={sell:true,buy:true};S.tlog=[];S.trade={sold:0,bought:0,visits:0};
   S.story=!!(opt&&opt.story);S.rank=0;S.proj={};S.edp=1;S.msgs=[];S.raid=raid0();S.wolf=wolf0();S.war=war0();S.rk=0;
   let okT=false,att=0;const base=(sd||7)|0;
@@ -911,13 +914,15 @@ const nearestStore=cell=>{let best=null,bd=600*600;const cx=cell%N,cy=(cell/N)|0
 // v47: a mano si porta 1 pezzo per viaggio, col carretto 3. Il carretto ce l'hanno solo gli abitanti che lavorano in un Magazzino o nel centro
 // (stessa regola della grafica: isWhWorker in render.js). Mai più di quanto serve al cantiere o di quanto c'è in magazzino.
 const CART_LOAD=3,HAND_LOAD=1;
-function haulCap(v){const jb=v.job&&buildings.get(v.job);return jb&&jb.type==='store'?CART_LOAD:HAND_LOAD;}
+const atStore=v=>{const jb=v.job&&buildings.get(v.job);return !!jb&&jb.type==='store';};
+function haulCap(v){return atStore(v)?CART_LOAD:S.stock.carts>=1?CART_AUX:HAND_LOAD;}
+function useCart(v){if(atStore(v)||!(S.stock.carts>=1))return;S.cartTrips=(S.cartTrips|0)+1;if(S.cartTrips>=CART_TRIPS){S.cartTrips=0;S.stock.carts--;}}
 function haulTo(v,s,own){
   const t=costRes(s);let r=null,need=0;
   for(const k of MATS){const nd=(t[k]||0)-(s.got[k]|0)-(s.fly[k]|0);if(nd>0&&S.stock[k]>0){r=k;need=nd;break;}}
   if(!r)return false;
   const st=nearestStore(v.cell);if(!st||!route(v,st.cell,st.id))return false;
-  const n=Math.max(1,Math.min(haulCap(v),need,Math.floor(S.stock[r])));
+  const n=Math.max(1,Math.min(haulCap(v),need,Math.floor(S.stock[r])));if(n>1)useCart(v);
   S.stock[r]-=n;s.fly[r]+=n;v.task={res:r,site:s.id,own:!!own,n};v.state='toStore';return true;
 }
 // gli altri (non costruttori) portano il materiale prima ai cantieri che non hanno ancora un costruttore, poi agli altri
@@ -1143,6 +1148,10 @@ function fibreSrc(b,k){let best=null,bn=0;for(const o of buildings.values())if(o
 const RET_CAP=24,CHAR_CAP=30,BAR_CAP=30,CLAY_CAP=40,BRICK_CAP=40,LIME_CAP=30;
 // v70: conserve e bevande. KEEP = riserva fresca che il paese non trasforma (le conserve nascono solo dall'eccedenza)
 // v79: concia e cuoio. Pelli da cacciatore e macellaio -> conceria (con calce e legna) -> cuoio -> calzolaio -> scarpe. Le scarpe si consumano e danno benessere a tutto il paese.
+// v88: segheria, bottaio, carradore. La segheria ad acqua dà 3 assi per legno (il falegname 2). Le botti (bottaio) danno +1 a birra, vino e conserve (1 botte per ciclo);
+// i carri (carradore) portano a 2 pezzi per viaggio chi altrimenti porta 1 a mano (chi lavora al Magazzino ha già il carretto) e si consumano ogni CART_TRIPS viaggi.
+const BARREL_CAP=30,CART_CAP=12,CART_AUX=2,CART_TRIPS=12;
+const barrel=()=>{if(S.stock.barrels>=1){S.stock.barrels--;return 1;}return 0;};
 const HIDE_CAP=30,LEATHER_CAP=30,SHOE_CAP=30,SHOE_PER=10,SHOE_JOY=3,SHOE_COVER=0.4;
 const shoeCover=()=>{const pop=villagers.length;return pop?Math.min(1,(S.stock.shoes||0)/Math.max(1,pop*SHOE_COVER)):0;};
 function shoeTick(){
@@ -1180,11 +1189,14 @@ const WS={
   brickworks:{t:10,why:'Servono argilla (cava) e combustibile (carbone, o legno in abbondanza) nel magazzino, o il magazzino dei mattoni è pieno',can:b=>S.stock.clay>=2&&(S.stock.charcoal>=1||S.stock.wood>=30)&&S.stock.bricks<BRICK_CAP&&stockRoom('bricks')>=3,run:b=>{S.stock.clay-=2;if(S.stock.charcoal>=1)S.stock.charcoal--;else S.stock.wood-=3;S.stock.bricks=Math.min(BRICK_CAP,S.stock.bricks+3);}},
   limekiln:{t:10,why:'Servono pietra in abbondanza (o un cantiere che chiede calce) e combustibile (carbone, o legno in abbondanza), o il magazzino della calce è pieno',can:b=>S.stock.stone>=3&&(S.stock.stone>=25||matWanted('lime'))&&(S.stock.charcoal>=1||S.stock.wood>=30)&&S.stock.lime<LIME_CAP&&stockRoom('lime')>=2,run:b=>{S.stock.stone-=3;if(S.stock.charcoal>=1)S.stock.charcoal--;else S.stock.wood-=3;S.stock.lime=Math.min(LIME_CAP,S.stock.lime+2);}},
   saltworks:{t:8,why:'Il magazzino del sale è pieno',can:b=>S.stock.salt<SALT_CAP&&stockRoom('salt')>=3,run:b=>{S.stock.salt=Math.min(SALT_CAP,S.stock.salt+3);}},
-  butcher:{t:9,why:'Servono carne in eccedenza nei Granai (oltre alla riserva fresca) e sale, o il magazzino delle conserve è pieno',can:b=>S.stock.meat+S.stock.game>=MEAT_KEEP+2&&S.stock.salt>=1&&S.stock.cured<CURED_CAP&&stockRoom('cured')>=4,run:b=>{if(S.stock.game>=2)S.stock.game-=2;else if(S.stock.meat>=2)S.stock.meat-=2;else{S.stock.game=0;S.stock.meat=Math.max(0,S.stock.meat-1);}S.stock.salt--;S.stock.cured=Math.min(CURED_CAP,S.stock.cured+4);if(hideRoom())S.stock.hides++;}},
-  smokehouse:{t:10,why:'Servono pesce in eccedenza nei Granai (oltre alla riserva fresca), sale e legna in abbondanza, o il magazzino delle conserve è pieno',can:b=>S.stock.fish>=FISH_KEEP+2&&S.stock.salt>=1&&S.stock.wood>=20&&S.stock.cured<CURED_CAP&&stockRoom('cured')>=4,run:b=>{S.stock.fish-=2;S.stock.salt--;S.stock.wood--;S.stock.cured=Math.min(CURED_CAP,S.stock.cured+4);}},
+  butcher:{t:9,why:'Servono carne in eccedenza nei Granai (oltre alla riserva fresca) e sale, o il magazzino delle conserve è pieno',can:b=>S.stock.meat+S.stock.game>=MEAT_KEEP+2&&S.stock.salt>=1&&S.stock.cured<CURED_CAP&&stockRoom('cured')>=4,run:b=>{if(S.stock.game>=2)S.stock.game-=2;else if(S.stock.meat>=2)S.stock.meat-=2;else{S.stock.game=0;S.stock.meat=Math.max(0,S.stock.meat-1);}S.stock.salt--;S.stock.cured=Math.min(CURED_CAP,S.stock.cured+4+barrel()*2);if(hideRoom())S.stock.hides++;}},
+  smokehouse:{t:10,why:'Servono pesce in eccedenza nei Granai (oltre alla riserva fresca), sale e legna in abbondanza, o il magazzino delle conserve è pieno',can:b=>S.stock.fish>=FISH_KEEP+2&&S.stock.salt>=1&&S.stock.wood>=20&&S.stock.cured<CURED_CAP&&stockRoom('cured')>=4,run:b=>{S.stock.fish-=2;S.stock.salt--;S.stock.wood--;S.stock.cured=Math.min(CURED_CAP,S.stock.cured+4+barrel()*2);}},
   dairy:{t:10,why:'Servono latte (ovile con i pastori vicino) e sale, o il magazzino dei formaggi è pieno',can:b=>!!milkSrc(b)&&S.stock.salt>=1&&S.stock.cheese<CHEESE_CAP&&stockRoom('cheese')>=2,run:b=>{const o=milkSrc(b);if(o){o.milk-=2;S.stock.salt--;S.stock.cheese=Math.min(CHEESE_CAP,S.stock.cheese+2);}}},
-  brewery:{t:10,why:'Servono grano in eccedenza nei Granai (oltre alla riserva del mulino) e legna in abbondanza, o il magazzino della birra è pieno',can:b=>S.stock.grain>=GRAIN_KEEP+2&&S.stock.wood>=20&&S.stock.beer<BEER_CAP&&stockRoom('beer')>=3,run:b=>{S.stock.grain-=2;S.stock.wood--;S.stock.beer=Math.min(BEER_CAP,S.stock.beer+3);}},
-  winery:{t:10,why:'Serve uva: scegli la coltura vigna nel pannello di una fattoria (o il magazzino del vino è pieno)',can:b=>(b.inp.vine|0)>=3&&S.stock.wine<WINE_CAP&&stockRoom('wine')>=2,run:b=>{b.inp.vine-=3;S.stock.wine=Math.min(WINE_CAP,S.stock.wine+2);}},
+  brewery:{t:10,why:'Servono grano in eccedenza nei Granai (oltre alla riserva del mulino) e legna in abbondanza, o il magazzino della birra è pieno',can:b=>S.stock.grain>=GRAIN_KEEP+2&&S.stock.wood>=20&&S.stock.beer<BEER_CAP&&stockRoom('beer')>=3,run:b=>{S.stock.grain-=2;S.stock.wood--;S.stock.beer=Math.min(BEER_CAP,S.stock.beer+3+barrel());}},
+  winery:{t:10,why:'Serve uva: scegli la coltura vigna nel pannello di una fattoria (o il magazzino del vino è pieno)',can:b=>(b.inp.vine|0)>=3&&S.stock.wine<WINE_CAP&&stockRoom('wine')>=2,run:b=>{b.inp.vine-=3;S.stock.wine=Math.min(WINE_CAP,S.stock.wine+2+barrel());}},
+  sawmill:{t:7,why:'Serve legno nel magazzino (o il magazzino delle assi è pieno)',can:b=>S.stock.wood>=1&&S.stock.planks<PLANK_CAP&&stockRoom('planks')>=3&&(S.stock.wood>=10||planksWanted()),run:b=>{S.stock.wood--;S.stock.planks=Math.min(PLANK_CAP,S.stock.planks+3);}},
+  cooper:{t:9,why:'Servono assi (non quelle dei cantieri) e ferro (o barre), o il magazzino delle botti è pieno',can:b=>uncommitted('planks')>=2&&(S.stock.iron>=4||S.stock.bars>=1)&&S.stock.barrels<BARREL_CAP&&stockRoom('barrels')>=2,run:b=>{S.stock.planks-=2;if(S.stock.bars>=1)S.stock.bars--;else S.stock.iron--;S.stock.barrels=Math.min(BARREL_CAP,S.stock.barrels+2);}},
+  wheelwright:{t:10,why:'Servono assi (non quelle dei cantieri) e ferro (o barre), o il magazzino dei carri è pieno',can:b=>uncommitted('planks')>=3&&(S.stock.iron>=4||S.stock.bars>=1)&&S.stock.carts<CART_CAP&&stockRoom('carts')>=1,run:b=>{S.stock.planks-=3;if(S.stock.bars>=1)S.stock.bars--;else S.stock.iron--;S.stock.carts=Math.min(CART_CAP,S.stock.carts+1);}},
   tannery:{t:11,why:'Servono pelli (cacciatore e macellaio), calce del calcinaio (non quella dei cantieri) e legna in abbondanza, o il magazzino del cuoio è pieno',can:b=>S.stock.hides>=2&&uncommitted('lime')>=1&&S.stock.wood>=20&&S.stock.leather<LEATHER_CAP&&stockRoom('leather')>=2,run:b=>{S.stock.hides-=2;S.stock.lime--;S.stock.wood--;S.stock.leather=Math.min(LEATHER_CAP,S.stock.leather+2);}},
   cobbler:{t:9,why:'Serve cuoio dalla conceria, o il magazzino delle scarpe è pieno',can:b=>S.stock.leather>=1&&S.stock.shoes<SHOE_CAP&&stockRoom('shoes')>=2,run:b=>{S.stock.leather--;S.stock.shoes=Math.min(SHOE_CAP,S.stock.shoes+2);}},
   bakery:{t:8,why:'Serve farina dal mulino o le scorte di pane sono piene',can:b=>S.stock.flour>=1&&b.out.bread<OUTCAP,run:b=>{S.stock.flour--;b.out.bread+=3;}},
@@ -2996,7 +3008,7 @@ function spawnGuest(){
 // ---- v44: commercio, carovane e rotte (tramite la Merceria) ----
 // Il merciaio tratta con le carovane: vende ciò che il paese ha in più e compra ciò che manca, a denari. Attrezzi, pane, tessuto e abiti passano dagli scaffali della merceria
 // (e dalle scorte dei magazzini); legno, pietra, ferro e assi dal magazzino; pesce e carne dalle scorte del granaio.
-const TRADE_STOCK={wood:1,stone:1,iron:1,planks:1,rope:1,bars:1,weapons:1,salt:1,cured:1,cheese:1,beer:1,wine:1,hides:1,leather:1,shoes:1},TRADE_FOOD={fish:1,meat:1,game:1};
+const TRADE_STOCK={wood:1,stone:1,iron:1,planks:1,rope:1,bars:1,weapons:1,salt:1,cured:1,cheese:1,beer:1,wine:1,hides:1,leather:1,shoes:1,barrels:1,carts:1},TRADE_FOOD={fish:1,meat:1,game:1};
 const heldOf=g=>g==='wood'||g==='stone'||g==='iron'?heldCenter(g):S.stock[g];
 const openMerceries=()=>{const r=[];for(const o of buildings.values())if(merceryOpen(o))r.push(o);return r;};
 function needAll(g){let n=0;for(const h of buildings.values())if(h.type==='house'&&h.state==='done'&&h.members.length)n+=Math.ceil(needOfGood(h,g));return n;}
@@ -3121,6 +3133,7 @@ const PROJ=[
   {id:'weaver',br:'tessile',rank:5,cost:{wood:20,stone:10,coins:30}},{id:'tailor',br:'tessile',rank:5,req:['weaver'],cost:{wood:20,stone:10,coins:30}},{id:'plaza',br:'decoro',rank:5,cost:{stone:30,coins:40}},{id:'hall',br:'decoro',rank:5,req:['plaza'],cost:{wood:30,stone:30,coins:60}},
   {id:'dairy',br:'campi',rank:5,req:['sheepfold'],cost:{wood:18,stone:8,coins:30}},{id:'brewery',br:'campi',rank:5,req:['mill'],cost:{wood:20,stone:10,coins:30}},{id:'winery',br:'campi',rank:6,req:['brewery'],cost:{wood:22,stone:12,coins:40}},
   {id:'tannery',br:'tessile',rank:5,cost:{wood:16,stone:8,coins:30}},{id:'cobbler',br:'tessile',rank:6,req:['tannery'],cost:{wood:14,stone:6,coins:40}},
+  {id:'sawmill',br:'legno',rank:5,req:['carpenter'],cost:{wood:20,stone:10,coins:30}},{id:'cooper',br:'legno',rank:6,req:['sawmill'],cost:{wood:16,stone:6,coins:30}},{id:'wheelwright',br:'legno',rank:6,req:['sawmill'],cost:{wood:16,stone:8,coins:40}},
   {id:'dyehouse',br:'tessile',rank:6,req:['retting','weaver'],cost:{wood:20,stone:10,coins:40}},
   {id:'flowers',br:'decoro',rank:6,req:['plaza'],cost:{wood:4,coins:10}},{id:'statue',br:'decoro',rank:6,req:['plaza'],cost:{stone:16,coins:50}},
   // v87: gli editti si sbloccano nell'albero (ramo «Editti del Re»). Restano sempre disponibili il divieto di avanzamento delle case (`noUpgrade`) e il blocco dell'immigrazione (`noImmig`).
@@ -3597,7 +3610,7 @@ const WAGE_SEC=DAY*0.2,TAX_MARGIN=1.5,TAX_THRIFT=0.2;
 // chi non sa leggere e scrivere (non ha fatto la scuola) in un lavoro da istruiti prende lo stipendio da artigiano. Finché il paese non è una Città paga il Re;
 // dal titolo di Città (CITY_RANK) pagano gli stipendi le casse del paese; se non bastano il resto diventa un arretrato della famiglia (b.owed, al massimo WAGE_OWE_CAP).
 const WAGE_JOB={wood:1,quarry:1,mine:1,forester:1,farm:1,sheepfold:1,fisher:1,hunter:1,store:1,mill:1,charcoal:1,retting:1,claypit:1,limekiln:1,saltworks:1,
-  carpenter:2,mason:2,butcher:2,tannery:2,cobbler:2,smokehouse:2,dairy:2,brewery:2,winery:2,brickworks:2,smithy:2,bakery:2,weaver:2,tailor:2,ropewalk:2,dyehouse:2,smelter:2,inn:2,tavern:2,hall:2,barracks:2,
+  carpenter:2,mason:2,butcher:2,sawmill:2,cooper:2,wheelwright:2,tannery:2,cobbler:2,smokehouse:2,dairy:2,brewery:2,winery:2,brickworks:2,smithy:2,bakery:2,weaver:2,tailor:2,ropewalk:2,dyehouse:2,smelter:2,inn:2,tavern:2,hall:2,barracks:2,
   school:3,infirmary:3,mercery:3,taxoffice:3};
 const EDU_JOBS=new Set(['school','infirmary','mercery','taxoffice']),WAGE_UNLETTERED=2,CITY_RANK=6,WAGE_OWE_CAP=21;
 const wageJob=type=>WAGE_JOB[type]||WAGE;
@@ -4008,7 +4021,7 @@ function roleText(v){
   }
   if(v.child)return v.age<6?'Gioca in giardino':'Gioca';
   const b=v.job&&buildings.get(v.job);
-  if(b){const R={granary:'Granaiolo',school:'Maestro',inn:'Oste',sheepfold:'Pastore',wood:'Taglialegna',quarry:'Cavatore',mine:'Minatore',forester:'Guardaboschi',mill:'Mugnaio',farm:'Contadino',store:'Magazziniere',infirmary:'Erborista',carpenter:'Falegname',mason:'Muratore',smithy:'Fabbro',bakery:'Panettiere',weaver:'Tessitore',tailor:'Sarto',fisher:'Pescatore',hunter:'Cacciatore',tavern:'Taverniere',hall:'Musicante',mercery:'Merciaio',retting:'Maceratore',ropewalk:'Cordaio',dyehouse:'Tintore',charcoal:'Carbonaio',smelter:'Fonditore',claypit:'Argillaio',brickworks:'Fornaciaio',limekiln:'Calcinaio',saltworks:'Salinaro',tannery:'Conciatore',cobbler:'Calzolaio',butcher:'Macellaio',smokehouse:'Affumicatore',dairy:'Casaro',brewery:'Birraio',winery:'Vinaio',barracks:'Guerriero',surgeon:'Cerusico',taxoffice:'Esattore'};if(R[b.type])return R[b.type]+(v.loan?' (in prestito)':'');}
+  if(b){const R={granary:'Granaiolo',school:'Maestro',inn:'Oste',sheepfold:'Pastore',wood:'Taglialegna',quarry:'Cavatore',mine:'Minatore',forester:'Guardaboschi',mill:'Mugnaio',farm:'Contadino',store:'Magazziniere',infirmary:'Erborista',carpenter:'Falegname',mason:'Muratore',smithy:'Fabbro',bakery:'Panettiere',weaver:'Tessitore',tailor:'Sarto',fisher:'Pescatore',hunter:'Cacciatore',tavern:'Taverniere',hall:'Musicante',mercery:'Merciaio',retting:'Maceratore',ropewalk:'Cordaio',dyehouse:'Tintore',charcoal:'Carbonaio',smelter:'Fonditore',claypit:'Argillaio',brickworks:'Fornaciaio',limekiln:'Calcinaio',saltworks:'Salinaro',tannery:'Conciatore',sawmill:'Segantino',cooper:'Bottaio',wheelwright:'Carradore',cobbler:'Calzolaio',butcher:'Macellaio',smokehouse:'Affumicatore',dairy:'Casaro',brewery:'Birraio',winery:'Vinaio',barracks:'Guerriero',surgeon:'Cerusico',taxoffice:'Esattore'};if(R[b.type])return R[b.type]+(v.loan?' (in prestito)':'');}
   if(v.loan)return 'Senza posto: troppa merce ('+TRADENAME[v.loan]+')';
   const h=v.home&&buildings.get(v.home);
   if(h){if(h.tailor)return 'Sarto';if(h.weave)return 'Tessitore';if(h.bake)return 'Panettiere';if(h.craft)return 'Artigiano';return h.dens?'Fa la spesa e le faccende di casa':h.crop==='veg'?"Cura l'orto":h.crop==='eggs'?'Alleva galline':h.crop==='wood'?'Raccoglie legna da ardere':'Alleva maiali e pecore';}
@@ -4098,7 +4111,7 @@ function importState(d){
   else{const R2=mulberry((Math.imul(d.seed|0,2246822519)^0x9e3779b9)>>>0);genAquifers(R2);aqK.set(aq);} // salvataggio precedente alla v76: le falde si ricreano dal seme (la fertilità si ricava da sola, v69); le falde sono tutte note e i pozzi già costruiti restano dove sono
   for(const k of Object.keys(S))delete S[k];
   Object.assign(S,Sx);lastStep.fill(S.t||0);
-  S.extra=(S.extra&&typeof S.extra==='object')?S.extra:{};S.edicts=Object.assign(EDICT0(),S.edicts);S.stock=Object.assign({wood:0,stone:0,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,game:0,rope:0,charcoal:0,bars:0,weapons:0,clay:0,bricks:0,lime:0,salt:0,cured:0,cheese:0,beer:0,wine:0,hides:0,leather:0,shoes:0},S.stock);
+  S.extra=(S.extra&&typeof S.extra==='object')?S.extra:{};S.edicts=Object.assign(EDICT0(),S.edicts);S.stock=Object.assign({wood:0,stone:0,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,game:0,rope:0,charcoal:0,bars:0,weapons:0,clay:0,bricks:0,lime:0,salt:0,cured:0,cheese:0,beer:0,wine:0,hides:0,leather:0,shoes:0,barrels:0,carts:0},S.stock);
   for(const k of ['wh','xf','inflight'])S[k]=Object.assign({wood:0,stone:0,iron:0},S[k]);
   S.coins=Number.isFinite(S.coins)?S.coins:COINS0;S.fin=Object.assign(mkFin(),S.fin);if(!TAX_RATES[S.taxRate])S.taxRate='normal';if(!S.ledger||!Array.isArray(S.ledger.rows))S.ledger={snap:null,rows:[]};S.taxDay=Number.isFinite(S.taxDay)?S.taxDay:-1;{const rt=Array.isArray(S.routes)?S.routes:[];S.routes=mkRoutes().map(r=>Object.assign(r,rt.find(x=>x&&x.id===r.id)||{}));}S.tradeOpt=Object.assign({sell:true,buy:true},S.tradeOpt);S.tlog=Array.isArray(S.tlog)?S.tlog:[];S.trade=Object.assign({sold:0,bought:0,visits:0},S.trade);
   S.pet=Array.isArray(S.pet)?S.pet.filter(p=>p&&Number.isFinite(p.id)&&Number.isFinite(p.exp)):[];S.petNext=S.petNext||0;S.petSeq=S.petSeq|0;S.petOk=S.petOk|0;S.petNo=S.petNo|0;S.petLate=S.petLate|0;S.arrivedFam=S.arrivedFam|0;
@@ -4128,9 +4141,9 @@ return {EXTRA_NAMES,OWN_VIA,paintNoCut,under,berriesRipe,capOf,PET_LIFE,petition
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,NEEDS,NEED_LOW,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
   TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,WAGE_JOB,EDU_JOBS,CITY_RANK,WAGE_OWE_CAP,wageJob,wageOf,wagePayer,TAX_TABLE,TAX_WEEK,TAX_POUCH,WAGE,WAGE_SEC,SILVER_GOLD,TAX_MARGIN,MSELL,MSELL_KEEP,MSELL_LIM,taxOf,joyOf,TAX_RATES,TAX_JOY,setTaxRate,taxForecast,ledgerTick,money,taxActive,taxStats,taxDue,taxRefuses,merceryTakes,merceryBuy,merceryBuyer,jobless,kingJob,cityMakes,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
-  setFarmCrop,fibreCrop,sinkOf,CHAR_CAP,BAR_CAP,CLAY_CAP,BRICK_CAP,LIME_CAP,MATS,BAND,HIDE_CAP,LEATHER_CAP,SHOE_CAP,shoeCover,SALT_CAP,CURED_CAP,CHEESE_CAP,BEER_CAP,WINE_CAP,MILK_CAP,MEAT_KEEP,FISH_KEEP,GRAIN_KEEP,retInfo,RET_CAP,DIFFS,diffOf,maintStats,condOf,condLabel,maintainable,REPAIR_BELOW,WORN_AT,
+  setFarmCrop,fibreCrop,sinkOf,CHAR_CAP,BAR_CAP,CLAY_CAP,BRICK_CAP,LIME_CAP,MATS,BAND,BARREL_CAP,CART_CAP,CART_AUX,CART_TRIPS,haulCap,HIDE_CAP,LEATHER_CAP,SHOE_CAP,shoeCover,SALT_CAP,CURED_CAP,CHEESE_CAP,BEER_CAP,WINE_CAP,MILK_CAP,MEAT_KEEP,FISH_KEEP,GRAIN_KEEP,retInfo,RET_CAP,DIFFS,diffOf,maintStats,condOf,condLabel,maintainable,REPAIR_BELOW,WORN_AT,
   STORE_KEYS,GRAN_KEYS,GRAN_TOTAL,CENTER_CAP,setPolicy,storeInfo,stockRoom,capRes,reconcileStock,extraTotal,festTakeFood,
-  _t:{BARROW_LOAD,HUTCAP,FOOD_P,MERC_PAY,GRAN_PRICE,FOOD_RES,foodSurplus,gPrice,granaryOpen,joyOf,eatOne,drinkTick,shoeTick,FISH_CYCLE,FAM_FISH_RATE,FAM_FISH_Q,famFishTime,jobNeed,jobSurplus,rebalanceJobs,JOBRES,JOB_MARGIN,JOB_DWELL,tradeTick,doTrade,chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
+  _t:{useCart,BARROW_LOAD,HUTCAP,FOOD_P,MERC_PAY,GRAN_PRICE,FOOD_RES,foodSurplus,gPrice,granaryOpen,joyOf,eatOne,drinkTick,shoeTick,FISH_CYCLE,FAM_FISH_RATE,FAM_FISH_Q,famFishTime,jobNeed,jobSurplus,rebalanceJobs,JOBRES,JOB_MARGIN,JOB_DWELL,tradeTick,doTrade,chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
   env:{fert,flowS,flowX,flowY,FERT_HIGH,flowSeason,riverInfo,windNow,windAt,flowLabel,windLabel,COMPASS8,WIND_NAME,FLOW_MS},
   grids:{prot,undP,aq,aqK,tree,rock,ore,water,sap,sapT,road,dist,occ,wear,plev,field,door,attr,cen},guests:()=>guests,buildings:()=>buildings,villagers:()=>villagers};
 })();

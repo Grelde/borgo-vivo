@@ -1,5 +1,12 @@
 # Changelog
 
+## v90 – 2026-11-28
+Funzione nuova: filiera 7, segheria, bottaio e carradore.
+- **Segheria** (ramo Legno, titolo 5, dopo il falegname): sulla riva di lago o fiume (ruota ad acqua), 2 posti; 1 legno → **3 assi** (il falegname ne fa 2).
+- **Bottega del bottaio** (Legno, titolo 6, dopo la segheria): 2 assi non impegnate nei cantieri + 1 barra (o 1 ferro) → 2 **botti** (`BARREL_CAP` 30). Ogni botte in magazzino dà +1 a ciclo a birrificio e cantina e +2 a macelleria e affumicatoio (1 botte per ciclo; senza botti nulla cambia).
+- **Bottega del carradore** (Legno, titolo 6, dopo la segheria): 3 assi non impegnate + 1 barra (o 1 ferro) → 1 **carro** (`CART_CAP` 12). Con almeno un carro chi non lavora al Magazzino porta `CART_AUX` = 2 pezzi a viaggio invece di 1; un carro si consuma ogni `CART_TRIPS` = 12 viaggi.
+- Botti e carri sono nuove merci del Magazzino (non del centro, che tiene solo materie prime), commerciabili (Valmora, Porto Fiorito, Campomaggio, Rocca Alta); grafica, hint, pannelli, mestieri (segantino, bottaio, carradore) e salari.
+- Test: `tests/legname.js`; `tests/storage.js` aggiornato con le nuove merci.
 ## v89 – 2026-11-28
 Cambio di regole: scaffali e depositi di bottega fuori dal conto, massimale 100 per oggetto, Centro Cittadino piccolo.
 - **Fuori dal conto:** gli scaffali delle merceria e i depositi di uscita delle botteghe non contano come scorta: le carovane vendono (e il cambio lavoro si calcola) solo sulle scorte stoccate in Magazzino/Granaio, e ciò che le carovane comprano va in Magazzino. Le consegne dirette dalla bottega alle case continuano a prendere dal deposito della bottega; l'eccedenza (da 6 pezzi) va al Magazzino come prima.
