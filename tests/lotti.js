@@ -13,7 +13,7 @@ const nb=i=>[i+1,i-1,i+N,i-N];
 for(const h of hs){
   sizes[h.hw+'x'+h.hh]=(sizes[h.hw+'x'+h.hh]||0)+1;shapes[h.shape]=(shapes[h.shape]||0)+1;
   const gn=h.gcells.length+h.ext.length;
-  if(!(Math.min(h.hw,h.hh)>=3&&Math.max(h.hw,h.hh)<=6&&h.hw*h.hh<=24&&h.gcells.length>=9&&h.gcells.length<=24&&gn<=36)){bad++;console.log('dimensioni fuori range',h.hw,h.hh,gn);}
+  if(!(Math.min(h.hw,h.hh)>=3&&Math.max(h.hw,h.hh)<=6&&h.hw*h.hh<=24&&h.gcells.length>=(h.gfull===false?4:9)&&h.gcells.length<=24&&gn<=36)){bad++;console.log('dimensioni fuori range',h.hw,h.hh,gn);}
   for(const i of h.cells)if(G.occ[i]!==h.id){bad++;console.log('cella non occupata',h.id);break;}
   const lot=new Set(h.cells.concat(h.ext));
   // il giardino è connesso (4 direzioni) e tocca la casa
@@ -45,7 +45,7 @@ for(const h of hs){const lot=new Set(h.cells.concat(h.ext));let gap=false;
 console.log('case con varco libero fino alla strada',gaps,'su',hs.length);
 // ogni ampliamento avvisa la grafica (ricostruisce modello e staccionata)
 const extTot=hs.reduce((a,h)=>a+(h.ext.length?1:0),0);console.log('ampliamenti notificati alla grafica',regs);if(extTot>0&&regs<extTot){bad++;console.log('ampliamenti senza notifica');}
-let irregular=0;for(const h of hs){const gs=h.gcells,xs=gs.map(i=>i%N),ys=gs.map(i=>(i/N)|0);const area=(Math.max(...xs)-Math.min(...xs)+1)*(Math.max(...ys)-Math.min(...ys)+1);if(area!==gs.length)irregular++;}
+let irregular=0,fullN=0;for(const h of hs){if(h.gfull===false)continue;fullN++;const gs=h.gcells,xs=gs.map(i=>i%N),ys=gs.map(i=>(i/N)|0);const area=(Math.max(...xs)-Math.min(...xs)+1)*(Math.max(...ys)-Math.min(...ys)+1);if(area!==gs.length)irregular++;}
 console.log('giardini non rettangolari',irregular,'su',hs.length);
 // toft e croft: la maggior parte delle celle del giardino sta dietro o ai lati della casa, non tra la casa e la porta
 let behind=0,tot=0;for(const h of hs){const cx=h.hx+(h.hw-1)/2,cy=h.hy+(h.hh-1)/2,dx=h.door%N-cx,dy=((h.door/N)|0)-cy,hor=Math.abs(dx)>Math.abs(dy),ux=hor?Math.sign(dx):0,uy=hor?0:Math.sign(dy),hd=(hor?h.hw:h.hh)/2;
@@ -72,7 +72,7 @@ for(const h of hs){
   if(!touch)continue;withRoad++;
   if(ROADS.has(h.door)||nb(h.door).some(n=>ROADS.has(n)))facing++;
 }
-console.log('case',hs.length,'casa',JSON.stringify(sizes),'forme',JSON.stringify(shapes));
+console.log('giardini completi (livello>=2)',fullN,'irregolari',irregular);console.log('case',hs.length,'casa',JSON.stringify(sizes),'forme',JSON.stringify(shapes));
 console.log('lotti a contatto con una strada',withRoad,'con ingresso sulla strada',facing);
-const ok=bad===0&&hs.length>=10&&irregular/hs.length>=0.5&&(withRoad===0||facing/withRoad>=0.7)&&gaps<=hs.length*0.3;
+const ok=bad===0&&hs.length>=10&&(fullN<3||irregular/fullN>=0.5)&&(withRoad===0||facing/withRoad>=0.7)&&gaps<=hs.length*0.3;
 console.log(ok?'LOTTI_OK':'LOTTI_FAIL');process.exit(ok?0:1);

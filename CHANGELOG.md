@@ -1,5 +1,15 @@
 # Changelog
 
+## v57 – 2026-11-28
+Funzione nuova: lavori edili sulle case (livelli e giardini fatti dai costruttori) e fumo dai camini.
+- **Miglioramento di livello = lavoro:** la casa non si migliora più da sola consumando subito il materiale: la casa diventa un cantiere (`b.work`), un costruttore porta legno/pietra dal magazzino e costruisce; il livello sale solo a lavori finiti (impalcatura con più traverse con l'avanzare dei lavori, materiale accatastato). Stessi costruttori, carretti e muratori dei cantieri normali.
+- **Giardini dal livello 2:** al livello 1 la casa ha solo un piccolo orto di 4 celle (produzione 75%); l'area del giardino completo è riservata fin dall'inizio ma non costruita. Dal livello 2 un costruttore porta il legno e costruisce il giardino recintato (picchetti e legname in cantiere); la staccionata compare solo a giardino finito. Anche ampliamenti e corsie annesse sono lavori con materiale.
+- **Tende (v55) ritoccate:** invariate.
+- **Fumo dal comignolo:** quando almeno un abitante è in casa esce del fumo dal camino.
+- Pannello della casa: riga "Lavori in corso" con materiali e avanzamento.
+- Test nuovi: `tests/lavori.js`, `tests/giardini-lavori.js`; adattati `tier.js`, `lotti.js`.
+- Non verificato in un browser WebGL (solo smoke con DOM finto): aspetto di picchetti, impalcatura e fumo.
+
 ## v56 – 2026-11-28
 Funzione nuova: filiera completa del ferro (miniera → carbonaia → fonderia → fucina) e nuove botteghe nell'albero dei blueprint.
 - **Carbonaia** (vicino a un bosco fitto, 2 posti): 3 legni del magazzino → 2 carboni ogni 10 s. Lavora solo se il legno è abbondante (30 o più) o se una fonderia ha bisogno di carbone: i cantieri non restano senza legno.

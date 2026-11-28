@@ -5,8 +5,10 @@ Sim.paintDistrict(60,100,125,128,1);Sim.paintDistrict(100,70,130,92,3);
 const pl=[];const NOS=process.argv[3]==='senzascuola';for(const [t,x,y] of [...(NOS?[]:[['school',96,100]]),['plaza',90,90],['statue',100,98],['flowers',104,104],['well',84,96],['church',90,108],['wood',30,60],['quarry',140,90]])pl.push(t+':'+(Sim.place(t,x,y,0).ok?'ok':'no'));
 console.log('place',pl.join(' '));
 let up=[0,0,0,0,0,0],bad=0;
-Sim.hooks.upgraded=b=>{if(b.type!=='house')return;const L=b.level-1,f=b.flags;up[b.level]++;
-  const ok=f.foodUp&&f.water&&f.fuel&&(L<2||f.church)&&(L<3||f.school)&&(L<4||f.quality);if(!ok){bad++;console.log('VIOLAZIONE livello',L,'->',b.level,JSON.stringify(f));}};
+// v56: i requisiti devono valere quando parte il lavoro (il miglioramento è un cantiere: a fine lavori contano solo gli stessi materiali già consegnati)
+Sim.hooks.regarden=b=>{if(!b.work||b.work.kind!=='up'||b.work.chk)return;b.work.chk=1;const L=b.level,f=b.flags;
+  const ok=f.foodUp&&f.water&&f.fuel&&(L<2||f.church)&&(L<3||f.school)&&(L<4||f.quality);if(!ok){bad++;console.log('VIOLAZIONE livello',L,'->',L+1,JSON.stringify(f));}};
+Sim.hooks.upgraded=b=>{if(b.type==='house')up[b.level]++;};
 const DAYS=+process.argv[2]||30;
 for(let i=0;i<DAYS*Sim.DAY/0.2;i++){Sim.step(0.2);if(i%10===0){S.stock.wood=Math.max(S.stock.wood,300);S.stock.stone=Math.max(S.stock.stone,200);}}
 const hs=[...Sim.buildings().values()].filter(b=>b.type==='house'&&b.state==='done');

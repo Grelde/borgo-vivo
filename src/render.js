@@ -521,6 +521,19 @@ const BUILD={
       const h=new THREE.Group();h.position.set(hx+(alongX?off*Math.cos(rotY):off*Math.sin(rotY)),0,hz+(alongX?-off*Math.sin(rotY):off*Math.cos(rotY)));
       h.rotation.y=rotY+((b.id*37)%100/100-.5)*.22;h.scale.set(alongX?sLong:sShort,1,alongX?sShort:sLong);houseLevel(h,b);g.add(h);
     }
+    if(b.work&&b.work.kind!=='up'){ // v57: lavori al giardino: picchetti sulle celle in cantiere e legname accatastato
+      for(const c of (b.work.cells||[])){const px=Sim.cx2w(c%N)-fx,pz=Sim.cy2w((c/N)|0)-fz;for(const[dx,dz]of[[-.25,-.25],[.25,.25]])bx(g,.05,.45,.05,MAT.timber,px+dx,.22,pz+dz);bx(g,.5,.03,.03,MAT.timber,px,.34,pz-.25).rotation.y=.8;}
+      const nw2=Math.min(5,b.got.wood),dxw2=Sim.cx2w(b.door%N)-fx,dzw2=Sim.cy2w((b.door/N)|0)-fz;
+      for(let k=0;k<nw2;k++)bx(g,.5,.08,.1,MAT.timber,dxw2+.5,.06+Math.floor(k/3)*.1,dzw2+(k%3)*.14);
+    }
+    if(b.work&&b.work.kind==='up'){ // v56: impalcatura attorno alla casa mentre i costruttori lavorano: più traverse con l'avanzare dei lavori, e il materiale consegnato accatastato
+      const hxw=b.hw*CS/2+.14,hzw=b.hh*CS/2+.14,pr=b.prog||0;
+      for(const sx of[-1,1])for(const sz of[-1,1])bx(g,.07,1.5,.07,MAT.timber,hx+sx*hxw,.75,hz+sz*hzw);
+      for(let k=0;k<=Math.min(3,Math.floor(pr*4));k++){const y=.4+k*.36;for(const sz of[-1,1])bx(g,hxw*2,.05,.05,MAT.timber,hx,y,hz+sz*hzw);for(const sx of[-1,1])bx(g,.05,.05,hzw*2,MAT.timber,hx+sx*hxw,y,hz);}
+      const nw=Math.min(5,b.got.wood),ns=Math.min(5,b.got.stone);
+      for(let k=0;k<nw;k++)bx(g,.5,.08,.1,MAT.timber,hx+hxw+.45,.06+Math.floor(k/3)*.1,hz-.3+(k%3)*.14);
+      for(let k=0;k<ns;k++)bx(g,.16,.12,.16,MAT.stoneD,hx-hxw-.4+(k%3)*.18,.08+Math.floor(k/3)*.12,hz+.2);
+    }
     const gg=new THREE.Group();gg.position.set(gx,0,gz);gg.scale.setScalar(asz===3?1:asz===2?.667:.36);garden(gg,b);
     const used=new Set();if(asz>1)for(let yy=0;yy<asz;yy++)for(let xx=0;xx<asz;xx++)used.add((anc[1]+yy)*N+anc[0]+xx);else used.add(anc[1]*N+anc[0]);
     const cells=new Set(b.gcells),extra=[];
@@ -529,7 +542,7 @@ const BUILD={
     // la staccionata ricalca il giardino ma si interrompe lungo la casa e davanti al cancello
     const skip=new Set([b.door]);for(let yy=b.hy;yy<b.hy+b.hh;yy++)for(let xx=b.hx;xx<b.hx+b.hw;xx++)skip.add(yy*N+xx);
     const fm=b.pure?MAT.cream:MAT.timber;
-    fenceLoops(g,OL,fx,fz,fm);
+    if(b.gfull!==false)fenceLoops(g,OL,fx,fz,fm);
     shopProps(gg,b);
     for(const c of extra){const e2=new THREE.Group();e2.position.set(Sim.cx2w(c%N)-fx,0,Sim.cy2w((c/N)|0)-fz);{const ct=OL.cut.get(c);if(ct){e2.position.x-=Math.sign(ct[0])*CS*.2;e2.position.z-=Math.sign(ct[1])*CS*.2;}}if(b.pure){const q=(c*7+b.id)%5;if(q===0){cyl(e2,.04,.06,.4,6,MAT.timber,0,.2,0);sph(e2,.22,MAT.leaf2,0,.55,0,1,.9,1);}else if(q<3)sph(e2,.15,MAT.leaf2,0,.14,0,1.2,.8,1.2);}else if(b.crop==='herd'){sph(e2,.12,MAT.wool,0,.2,0,1.2,.9,1);}else if(b.crop==='eggs'){sph(e2,.12,MAT.hen,0,.18,0,1,.9,1.3);sph(e2,.06,MAT.henR,0,.3,.08);}else if(b.crop==='wood'){cyl(e2,.09,.09,.5,7,MAT.log,-.1,.1,0,0,Math.PI/2);cyl(e2,.09,.09,.5,7,MAT.logD,.1,.1,.05,0,Math.PI/2);cyl(e2,.09,.09,.5,7,MAT.log,0,.26,.02,0,Math.PI/2);}else{for(const rz of[-.15,.15]){bx(e2,.5,.1,.14,MAT.soil,0,.05,rz);for(let k=-1;k<=1;k++){const m=(k+(rz>0?1:0)+b.id+c)%3===0?MAT.carrot:(k%2?MAT.leaf:MAT.leaf2);sph(e2,.09,m,k*.18,.18,rz,1,1.1,1);}}}
       if(b.pure){const fl=[MAT.flower1,MAT.flower2,MAT.flower3];sph(e2,.07,fl[(c+b.id)%3],-.24,.13,-.24);sph(e2,.07,fl[(c+b.id+1)%3],.24,.13,.24);}g.add(e2);}
@@ -1152,7 +1165,8 @@ function refreshSel(){
     const rows=b.members.map(id=>{const v=VM(id);return v?`<div><span class="lk" data-v="${v.id}">${esc(v.name)}</span>${v.id===b.head?' ★':''} (${v.age|0} anni${v.schooled?', istruito':''}${v.ill?', malato':''}): ${esc(Sim.roleText(v))}</div>`:'';}).join('');
     const need=b.level>=Sim.MAXLV?'':('Per migliorare: '+Math.min(3,b.level)+(b.level>1?' tipi':' tipo')+' di cibo, acqua, legna'+(b.level>=2?', chiesa':'')+(b.level>=3?', scuola vicina':'')+(b.level>=4?', zona di qualità ottima (attrattiva 3 o più)':'')+(()=>{const u=Sim.UPC[b.level+1];return u?`, materiali (legno ${u.wood}${u.stone?`, pietra ${u.stone}`:''})`:'';})()+` (${Math.min(25,b.up)}/25)`);
     const shopTxt=b.craft?'Fabbro: lavora il ferro del magazzino e consuma legna.':b.bake?'Panettiere: cuoce il pane con farina e legna.':b.weave?'Tessitore: trasforma la lana in tessuto.':b.tailor?'Sarto: cuce abiti con il tessuto.':(b.pure?'Giardino fisso: non diventerà mai una bottega.':(b.crop==='wood'||b.level<3?(b.crop==='wood'?'Giardino della legna: non diventa una bottega.':'Da livello 3 il giardino può diventare bottega: fabbro (serve una miniera) o tessitore (serve un ovile); da livello 4 sarto o panettiere (serve un mulino).'):'Può ancora diventare bottega salendo di livello o quando ci sono miniera, ovile o mulino.'));
-    list=rows+`<div>${shopTxt}</div><div>Felicità <b>${b.well}</b>/100</div><div class="wbar"><i style="width:${b.well}%"></i></div>${needsHtml(b)}<div>Legna da ardere: ${gd.firewood}/${fn} ${gd.firewood>=fn?'(scorta sufficiente)':'(scorta scarsa)'}</div>`+(S.edicts&&S.edicts.noUpgrade?'<div>Editto in vigore: le case non migliorano.</div>':'')+`${b.ext&&b.ext.length?`<div>Giardino ampliato di ${b.ext.length} celle, verso la strada.</div>`:''}<div>Attività secondaria: ${b.side==='fish'?'pesca (casa vicino all\'acqua)':b.side==='hunt'?'caccia (casa vicino a un bosco tranquillo)':'nessuna'}. ${b.crop==='wood'?'Niente orto né galline: la famiglia va nel bosco a raccogliere la legna e quella in più la baratta al mercato con il cibo.':'Non produce legna: la compra al mercato.'}</div><div>Attrattiva della zona: ${Sim.attrLabel(b.attr)} (${b.attr.toFixed(1)})</div>`+
+    const wk=b.work?`<div><b>Lavori in corso</b>: ${b.work.kind==='up'?'ampliamento della casa':b.work.kind==='garden'?'nuovo giardino':'ampliamento del giardino'} · materiali ${(b.got.wood||0)+(b.got.stone||0)}/${((b.cost||{}).wood||0)+((b.cost||{}).stone||0)} · avanzamento ${Math.round((b.prog||0)*100)}%</div>`:(b.gfull===false?'<div>Orto piccolo: dal livello 2 potrà farsi un giardino recintato (serve legna e un costruttore).</div>':'');
+        list=wk+rows+`<div>${shopTxt}</div><div>Felicità <b>${b.well}</b>/100</div><div class="wbar"><i style="width:${b.well}%"></i></div>${needsHtml(b)}<div>Legna da ardere: ${gd.firewood}/${fn} ${gd.firewood>=fn?'(scorta sufficiente)':'(scorta scarsa)'}</div>`+(S.edicts&&S.edicts.noUpgrade?'<div>Editto in vigore: le case non migliorano.</div>':'')+`${b.ext&&b.ext.length?`<div>Giardino ampliato di ${b.ext.length} celle, verso la strada.</div>`:''}<div>Attività secondaria: ${b.side==='fish'?'pesca (casa vicino all\'acqua)':b.side==='hunt'?'caccia (casa vicino a un bosco tranquillo)':'nessuna'}. ${b.crop==='wood'?'Niente orto né galline: la famiglia va nel bosco a raccogliere la legna e quella in più la baratta al mercato con il cibo.':'Non produce legna: la compra al mercato.'}</div><div>Attrattiva della zona: ${Sim.attrLabel(b.attr)} (${b.attr.toFixed(1)})</div>`+
       `<div class="flags"><span class="${fl.foodUp?'ok':'no'}">Cibo ${b.level}+</span><span class="${fl.water?'ok':'no'}">Acqua</span><span class="${fl.church?'ok':'no'}">Chiesa</span>${b.level>=3?`<span class="${fl.school?'ok':'no'}">Scuola</span>`:''}${b.level>=4?`<span class="${fl.quality?'ok':'no'}">Zona</span>`:''}<span class="${fl.attr?'ok':'no'}">Quiete</span><span class="${fl.heat?'ok':'no'}">Caldo</span><span class="${fl.fuel?'ok':'warn'}">Legna</span><span class="${fl.mat?'ok':'no'}">Materiali</span></div>`+
       `<div>Scorte: ortaggi ${gd.veg} · uova ${gd.eggs} · grano ${gd.grain} · pesce ${gd.fish} · carne ${gd.meat} · pane ${gd.bread}</div><div>Legna ${gd.firewood} · ferro ${gd.iron} · farina ${gd.flour} · attrezzi ${gd.tools}</div><div>Lana ${gd.wool} · tessuto ${gd.cloth} · abiti ${gd.clothes}</div>`+(need?`<div>${need}</div>`:'<div>Livello massimo raggiunto.</div>');
   }
@@ -1919,6 +1933,19 @@ function updateHUD(){
   for(const t of TOOLS)if(BT[t.id])toolBtns[t.id].classList.toggle('poor',!Sim.afford(t.id));
 }
 
+// v57: fumo dal comignolo quando qualcuno è in casa
+const SMK_G=new THREE.SphereGeometry(.12,6,5);
+function smokeTick(e,dt,on){
+  const b=e.b,sm=e.sm||(e.sm={t:Math.random()*1.5,p:[]});
+  sm.t-=dt;
+  if(on&&sm.t<=0&&sm.p.length<5){sm.t=.9+Math.random()*.6;
+    const [fx,fz]=footCenter(b),hx=Sim.cx2w(b.hx)+(b.hw-1)*CS/2,hz=Sim.cy2w(b.hy)+(b.hh-1)*CS/2;
+    const m=new THREE.Mesh(SMK_G,new THREE.MeshBasicMaterial({color:0xd8d4cc,transparent:true,opacity:.55,depthWrite:false}));
+    m.position.set(hx+.35*(1+(b.id%3)*.2)-.3,.8+.45*b.level+.4,hz-.25);m.userData.a=0;scene.add(m);sm.p.push(m);}
+  for(let i=sm.p.length-1;i>=0;i--){const m=sm.p[i];m.userData.a+=dt;const a=m.userData.a;
+    m.position.y+=dt*.55;m.position.x+=dt*.12;m.scale.setScalar(1+a*1.4);m.material.opacity=Math.max(0,.55*(1-a/3));
+    if(a>=3){scene.remove(m);m.material.dispose();sm.p.splice(i,1);}}
+}
 function hiddenIn(v){
   const id=occ[v.cell];if(!(id>0))return false;
   const b=Sim.buildings().get(id);if(!b||b.state!=='done')return false;
@@ -2129,6 +2156,8 @@ function frame2(now){
     if(b.state==='site'){const sc2=b.cost||Sim.costOf(b.type),tot=sc2.wood+sc2.stone+(sc2.planks||0),fr=(b.got.wood+b.got.stone+(b.got.planks||0))/Math.max(1,tot);e.body.scale.y=0.1+0.9*(fr*0.25+b.prog*0.75);}
     else if(e.pop>0){e.pop-=dt;e.body.scale.y=1+Math.sin(Math.max(0,e.pop)/0.4*Math.PI)*0.08;if(e.pop<=0)e.body.scale.y=1;}
   }
+  const homeIn=new Map();for(const v of Sim.villagers()){if(v.home&&(v.inside||hiddenIn(v))){const hb=Sim.buildings().get(v.home);if(hb&&hb.type==='house')homeIn.set(v.home,(homeIn.get(v.home)||0)+1);}}
+  for(const e of ents.values()){const b=e.b;if(b.type!=='house'||b.state!=='done')continue;smokeTick(e,dt,homeIn.get(b.id)>0);}
   for(const v of Sim.villagers().concat(Sim.guests())){
     const m=vms.get(v.id);if(!m)continue;
     m.gp.visible=!v.inside&&!hiddenIn(v);m.gp.position.set(v.x,v.moving?Math.abs(Math.sin(clock*11+v.id))*0.07:0,v.z);m.gp.rotation.y=v.fa;
