@@ -142,6 +142,21 @@ body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--seri
 @media (max-width:560px){.edC{grid-template-columns:44px 1fr}.edC .ic{width:42px;height:42px;font-size:22px}.edC .btn{grid-column:1/-1}}
 #camctl{position:absolute;top:104px;right:16px;display:flex;flex-direction:column;gap:5px}
 #camctl .btn{width:36px;height:36px;padding:0;font-size:18px;line-height:1}
+/* v64: bussola (la N segue il nord vero della mappa mentre si ruota la vista) e layer ambientali */
+#compass{position:relative;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:radial-gradient(circle at 50% 38%,#5b4a33,#2d2217 78%);box-shadow:0 2px 0 rgba(0,0,0,.35),inset 0 1px 0 rgba(255,235,190,.1);cursor:pointer;flex:none;touch-action:manipulation}
+#compass:hover{border-color:var(--gold)}
+#compass:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+#compRose{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#compN{position:absolute;left:50%;top:50%;font:700 10px/1 var(--disp);color:#ffb59c;transform:translate(-50%,-50%);pointer-events:none;text-shadow:0 1px 1px #000}
+#layers{position:absolute;top:104px;right:60px;width:262px;max-width:calc(100% - 84px);padding:10px 12px;z-index:3;box-sizing:border-box}
+#layers[hidden]{display:none}
+#layers h3{margin:0 0 6px;font:700 12px/1.2 var(--disp);letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
+#layers .lay{display:block;width:100%;text-align:left;margin:0 0 3px;padding:6px 10px;font-size:14px}
+#layers .lg{margin:0 2px 9px;font-size:13px;line-height:1.35;color:var(--parch2)}
+#layers .lg b{color:var(--parch)}
+#layers .bar{height:8px;border-radius:4px;margin:4px 0 2px;border:1px solid rgba(0,0,0,.4)}
+#layers .scale{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+#layers .lay.off{opacity:.55}
 #sel{position:absolute;right:16px;bottom:144px;width:340px;max-width:calc(100% - 32px);padding:14px 16px;box-sizing:border-box;overflow:hidden}
 #sel *{min-width:0;overflow-wrap:anywhere}
 #sel h3{margin:0 0 4px;font:700 14px/1.2 var(--disp);letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
@@ -230,6 +245,10 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
   #goals li{font-size:14px}
   #camctl{top:calc(104px + var(--st));bottom:auto;right:calc(8px + var(--sr));gap:6px}
   #camctl .btn{width:44px;height:44px;font-size:20px}
+  #compass{width:44px;height:44px}
+  #compN{font-size:12px}
+  #layers{top:calc(104px + var(--st));right:calc(64px + var(--sr));width:min(262px,calc(100% - 76px - var(--sl) - var(--sr)));max-width:none}
+  #layers .lay{min-height:44px}
   #hint{display:none}
   #toast{left:calc(8px + var(--sl));right:calc(64px + var(--sr));bottom:auto;top:calc(152px + var(--st));transform:translateY(-6px);max-width:none;font-size:15px;z-index:4}
   #toast.show{transform:none}
@@ -352,7 +371,17 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
   <div id="pop" hidden role="dialog" aria-label="Dettagli popolazione">
     <div class="cardBox" id="popBox"><h2>Il Borgo e la sua gente</h2><div class="popTabs"><button class="btn" type="button" data-tab="pop">Abitanti</button><button class="btn" type="button" data-tab="joy">Felicità</button></div><div id="popBody"></div><div class="acts"><button class="btn" id="popClose" type="button">Chiudi</button></div></div>
   </div>
+  <div id="layers" class="panel" hidden aria-label="Layer della mappa">
+    <h3>Layer della mappa</h3>
+    <button class="btn lay" id="layFert" type="button" aria-pressed="false">🌾 Fertilità del suolo</button>
+    <div class="lg" id="lgFert"></div>
+    <button class="btn lay" id="layWind" type="button" aria-pressed="false">💨 Vento</button>
+    <div class="lg" id="lgWind"></div>
+    <button class="btn lay" id="layFlow" type="button" aria-pressed="false">🌊 Corrente del fiume</button>
+    <div class="lg" id="lgFlow"></div>
+  </div>
   <div id="camctl">
+    <div id="compass" role="button" tabindex="0" title="Bussola: la N rossa indica il nord. Clicca per mettere il nord in alto."><svg id="compRose" viewBox="-20 -20 40 40" aria-hidden="true"><path d="M0-12 L-4.2 0 L4.2 0Z" fill="#d6563c"/><path d="M0 12 L-4.2 0 L4.2 0Z" fill="#e9dcc0"/><circle r="1.6" fill="#2d2217" stroke="#e9dcc0" stroke-width=".6"/><path d="M17 0H19.4M-17 0H-19.4M0 17V19.4" stroke="#b9a37a" stroke-width="1.1"/></svg><span id="compN">N</span></div>
     <button class="btn" id="camL" title="Ruota a sinistra (Q)">↺</button>
     <button class="btn" id="camR" title="Ruota a destra (E)">↻</button>
     <button class="btn" id="camIn" title="Avvicina">+</button>
@@ -364,6 +393,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
     <button class="btn" id="saveBtn" title="Salvataggi (Ctrl+S salva nel posto 1)">💾</button>
     <button class="btn on" id="zoneBtn" title="Zone di caccia e pesca (J): icona arco e freccia = caccia, icona pesce = pesca">🏹</button>
     <button class="btn" id="attrBtn" title="Mappa dell'attrattiva (V): verde piacevole, rosso rumoroso">☺</button>
+    <button class="btn" id="layBtn" title="Layer della mappa: fertilità del suolo, vento, corrente del fiume">🗺️</button>
   </div>
   <div id="sel" class="panel" hidden>
     <h3 id="selName"></h3>

@@ -1607,6 +1607,93 @@ addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
 $('camL').addEventListener('click',()=>{cam.yaw+=0.4;});$('camR').addEventListener('click',()=>{cam.yaw-=0.4;});
 $('camIn').addEventListener('click',()=>{cam.goal=Math.max(16,cam.goal*0.8);});$('camOut').addEventListener('click',()=>{cam.goal=Math.min(150,cam.goal*1.25);});
 
+// ---------- v64: bussola e layer ambientali (fertilità, vento, corrente del fiume) ----------
+// Il nord è l'alto della mappa (riga 0 della griglia, -z nel mondo). Con la vista iniziale (yaw 45°) il nord sta in alto a destra.
+const TAU2=Math.PI*2;
+let layFert=false,layWind=false,layFlow=false,layOpen=false,compYaw=1e9,envKey='',fertDirty=true,dynT=0;
+const OVT=1024,OPX=OVT/N;
+function mkOverlay(y,order){
+  const c=document.createElement('canvas');c.width=c.height=OVT;const x=c.getContext('2d'),t=new THREE.CanvasTexture(c);
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(W,W),new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false}));
+  m.rotation.x=-Math.PI/2;m.position.y=y;m.renderOrder=order;m.visible=false;scene.add(m);return {c,x,t,m};
+}
+const ovF=mkOverlay(0.07,2),ovD=mkOverlay(0.09,3);
+// colori: fertilità (magra = bruno spento, media = paglia, ottima = verde intenso) e forza della corrente (debole = azzurro, forte = arancio)
+const FC=[];for(let v=0;v<=100;v++){const t=v/100;FC.push(`hsla(${(30+66*t).toFixed(0)},${(40+30*t).toFixed(0)}%,${(40-7*t).toFixed(0)}%,${(0.2+0.45*Math.max(0,(v-40)/60)+0.12*(1-t)).toFixed(2)})`);}
+const FLC=[];for(let q=0;q<=20;q++){const s=q/20;FLC.push(`hsla(${(196-170*s).toFixed(0)},85%,${(62-8*s).toFixed(0)}%,${(0.38+0.3*s).toFixed(2)})`);}
+function drawFert(){
+  const sc=document.createElement('canvas');sc.width=sc.height=N;const sg=sc.getContext('2d'),f=Sim.env.fert;
+  for(let i=0;i<N*N;i++){if(water[i])continue;sg.fillStyle=FC[f[i]];sg.fillRect(i%N,(i/N)|0,1,1);}
+  const g2=ovF.x;g2.clearRect(0,0,OVT,OVT);g2.imageSmoothingEnabled=true;g2.drawImage(sc,0,0,OVT,OVT);ovF.t.needsUpdate=true;
+}
+function drawDyn(now){
+  const g2=ovD.x,t=now/1000,env=Sim.env;g2.clearRect(0,0,OVT,OVT);g2.lineCap='round';g2.lineJoin='round';
+  if(layFlow&&S.mode==='river'){
+    const fs=env.flowSeason(),fl=env.flowS,fx=env.flowX,fy=env.flowY;
+    for(let i=0;i<N*N;i++){
+      if(!water[i])continue;
+      g2.fillStyle=fs===0?'rgba(214,236,255,.5)':FLC[Math.round(Math.min(1,fl[i]*fs)*20)];
+      g2.fillRect((i%N)*OPX,((i/N)|0)*OPX,OPX+.5,OPX+.5);
+    }
+    if(fs>0)for(let gy=1;gy<N;gy+=4)for(let gx=1;gx<N;gx+=4){
+      // segni a "V" che scivolano a valle: più veloci e più grandi dove la corrente è forte
+      const i=gy*N+gx;if(!water[i])continue;
+      const s=Math.min(1,fl[i]*fs),ph=(t*(0.18+0.75*s)+Sim.hash(gx,gy))%1,off=(ph-0.5)*4,dx=fx[i],dy=fy[i];
+      const px=gx+0.5+dx*off,py=gy+0.5+dy*off;if(!water[(py|0)*N+(px|0)])continue;
+      const sz=OPX*(1.1+s),cx=px*OPX,cy=py*OPX,nx=-dy,ny=dx;
+      g2.strokeStyle=`rgba(255,255,255,${(Math.sin(ph*Math.PI)*0.95).toFixed(2)})`;g2.lineWidth=2.4;
+      g2.beginPath();g2.moveTo(cx-dx*sz-nx*sz*.7,cy-dy*sz-ny*sz*.7);g2.lineTo(cx+dx*sz*.3,cy+dy*sz*.3);g2.lineTo(cx-dx*sz+nx*sz*.7,cy-dy*sz+ny*sz*.7);g2.stroke();
+    }
+  }
+  if(layWind){
+    // frecce su un reticolo di 10 celle: lunghezza = forza locale (i boschi la frenano), onde di luce che corrono nel verso del vento
+    const w=env.windNow();
+    for(let cy=5;cy<N;cy+=10)for(let cx=5;cx<N;cx+=10){
+      const l=env.windAt(cx,cy,w),px=(cx+.5)*OPX,py=(cy+.5)*OPX,len=14+34*l.sp,hx=l.vx,hy=l.vy,hs=5+4*l.sp;
+      const x0=px-hx*len/2,y0=py-hy*len/2,x1=px+hx*len/2,y1=py+hy*len/2;
+      const al=0.55+0.4*Math.sin((cx*hx+cy*hy)*0.45-t*(1.6+3.2*l.sp));
+      for(const [col,lw] of [[`rgba(12,28,48,${(al*0.6).toFixed(2)})`,5.5],[`rgba(238,248,255,${al.toFixed(2)})`,2.6]]){
+        g2.beginPath();g2.moveTo(x0,y0);g2.lineTo(x1,y1);
+        g2.moveTo(x1-hx*hs-hy*hs*.6,y1-hy*hs+hx*hs*.6);g2.lineTo(x1,y1);g2.lineTo(x1-hx*hs+hy*hs*.6,y1-hy*hs-hx*hs*.6);
+        g2.strokeStyle=col;g2.lineWidth=lw;g2.stroke();
+      }
+    }
+  }
+  ovD.t.needsUpdate=true;
+}
+// ogni fotogramma: bussola, visibilità dei layer, ridisegno (la fertilità solo quando cambia la valle, vento e corrente ~6 volte al secondo)
+function envFrame(now){
+  if(Math.abs(cam.yaw-compYaw)>1e-4){
+    compYaw=cam.yaw;$('compRose').style.transform=`rotate(${(cam.yaw*180/Math.PI).toFixed(2)}deg)`;
+    $('compN').style.left=(50+Math.sin(cam.yaw)*37.5).toFixed(1)+'%';$('compN').style.top=(50-Math.cos(cam.yaw)*37.5).toFixed(1)+'%';
+  }
+  const ek=S.seed+'/'+S.mode+'/'+S.mapTries;if(ek!==envKey){envKey=ek;fertDirty=true;}
+  ovF.m.visible=layFert;ovD.m.visible=layWind||(layFlow&&S.mode==='river');
+  if(layFert&&fertDirty){drawFert();fertDirty=false;}
+  if(ovD.m.visible&&now-dynT>160){dynT=now;drawDyn(now);}
+}
+$('compass').addEventListener('click',()=>{cam.yaw=Math.round(cam.yaw/TAU2)*TAU2;});
+$('compass').addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();ev.stopPropagation();cam.yaw=Math.round(cam.yaw/TAU2)*TAU2;}});
+const FERT_HTML=`<div class="bar" style="background:linear-gradient(90deg,${[5,25,50,70,95].map(v=>FC[v]).join(',')})"></div><div class="scale"><span>magra</span><span>media</span><span>ottima</span></div>Verde intenso: terra ottima per le colture (circa un quinto della valle). Più ricca vicino ai fiumi, magra vicino a rocce e minerali.`;
+const LAYMSG={fert:'Fertilità: verde intenso = terra ottima per le colture, bruno = suolo magro.',wind:'Vento: le frecce mostrano da dove soffia e quanto forte (più lunghe = più forte). I boschi lo frenano.',flow:'Corrente: azzurro = debole, arancio = forte; i segni a V scorrono a valle. In primavera il disgelo gonfia il fiume, d\'inverno il ghiaccio lo ferma.'};
+function refreshLayers(){
+  if(!layOpen)return;
+  const e=Sim.env,w=e.windNow(),ri=e.riverInfo();
+  if($('lgFert').innerHTML!==FERT_HTML)$('lgFert').innerHTML=FERT_HTML;
+  $('lgWind').innerHTML=`<b>Da ${w.fromName}</b> (${w.trad})<br>${w.label} · ${w.kmh} km/h`;
+  $('lgFlow').innerHTML=!ri.on?'Nessuna corrente: in questa valle c\'è un lago calmo.':ri.frozen?'<b>Ferma</b>: il fiume è ghiacciato.':`<b>Corrente ${ri.label}</b> · ${ri.ms} m/s`+(ri.factor>1.15?'<br>Piena di disgelo':ri.factor<0.8?'<br>Fiume magro':'');
+}
+function setLayer(k){
+  if(k==='flow'&&S.mode!=='river'){toast('Nessuna corrente: in questa valle c\'è un lago calmo. La corrente c\'è solo sulle mappe con il fiume.');return;}
+  if(k==='fert')layFert=!layFert;else if(k==='wind')layWind=!layWind;else layFlow=!layFlow;
+  const on=k==='fert'?layFert:k==='wind'?layWind:layFlow;
+  $(k==='fert'?'layFert':k==='wind'?'layWind':'layFlow').classList.toggle('on',on);
+  if(on){toast(LAYMSG[k]);dynT=0;if(k==='fert')fertDirty=true;}
+}
+function toggleLayers(){layOpen=!layOpen;$('layers').hidden=!layOpen;$('layBtn').classList.toggle('on',layOpen);refreshLayers();}
+$('layBtn').addEventListener('click',toggleLayers);
+$('layFert').addEventListener('click',()=>setLayer('fert'));$('layWind').addEventListener('click',()=>setLayer('wind'));$('layFlow').addEventListener('click',()=>setLayer('flow'));
+
 // ---------- velocità ----------
 let speed=1;
 function setSpeed(s){speed=s;document.querySelectorAll('#speed .btn[data-s]').forEach(b=>b.classList.toggle('on',+b.dataset.s===s));}
@@ -2041,7 +2128,7 @@ function updateHUD(){
   $('rDay').textContent=`${Sim.SEASONS[st.season]} ${st.day%Sim.SEASON_DAYS+1}/${Sim.SEASON_DAYS} · annata ${st.year} · ${PHN[st.ph]}`;
   $('rPop').textContent=`${st.pop}/${st.cap}`+(st.children?` (👶${st.children})`:'');$('rJobs').textContent=`${st.jobs}/${st.slots}`;$('rBarter').textContent=st.barters;
   $('rFire').textContent=`${st.fire}/${st.fireNeed}`;$('rSick').textContent=st.sick+(st.plague?' ☣':'');$('chipSick').classList.toggle('alert',st.sick>0);$('rWell').textContent=Math.round(st.avgJoy)+(st.unhappy?' · '+st.unhappy+' tristi':'');$('chipJoy').classList.toggle('alert',st.unhappy>0&&st.avgJoy<45);
-  refreshGuide(st);pollEnvoy();refreshPalette();if(!$('projects').hidden)renderProjects();else $('projBtn').classList.toggle('on',newProjects());refreshSel();if(cardId)renderCard();renderPop(st);renderTrade();
+  refreshLayers();refreshGuide(st);pollEnvoy();refreshPalette();if(!$('projects').hidden)renderProjects();else $('projBtn').classList.toggle('on',newProjects());refreshSel();if(cardId)renderCard();renderPop(st);renderTrade();
   for(const t of TOOLS)if(BT[t.id])toolBtns[t.id].classList.toggle('poor',!Sim.afford(t.id));
 }
 
@@ -2258,6 +2345,7 @@ function frame2(now){
   updateCam(dt);
   if(treesDirty)rebuildTrees();if(rocksDirty)rebuildRocks();if(sapsDirty)rebuildSaps();
   if(groundDirty&&now-lastGround>350){drawGround();groundDirty=false;lastGround=now;}
+  envFrame(now);
   for(const e of ents.values()){
     const b=e.b,ud=e.body.userData;
     if(e.sheep)animSheep(e,dt);

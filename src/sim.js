@@ -287,6 +287,122 @@ function terrainOK(mode){
   return mw>=(mode==='lake'?11:9)&&wc>=1500&&wc<=3600&&t26>=330&&t18>=100&&r26>=200&&r18>=60&&oT>=30&&o32>=12;
 }
 
+// ---------- v64: ambiente — fertilità del suolo, corrente del fiume, vento ----------
+// Tutto si ricava dal seme e dall'acqua della mappa (fertilità, corrente) o dal tempo di gioco (vento, stagione del fiume):
+// nessun campo nuovo nei salvataggi. Per ora sono informazione e layer sulla mappa; non cambiano ancora la resa dei campi né i lavori.
+const fert=new Uint8Array(N*N);                      // fertilità del suolo 0-100 (0 = acqua o roccia viva)
+const flowS=new Float32Array(N*N);                   // forza base della corrente 0-1 (solo fiume, solo celle d'acqua)
+const flowX=new Float32Array(N*N),flowY=new Float32Array(N*N);  // verso della corrente (vettore unitario; x = est, y = sud)
+let flowAvg=0,windP=null;
+const FERT_HIGH=70;                                  // da qui la terra è "ottima" per le colture
+// distanza (in celle, approssimata) dalla cella sorgente più vicina: chamfer in due passate
+function distField(isSrc){
+  const d=new Float32Array(N*N),BIG=1e4,D2=1.4142;
+  for(let i=0;i<N*N;i++)d[i]=isSrc(i)?0:BIG;
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const i=y*N+x;let v=d[i];
+    if(x>0)v=Math.min(v,d[i-1]+1);
+    if(y>0){v=Math.min(v,d[i-N]+1);if(x>0)v=Math.min(v,d[i-N-1]+D2);if(x<N-1)v=Math.min(v,d[i-N+1]+D2);}
+    d[i]=v;}
+  for(let y=N-1;y>=0;y--)for(let x=N-1;x>=0;x--){const i=y*N+x;let v=d[i];
+    if(x<N-1)v=Math.min(v,d[i+1]+1);
+    if(y<N-1){v=Math.min(v,d[i+N]+1);if(x<N-1)v=Math.min(v,d[i+N+1]+D2);if(x>0)v=Math.min(v,d[i+N-1]+D2);}
+    d[i]=v;}
+  return d;
+}
+// La fertilità dipende dal terreno com'è nato, non da com'è adesso: cava e miniera tolgono rocce e minerali durante la partita, ma il suolo non deve cambiare.
+// Dopo un caricamento si rigenera il terreno naturale dal seme (e si rimettono a posto le griglie vive); se non coincide con l'acqua della partita si usa quello attuale.
+function naturalTerrain(){
+  if(!(S.mapTries>0))return null;
+  const live=[tree,rock,ore,water].map(a=>a.slice()),sd0=seed;
+  genTerrain(S.mode,S.seed|0,(S.mapTries|0)-1);
+  const nat={rock:rock.slice(),ore:ore.slice()};let same=true;for(let i=0;i<N*N;i++)if(water[i]!==live[3][i]){same=false;break;}
+  [tree,rock,ore,water].forEach((a,k)=>a.set(live[k]));seed=sd0;
+  return same?nat:null;
+}
+function computeEnv(nat){
+  const nr=nat?nat.rock:rock,no=nat?nat.ore:ore;
+  const river=S.mode==='river',dW=distField(i=>water[i]>0),dR=distField(i=>nr[i]>0||no[i]>0);
+  // fertilità: macchie di suolo (rumore a tre scale) + terra di riva (più ricca lungo un fiume) − suolo magro vicino a rocce e minerali.
+  // Il valore grezzo è poi riportato ai percentili della mappa: ogni valle ha sempre circa un quinto di terra ottima (>= FERT_HIGH) e qualche zona magra
+  const raw=new Float32Array(N*N),land=[];
+  for(let i=0;i<N*N;i++){
+    if(water[i]){fert[i]=0;continue;}
+    if(nr[i]||no[i]){fert[i]=Math.round(hash(i,77)*12);continue;}
+    const x=(i%N)/SC,y=((i/N)|0)/SC;
+    const n=vnoise(x*0.07+700,y*0.07+310)*0.55+vnoise(x*0.19+120,y*0.19+940)*0.30+vnoise(x*0.5+40,y*0.5+10)*0.15;
+    const near=Math.exp(-dW[i]/(SC*(river?6:5)))*(river?0.30:0.18),stony=Math.exp(-dR[i]/(SC*2.5))*0.38;
+    raw[i]=n+near-stony;land.push(raw[i]);
+  }
+  if(land.length){
+    const sv=Float32Array.from(land).sort(),at=p=>sv[Math.min(sv.length-1,Math.floor(p*(sv.length-1)))];
+    const A=[[at(0),6],[at(0.25),32],[at(0.5),50],[at(0.8),FERT_HIGH],[at(1),97]];
+    for(let i=0;i<N*N;i++){
+      if(water[i]||nr[i]||no[i])continue;
+      const v=raw[i];let k=1;while(k<A.length-1&&v>A[k][0])k++;
+      const a=A[k-1],b=A[k],t=b[0]>a[0]?Math.max(0,Math.min(1,(v-a[0])/(b[0]-a[0]))):0;
+      fert[i]=Math.round(a[1]+(b[1]-a[1])*t);
+    }
+  }
+  // corrente: solo nel fiume. Il verso segue la direzione locale del letto (asse principale dell'acqua intorno alla cella),
+  // la forza cresce dove il letto è stretto e verso il centro del canale, cala sui guadi (acqua bassa)
+  flowS.fill(0);flowX.fill(0);flowY.fill(0);flowAvg=0;
+  if(!river)return;
+  const ws=[];for(let i=0;i<N*N;i++)if(water[i])ws.push(i);
+  if(ws.length<30)return;
+  let mx=0,my=0;for(const i of ws){mx+=i%N;my+=(i/N)|0;}mx/=ws.length;my/=ws.length;
+  let sxx=0,syy=0,sxy=0;for(const i of ws){const dx=(i%N)-mx,dy=((i/N)|0)-my;sxx+=dx*dx;syy+=dy*dy;sxy+=dx*dy;}
+  const ang=0.5*Math.atan2(2*sxy,sxx-syy);let gx=Math.cos(ang),gy=Math.sin(ang);
+  if(hash(11,17)<0.5){gx=-gx;gy=-gy;}                // il seme decide da che parte scorre il fiume
+  const dB=distField(i=>!water[i]),RW=14;
+  let sum=0;
+  for(const i of ws){
+    const c0=i%N,r0=(i/N)|0;let n=0,ax=0,ay=0,axx=0,ayy=0,axy=0,hw=0;
+    for(let yy=Math.max(0,r0-RW);yy<=Math.min(N-1,r0+RW);yy++)for(let xx=Math.max(0,c0-RW);xx<=Math.min(N-1,c0+RW);xx++){
+      const j=yy*N+xx;if(!water[j])continue;n++;ax+=xx;ay+=yy;axx+=xx*xx;ayy+=yy*yy;axy+=xx*yy;if(dB[j]>hw)hw=dB[j];}
+    let tx=gx,ty=gy;
+    if(n>=20){
+      const m1=ax/n,m2=ay/n,vxx=axx/n-m1*m1,vyy=ayy/n-m2*m2,vxy=axy/n-m1*m2,tr=vxx+vyy,df=Math.sqrt(Math.max(0,(vxx-vyy)*(vxx-vyy)/4+vxy*vxy));
+      if(tr>0&&(tr/2+df)/Math.max(1e-6,tr/2-df)>1.3){const a=0.5*Math.atan2(2*vxy,vxx-vyy);tx=Math.cos(a);ty=Math.sin(a);if(tx*gx+ty*gy<0){tx=-tx;ty=-ty;}}  // letto abbastanza allungato: la direzione locale è affidabile
+    }
+    const narrow=Math.max(0,Math.min(1,(10.5-hw)/6.3)),prof=0.45+0.55*Math.min(1,dB[i]/Math.max(1.5,hw));
+    let v=(0.30+0.50*narrow)*prof;if(water[i]===2)v*=0.8;
+    flowS[i]=v;flowX[i]=tx;flowY[i]=ty;sum+=v;
+  }
+  flowAvg=sum/ws.length;
+}
+// il fiume è magro a fine estate, gonfio in primavera (disgelo), fermo d'inverno col ghiaccio
+function flowSeason(){
+  if(S.frozen)return 0;
+  const yl=SEASON_DAYS*4,yd=(((S.day|0)%yl)+(S.f||0))/yl;
+  return Math.max(0.35,1+0.4*Math.cos(2*Math.PI*(yd-0.08)));
+}
+const FLOW_MS=2.5;                                   // metri al secondo a forza 1 (solo per la scheda)
+function flowLabel(v){return v<0.15?'debole':v<0.4?'moderata':v<0.7?'forte':'impetuosa';}
+function riverInfo(){
+  const on=S.mode==='river'&&flowAvg>0,f=flowSeason(),avg=on?Math.min(1,flowAvg*f):0;
+  return {on,frozen:!!S.frozen&&on,factor:f,avg,ms:+(avg*FLOW_MS).toFixed(1),label:!on?'nessuna: il lago è calmo':S.frozen?'ferma: il fiume è ghiacciato':flowLabel(avg)};
+}
+// vento: direzione e forza dipendono solo dal seme e dal tempo (vira piano nei giorni, rinforza d'autunno e d'inverno)
+const COMPASS8=['Nord','Nord-Est','Est','Sud-Est','Sud','Sud-Ovest','Ovest','Nord-Ovest'];
+const WIND_NAME=['Tramontana','Grecale','Levante','Scirocco','Ostro','Libeccio','Ponente','Maestrale'];
+function windLabel(s){return s<0.1?'calmo':s<0.25?'brezza leggera':s<0.45?'brezza tesa':s<0.65?'vento forte':s<0.85?'burrasca':'tempesta';}
+function windNow(){
+  if(!windP){const R=mulberry(((S.seed|0)^0x57494e44)>>>0);windP={th0:R()*Math.PI*2,p:[R()*6.2832,R()*6.2832,R()*6.2832,R()*6.2832]};}
+  const TAU=Math.PI*2,d=(S.t+6)/DAY,P=windP.p;
+  const th=windP.th0+0.8*Math.sin(TAU*d/5.3+P[0])+0.35*Math.sin(TAU*d/2.6+P[1]);   // verso cui soffia (rad: 0 = est, 90° = sud)
+  let sp=0.36+0.22*Math.sin(TAU*d/2.1+P[2])+0.12*Math.sin(TAU*d/0.55+P[3])+(S.season===3?0.1:S.season===2?0.05:0);
+  sp=Math.max(0.03,Math.min(1,sp));
+  const vx=Math.cos(th),vy=Math.sin(th),brg=(Math.atan2(vx,-vy)+TAU)%TAU,from=Math.round(((brg+Math.PI)%TAU)/(Math.PI/4))%8;
+  return {vx,vy,sp,kmh:Math.round(sp*60),from,fromName:COMPASS8[from],trad:WIND_NAME[from],label:windLabel(sp)};
+}
+// vento in una cella: i boschi lo frenano, l'acqua aperta lo lascia correre, il terreno lo devia di poco
+function windAt(cx,cy,w){
+  w=w||windNow();let tr=0,n=0;
+  for(let yy=Math.max(0,cy-4);yy<=Math.min(N-1,cy+4);yy++)for(let xx=Math.max(0,cx-4);xx<=Math.min(N-1,cx+4);xx++){n++;if(tree[yy*N+xx])tr++;}
+  const sh=Math.min(1,tr/n/0.22),a=Math.atan2(w.vy,w.vx)+(vnoise(cx/SC*0.12+400,cy/SC*0.12+250)-0.5)*0.7*(1-sh*0.5);
+  return {vx:Math.cos(a),vy:Math.sin(a),sp:Math.max(0.02,Math.min(1,w.sp*(water[cy*N+cx]?1.12:1)*(1-0.6*sh)))};
+}
+
 function init(sd,mode,diff,opt){
   seed=sd||7;S.mode=mode==='river'?'river':'lake';S.diff=DIFFS[diff]?diff:'normale';S.repairs=0;S.ruined=0;
   for(const a of [tree,rock,ore,water,sap,road,dist,door,cen])a.fill(0);
@@ -300,6 +416,7 @@ function init(sd,mode,diff,opt){
   for(;att<48&&!okT;att++){genTerrain(S.mode,base,att);okT=terrainOK(S.mode);}
   S.seed=base;S.mapTries=att;S.mapOK=okT;
   for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;jit[i]=hash(x,y+500)*0.15;}
+  windP=null;computeEnv();
   updClock();
   addBuilding('store',31*SC,31*SC,true,{center:true});
   for(let k=0;k<3;k++){const v=addVillager(cx2w(31*SC+1+k*2),cy2w(31*SC+9),22+k*4);logV(v,'Partito da Rocca Nera con la carovana: uno dei primi abitanti del borgo.');}
@@ -3535,6 +3652,7 @@ function importState(d){
   for(const k of ['wh','xf','inflight'])S[k]=Object.assign({wood:0,stone:0,iron:0},S[k]);
   S.coins=Number.isFinite(S.coins)?S.coins:COINS0;S.fin=Object.assign(mkFin(),S.fin);S.taxDay=Number.isFinite(S.taxDay)?S.taxDay:-1;{const rt=Array.isArray(S.routes)?S.routes:[];S.routes=mkRoutes().map(r=>Object.assign(r,rt.find(x=>x&&x.id===r.id)||{}));}S.tradeOpt=Object.assign({sell:true,buy:true},S.tradeOpt);S.tlog=Array.isArray(S.tlog)?S.tlog:[];S.trade=Object.assign({sold:0,bought:0,visits:0},S.trade);
   S.mode=S.mode==='river'?'river':'lake';S.diff=DIFFS[S.diff]?S.diff:'facile';S.repairs=S.repairs|0;S.ruined=S.ruined|0;
+  windP=null;computeEnv(naturalTerrain());   // v64: fertilità e corrente si ricavano dall'acqua e dal seme, il vento dal seme: niente da salvare
   for(const k of Object.keys(acc))delete acc[k];Object.assign(acc,{a1:0,a05:0,farm:0,attr:99},ac);
   for(const k of Object.keys(told))delete told[k];Object.assign(told,tl);
   gatedSet.clear();for(const i of ga)gatedSet.add(i);
@@ -3561,6 +3679,7 @@ return {TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWa
   setFarmCrop,fibreCrop,sinkOf,CHAR_CAP,BAR_CAP,CLAY_CAP,BRICK_CAP,LIME_CAP,MATS,retInfo,RET_CAP,DIFFS,diffOf,maintStats,condOf,condLabel,maintainable,REPAIR_BELOW,WORN_AT,
   STORE_KEYS,GRAN_KEYS,GRAN_TOTAL,CENTER_CAP,setPolicy,storeInfo,stockRoom,capRes,reconcileStock,extraTotal,festTakeFood,
   _t:{jobNeed,jobSurplus,rebalanceJobs,JOBRES,JOB_MARGIN,JOB_DWELL,tradeTick,doTrade,chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
+  env:{fert,flowS,flowX,flowY,FERT_HIGH,flowSeason,riverInfo,windNow,windAt,flowLabel,windLabel,COMPASS8,WIND_NAME,FLOW_MS},
   grids:{tree,rock,ore,water,sap,sapT,road,dist,occ,wear,plev,field,door,attr,cen},guests:()=>guests,buildings:()=>buildings,villagers:()=>villagers};
 })();
 if(typeof module!=='undefined')module.exports=Sim;

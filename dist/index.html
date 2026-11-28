@@ -146,6 +146,21 @@ body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--seri
 @media (max-width:560px){.edC{grid-template-columns:44px 1fr}.edC .ic{width:42px;height:42px;font-size:22px}.edC .btn{grid-column:1/-1}}
 #camctl{position:absolute;top:104px;right:16px;display:flex;flex-direction:column;gap:5px}
 #camctl .btn{width:36px;height:36px;padding:0;font-size:18px;line-height:1}
+/* v64: bussola (la N segue il nord vero della mappa mentre si ruota la vista) e layer ambientali */
+#compass{position:relative;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:radial-gradient(circle at 50% 38%,#5b4a33,#2d2217 78%);box-shadow:0 2px 0 rgba(0,0,0,.35),inset 0 1px 0 rgba(255,235,190,.1);cursor:pointer;flex:none;touch-action:manipulation}
+#compass:hover{border-color:var(--gold)}
+#compass:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+#compRose{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#compN{position:absolute;left:50%;top:50%;font:700 10px/1 var(--disp);color:#ffb59c;transform:translate(-50%,-50%);pointer-events:none;text-shadow:0 1px 1px #000}
+#layers{position:absolute;top:104px;right:60px;width:262px;max-width:calc(100% - 84px);padding:10px 12px;z-index:3;box-sizing:border-box}
+#layers[hidden]{display:none}
+#layers h3{margin:0 0 6px;font:700 12px/1.2 var(--disp);letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
+#layers .lay{display:block;width:100%;text-align:left;margin:0 0 3px;padding:6px 10px;font-size:14px}
+#layers .lg{margin:0 2px 9px;font-size:13px;line-height:1.35;color:var(--parch2)}
+#layers .lg b{color:var(--parch)}
+#layers .bar{height:8px;border-radius:4px;margin:4px 0 2px;border:1px solid rgba(0,0,0,.4)}
+#layers .scale{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+#layers .lay.off{opacity:.55}
 #sel{position:absolute;right:16px;bottom:144px;width:340px;max-width:calc(100% - 32px);padding:14px 16px;box-sizing:border-box;overflow:hidden}
 #sel *{min-width:0;overflow-wrap:anywhere}
 #sel h3{margin:0 0 4px;font:700 14px/1.2 var(--disp);letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
@@ -234,6 +249,10 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
   #goals li{font-size:14px}
   #camctl{top:calc(104px + var(--st));bottom:auto;right:calc(8px + var(--sr));gap:6px}
   #camctl .btn{width:44px;height:44px;font-size:20px}
+  #compass{width:44px;height:44px}
+  #compN{font-size:12px}
+  #layers{top:calc(104px + var(--st));right:calc(64px + var(--sr));width:min(262px,calc(100% - 76px - var(--sl) - var(--sr)));max-width:none}
+  #layers .lay{min-height:44px}
   #hint{display:none}
   #toast{left:calc(8px + var(--sl));right:calc(64px + var(--sr));bottom:auto;top:calc(152px + var(--st));transform:translateY(-6px);max-width:none;font-size:15px;z-index:4}
   #toast.show{transform:none}
@@ -356,7 +375,17 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
   <div id="pop" hidden role="dialog" aria-label="Dettagli popolazione">
     <div class="cardBox" id="popBox"><h2>Il Borgo e la sua gente</h2><div class="popTabs"><button class="btn" type="button" data-tab="pop">Abitanti</button><button class="btn" type="button" data-tab="joy">Felicità</button></div><div id="popBody"></div><div class="acts"><button class="btn" id="popClose" type="button">Chiudi</button></div></div>
   </div>
+  <div id="layers" class="panel" hidden aria-label="Layer della mappa">
+    <h3>Layer della mappa</h3>
+    <button class="btn lay" id="layFert" type="button" aria-pressed="false">🌾 Fertilità del suolo</button>
+    <div class="lg" id="lgFert"></div>
+    <button class="btn lay" id="layWind" type="button" aria-pressed="false">💨 Vento</button>
+    <div class="lg" id="lgWind"></div>
+    <button class="btn lay" id="layFlow" type="button" aria-pressed="false">🌊 Corrente del fiume</button>
+    <div class="lg" id="lgFlow"></div>
+  </div>
   <div id="camctl">
+    <div id="compass" role="button" tabindex="0" title="Bussola: la N rossa indica il nord. Clicca per mettere il nord in alto."><svg id="compRose" viewBox="-20 -20 40 40" aria-hidden="true"><path d="M0-12 L-4.2 0 L4.2 0Z" fill="#d6563c"/><path d="M0 12 L-4.2 0 L4.2 0Z" fill="#e9dcc0"/><circle r="1.6" fill="#2d2217" stroke="#e9dcc0" stroke-width=".6"/><path d="M17 0H19.4M-17 0H-19.4M0 17V19.4" stroke="#b9a37a" stroke-width="1.1"/></svg><span id="compN">N</span></div>
     <button class="btn" id="camL" title="Ruota a sinistra (Q)">↺</button>
     <button class="btn" id="camR" title="Ruota a destra (E)">↻</button>
     <button class="btn" id="camIn" title="Avvicina">+</button>
@@ -368,6 +397,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
     <button class="btn" id="saveBtn" title="Salvataggi (Ctrl+S salva nel posto 1)">💾</button>
     <button class="btn on" id="zoneBtn" title="Zone di caccia e pesca (J): icona arco e freccia = caccia, icona pesce = pesca">🏹</button>
     <button class="btn" id="attrBtn" title="Mappa dell'attrattiva (V): verde piacevole, rosso rumoroso">☺</button>
+    <button class="btn" id="layBtn" title="Layer della mappa: fertilità del suolo, vento, corrente del fiume">🗺️</button>
   </div>
   <div id="sel" class="panel" hidden>
     <h3 id="selName"></h3>
@@ -679,6 +709,122 @@ function terrainOK(mode){
   return mw>=(mode==='lake'?11:9)&&wc>=1500&&wc<=3600&&t26>=330&&t18>=100&&r26>=200&&r18>=60&&oT>=30&&o32>=12;
 }
 
+// ---------- v64: ambiente — fertilità del suolo, corrente del fiume, vento ----------
+// Tutto si ricava dal seme e dall'acqua della mappa (fertilità, corrente) o dal tempo di gioco (vento, stagione del fiume):
+// nessun campo nuovo nei salvataggi. Per ora sono informazione e layer sulla mappa; non cambiano ancora la resa dei campi né i lavori.
+const fert=new Uint8Array(N*N);                      // fertilità del suolo 0-100 (0 = acqua o roccia viva)
+const flowS=new Float32Array(N*N);                   // forza base della corrente 0-1 (solo fiume, solo celle d'acqua)
+const flowX=new Float32Array(N*N),flowY=new Float32Array(N*N);  // verso della corrente (vettore unitario; x = est, y = sud)
+let flowAvg=0,windP=null;
+const FERT_HIGH=70;                                  // da qui la terra è "ottima" per le colture
+// distanza (in celle, approssimata) dalla cella sorgente più vicina: chamfer in due passate
+function distField(isSrc){
+  const d=new Float32Array(N*N),BIG=1e4,D2=1.4142;
+  for(let i=0;i<N*N;i++)d[i]=isSrc(i)?0:BIG;
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const i=y*N+x;let v=d[i];
+    if(x>0)v=Math.min(v,d[i-1]+1);
+    if(y>0){v=Math.min(v,d[i-N]+1);if(x>0)v=Math.min(v,d[i-N-1]+D2);if(x<N-1)v=Math.min(v,d[i-N+1]+D2);}
+    d[i]=v;}
+  for(let y=N-1;y>=0;y--)for(let x=N-1;x>=0;x--){const i=y*N+x;let v=d[i];
+    if(x<N-1)v=Math.min(v,d[i+1]+1);
+    if(y<N-1){v=Math.min(v,d[i+N]+1);if(x<N-1)v=Math.min(v,d[i+N+1]+D2);if(x>0)v=Math.min(v,d[i+N-1]+D2);}
+    d[i]=v;}
+  return d;
+}
+// La fertilità dipende dal terreno com'è nato, non da com'è adesso: cava e miniera tolgono rocce e minerali durante la partita, ma il suolo non deve cambiare.
+// Dopo un caricamento si rigenera il terreno naturale dal seme (e si rimettono a posto le griglie vive); se non coincide con l'acqua della partita si usa quello attuale.
+function naturalTerrain(){
+  if(!(S.mapTries>0))return null;
+  const live=[tree,rock,ore,water].map(a=>a.slice()),sd0=seed;
+  genTerrain(S.mode,S.seed|0,(S.mapTries|0)-1);
+  const nat={rock:rock.slice(),ore:ore.slice()};let same=true;for(let i=0;i<N*N;i++)if(water[i]!==live[3][i]){same=false;break;}
+  [tree,rock,ore,water].forEach((a,k)=>a.set(live[k]));seed=sd0;
+  return same?nat:null;
+}
+function computeEnv(nat){
+  const nr=nat?nat.rock:rock,no=nat?nat.ore:ore;
+  const river=S.mode==='river',dW=distField(i=>water[i]>0),dR=distField(i=>nr[i]>0||no[i]>0);
+  // fertilità: macchie di suolo (rumore a tre scale) + terra di riva (più ricca lungo un fiume) − suolo magro vicino a rocce e minerali.
+  // Il valore grezzo è poi riportato ai percentili della mappa: ogni valle ha sempre circa un quinto di terra ottima (>= FERT_HIGH) e qualche zona magra
+  const raw=new Float32Array(N*N),land=[];
+  for(let i=0;i<N*N;i++){
+    if(water[i]){fert[i]=0;continue;}
+    if(nr[i]||no[i]){fert[i]=Math.round(hash(i,77)*12);continue;}
+    const x=(i%N)/SC,y=((i/N)|0)/SC;
+    const n=vnoise(x*0.07+700,y*0.07+310)*0.55+vnoise(x*0.19+120,y*0.19+940)*0.30+vnoise(x*0.5+40,y*0.5+10)*0.15;
+    const near=Math.exp(-dW[i]/(SC*(river?6:5)))*(river?0.30:0.18),stony=Math.exp(-dR[i]/(SC*2.5))*0.38;
+    raw[i]=n+near-stony;land.push(raw[i]);
+  }
+  if(land.length){
+    const sv=Float32Array.from(land).sort(),at=p=>sv[Math.min(sv.length-1,Math.floor(p*(sv.length-1)))];
+    const A=[[at(0),6],[at(0.25),32],[at(0.5),50],[at(0.8),FERT_HIGH],[at(1),97]];
+    for(let i=0;i<N*N;i++){
+      if(water[i]||nr[i]||no[i])continue;
+      const v=raw[i];let k=1;while(k<A.length-1&&v>A[k][0])k++;
+      const a=A[k-1],b=A[k],t=b[0]>a[0]?Math.max(0,Math.min(1,(v-a[0])/(b[0]-a[0]))):0;
+      fert[i]=Math.round(a[1]+(b[1]-a[1])*t);
+    }
+  }
+  // corrente: solo nel fiume. Il verso segue la direzione locale del letto (asse principale dell'acqua intorno alla cella),
+  // la forza cresce dove il letto è stretto e verso il centro del canale, cala sui guadi (acqua bassa)
+  flowS.fill(0);flowX.fill(0);flowY.fill(0);flowAvg=0;
+  if(!river)return;
+  const ws=[];for(let i=0;i<N*N;i++)if(water[i])ws.push(i);
+  if(ws.length<30)return;
+  let mx=0,my=0;for(const i of ws){mx+=i%N;my+=(i/N)|0;}mx/=ws.length;my/=ws.length;
+  let sxx=0,syy=0,sxy=0;for(const i of ws){const dx=(i%N)-mx,dy=((i/N)|0)-my;sxx+=dx*dx;syy+=dy*dy;sxy+=dx*dy;}
+  const ang=0.5*Math.atan2(2*sxy,sxx-syy);let gx=Math.cos(ang),gy=Math.sin(ang);
+  if(hash(11,17)<0.5){gx=-gx;gy=-gy;}                // il seme decide da che parte scorre il fiume
+  const dB=distField(i=>!water[i]),RW=14;
+  let sum=0;
+  for(const i of ws){
+    const c0=i%N,r0=(i/N)|0;let n=0,ax=0,ay=0,axx=0,ayy=0,axy=0,hw=0;
+    for(let yy=Math.max(0,r0-RW);yy<=Math.min(N-1,r0+RW);yy++)for(let xx=Math.max(0,c0-RW);xx<=Math.min(N-1,c0+RW);xx++){
+      const j=yy*N+xx;if(!water[j])continue;n++;ax+=xx;ay+=yy;axx+=xx*xx;ayy+=yy*yy;axy+=xx*yy;if(dB[j]>hw)hw=dB[j];}
+    let tx=gx,ty=gy;
+    if(n>=20){
+      const m1=ax/n,m2=ay/n,vxx=axx/n-m1*m1,vyy=ayy/n-m2*m2,vxy=axy/n-m1*m2,tr=vxx+vyy,df=Math.sqrt(Math.max(0,(vxx-vyy)*(vxx-vyy)/4+vxy*vxy));
+      if(tr>0&&(tr/2+df)/Math.max(1e-6,tr/2-df)>1.3){const a=0.5*Math.atan2(2*vxy,vxx-vyy);tx=Math.cos(a);ty=Math.sin(a);if(tx*gx+ty*gy<0){tx=-tx;ty=-ty;}}  // letto abbastanza allungato: la direzione locale è affidabile
+    }
+    const narrow=Math.max(0,Math.min(1,(10.5-hw)/6.3)),prof=0.45+0.55*Math.min(1,dB[i]/Math.max(1.5,hw));
+    let v=(0.30+0.50*narrow)*prof;if(water[i]===2)v*=0.8;
+    flowS[i]=v;flowX[i]=tx;flowY[i]=ty;sum+=v;
+  }
+  flowAvg=sum/ws.length;
+}
+// il fiume è magro a fine estate, gonfio in primavera (disgelo), fermo d'inverno col ghiaccio
+function flowSeason(){
+  if(S.frozen)return 0;
+  const yl=SEASON_DAYS*4,yd=(((S.day|0)%yl)+(S.f||0))/yl;
+  return Math.max(0.35,1+0.4*Math.cos(2*Math.PI*(yd-0.08)));
+}
+const FLOW_MS=2.5;                                   // metri al secondo a forza 1 (solo per la scheda)
+function flowLabel(v){return v<0.15?'debole':v<0.4?'moderata':v<0.7?'forte':'impetuosa';}
+function riverInfo(){
+  const on=S.mode==='river'&&flowAvg>0,f=flowSeason(),avg=on?Math.min(1,flowAvg*f):0;
+  return {on,frozen:!!S.frozen&&on,factor:f,avg,ms:+(avg*FLOW_MS).toFixed(1),label:!on?'nessuna: il lago è calmo':S.frozen?'ferma: il fiume è ghiacciato':flowLabel(avg)};
+}
+// vento: direzione e forza dipendono solo dal seme e dal tempo (vira piano nei giorni, rinforza d'autunno e d'inverno)
+const COMPASS8=['Nord','Nord-Est','Est','Sud-Est','Sud','Sud-Ovest','Ovest','Nord-Ovest'];
+const WIND_NAME=['Tramontana','Grecale','Levante','Scirocco','Ostro','Libeccio','Ponente','Maestrale'];
+function windLabel(s){return s<0.1?'calmo':s<0.25?'brezza leggera':s<0.45?'brezza tesa':s<0.65?'vento forte':s<0.85?'burrasca':'tempesta';}
+function windNow(){
+  if(!windP){const R=mulberry(((S.seed|0)^0x57494e44)>>>0);windP={th0:R()*Math.PI*2,p:[R()*6.2832,R()*6.2832,R()*6.2832,R()*6.2832]};}
+  const TAU=Math.PI*2,d=(S.t+6)/DAY,P=windP.p;
+  const th=windP.th0+0.8*Math.sin(TAU*d/5.3+P[0])+0.35*Math.sin(TAU*d/2.6+P[1]);   // verso cui soffia (rad: 0 = est, 90° = sud)
+  let sp=0.36+0.22*Math.sin(TAU*d/2.1+P[2])+0.12*Math.sin(TAU*d/0.55+P[3])+(S.season===3?0.1:S.season===2?0.05:0);
+  sp=Math.max(0.03,Math.min(1,sp));
+  const vx=Math.cos(th),vy=Math.sin(th),brg=(Math.atan2(vx,-vy)+TAU)%TAU,from=Math.round(((brg+Math.PI)%TAU)/(Math.PI/4))%8;
+  return {vx,vy,sp,kmh:Math.round(sp*60),from,fromName:COMPASS8[from],trad:WIND_NAME[from],label:windLabel(sp)};
+}
+// vento in una cella: i boschi lo frenano, l'acqua aperta lo lascia correre, il terreno lo devia di poco
+function windAt(cx,cy,w){
+  w=w||windNow();let tr=0,n=0;
+  for(let yy=Math.max(0,cy-4);yy<=Math.min(N-1,cy+4);yy++)for(let xx=Math.max(0,cx-4);xx<=Math.min(N-1,cx+4);xx++){n++;if(tree[yy*N+xx])tr++;}
+  const sh=Math.min(1,tr/n/0.22),a=Math.atan2(w.vy,w.vx)+(vnoise(cx/SC*0.12+400,cy/SC*0.12+250)-0.5)*0.7*(1-sh*0.5);
+  return {vx:Math.cos(a),vy:Math.sin(a),sp:Math.max(0.02,Math.min(1,w.sp*(water[cy*N+cx]?1.12:1)*(1-0.6*sh)))};
+}
+
 function init(sd,mode,diff,opt){
   seed=sd||7;S.mode=mode==='river'?'river':'lake';S.diff=DIFFS[diff]?diff:'normale';S.repairs=0;S.ruined=0;
   for(const a of [tree,rock,ore,water,sap,road,dist,door,cen])a.fill(0);
@@ -692,6 +838,7 @@ function init(sd,mode,diff,opt){
   for(;att<48&&!okT;att++){genTerrain(S.mode,base,att);okT=terrainOK(S.mode);}
   S.seed=base;S.mapTries=att;S.mapOK=okT;
   for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;jit[i]=hash(x,y+500)*0.15;}
+  windP=null;computeEnv();
   updClock();
   addBuilding('store',31*SC,31*SC,true,{center:true});
   for(let k=0;k<3;k++){const v=addVillager(cx2w(31*SC+1+k*2),cy2w(31*SC+9),22+k*4);logV(v,'Partito da Rocca Nera con la carovana: uno dei primi abitanti del borgo.');}
@@ -3927,6 +4074,7 @@ function importState(d){
   for(const k of ['wh','xf','inflight'])S[k]=Object.assign({wood:0,stone:0,iron:0},S[k]);
   S.coins=Number.isFinite(S.coins)?S.coins:COINS0;S.fin=Object.assign(mkFin(),S.fin);S.taxDay=Number.isFinite(S.taxDay)?S.taxDay:-1;{const rt=Array.isArray(S.routes)?S.routes:[];S.routes=mkRoutes().map(r=>Object.assign(r,rt.find(x=>x&&x.id===r.id)||{}));}S.tradeOpt=Object.assign({sell:true,buy:true},S.tradeOpt);S.tlog=Array.isArray(S.tlog)?S.tlog:[];S.trade=Object.assign({sold:0,bought:0,visits:0},S.trade);
   S.mode=S.mode==='river'?'river':'lake';S.diff=DIFFS[S.diff]?S.diff:'facile';S.repairs=S.repairs|0;S.ruined=S.ruined|0;
+  windP=null;computeEnv(naturalTerrain());   // v64: fertilità e corrente si ricavano dall'acqua e dal seme, il vento dal seme: niente da salvare
   for(const k of Object.keys(acc))delete acc[k];Object.assign(acc,{a1:0,a05:0,farm:0,attr:99},ac);
   for(const k of Object.keys(told))delete told[k];Object.assign(told,tl);
   gatedSet.clear();for(const i of ga)gatedSet.add(i);
@@ -3953,6 +4101,7 @@ return {TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWa
   setFarmCrop,fibreCrop,sinkOf,CHAR_CAP,BAR_CAP,CLAY_CAP,BRICK_CAP,LIME_CAP,MATS,retInfo,RET_CAP,DIFFS,diffOf,maintStats,condOf,condLabel,maintainable,REPAIR_BELOW,WORN_AT,
   STORE_KEYS,GRAN_KEYS,GRAN_TOTAL,CENTER_CAP,setPolicy,storeInfo,stockRoom,capRes,reconcileStock,extraTotal,festTakeFood,
   _t:{jobNeed,jobSurplus,rebalanceJobs,JOBRES,JOB_MARGIN,JOB_DWELL,tradeTick,doTrade,chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
+  env:{fert,flowS,flowX,flowY,FERT_HIGH,flowSeason,riverInfo,windNow,windAt,flowLabel,windLabel,COMPASS8,WIND_NAME,FLOW_MS},
   grids:{tree,rock,ore,water,sap,sapT,road,dist,occ,wear,plev,field,door,attr,cen},guests:()=>guests,buildings:()=>buildings,villagers:()=>villagers};
 })();
 if(typeof module!=='undefined')module.exports=Sim;
@@ -5565,6 +5714,93 @@ addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
 $('camL').addEventListener('click',()=>{cam.yaw+=0.4;});$('camR').addEventListener('click',()=>{cam.yaw-=0.4;});
 $('camIn').addEventListener('click',()=>{cam.goal=Math.max(16,cam.goal*0.8);});$('camOut').addEventListener('click',()=>{cam.goal=Math.min(150,cam.goal*1.25);});
 
+// ---------- v64: bussola e layer ambientali (fertilità, vento, corrente del fiume) ----------
+// Il nord è l'alto della mappa (riga 0 della griglia, -z nel mondo). Con la vista iniziale (yaw 45°) il nord sta in alto a destra.
+const TAU2=Math.PI*2;
+let layFert=false,layWind=false,layFlow=false,layOpen=false,compYaw=1e9,envKey='',fertDirty=true,dynT=0;
+const OVT=1024,OPX=OVT/N;
+function mkOverlay(y,order){
+  const c=document.createElement('canvas');c.width=c.height=OVT;const x=c.getContext('2d'),t=new THREE.CanvasTexture(c);
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(W,W),new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false}));
+  m.rotation.x=-Math.PI/2;m.position.y=y;m.renderOrder=order;m.visible=false;scene.add(m);return {c,x,t,m};
+}
+const ovF=mkOverlay(0.07,2),ovD=mkOverlay(0.09,3);
+// colori: fertilità (magra = bruno spento, media = paglia, ottima = verde intenso) e forza della corrente (debole = azzurro, forte = arancio)
+const FC=[];for(let v=0;v<=100;v++){const t=v/100;FC.push(`hsla(${(30+66*t).toFixed(0)},${(40+30*t).toFixed(0)}%,${(40-7*t).toFixed(0)}%,${(0.2+0.45*Math.max(0,(v-40)/60)+0.12*(1-t)).toFixed(2)})`);}
+const FLC=[];for(let q=0;q<=20;q++){const s=q/20;FLC.push(`hsla(${(196-170*s).toFixed(0)},85%,${(62-8*s).toFixed(0)}%,${(0.38+0.3*s).toFixed(2)})`);}
+function drawFert(){
+  const sc=document.createElement('canvas');sc.width=sc.height=N;const sg=sc.getContext('2d'),f=Sim.env.fert;
+  for(let i=0;i<N*N;i++){if(water[i])continue;sg.fillStyle=FC[f[i]];sg.fillRect(i%N,(i/N)|0,1,1);}
+  const g2=ovF.x;g2.clearRect(0,0,OVT,OVT);g2.imageSmoothingEnabled=true;g2.drawImage(sc,0,0,OVT,OVT);ovF.t.needsUpdate=true;
+}
+function drawDyn(now){
+  const g2=ovD.x,t=now/1000,env=Sim.env;g2.clearRect(0,0,OVT,OVT);g2.lineCap='round';g2.lineJoin='round';
+  if(layFlow&&S.mode==='river'){
+    const fs=env.flowSeason(),fl=env.flowS,fx=env.flowX,fy=env.flowY;
+    for(let i=0;i<N*N;i++){
+      if(!water[i])continue;
+      g2.fillStyle=fs===0?'rgba(214,236,255,.5)':FLC[Math.round(Math.min(1,fl[i]*fs)*20)];
+      g2.fillRect((i%N)*OPX,((i/N)|0)*OPX,OPX+.5,OPX+.5);
+    }
+    if(fs>0)for(let gy=1;gy<N;gy+=4)for(let gx=1;gx<N;gx+=4){
+      // segni a "V" che scivolano a valle: più veloci e più grandi dove la corrente è forte
+      const i=gy*N+gx;if(!water[i])continue;
+      const s=Math.min(1,fl[i]*fs),ph=(t*(0.18+0.75*s)+Sim.hash(gx,gy))%1,off=(ph-0.5)*4,dx=fx[i],dy=fy[i];
+      const px=gx+0.5+dx*off,py=gy+0.5+dy*off;if(!water[(py|0)*N+(px|0)])continue;
+      const sz=OPX*(1.1+s),cx=px*OPX,cy=py*OPX,nx=-dy,ny=dx;
+      g2.strokeStyle=`rgba(255,255,255,${(Math.sin(ph*Math.PI)*0.95).toFixed(2)})`;g2.lineWidth=2.4;
+      g2.beginPath();g2.moveTo(cx-dx*sz-nx*sz*.7,cy-dy*sz-ny*sz*.7);g2.lineTo(cx+dx*sz*.3,cy+dy*sz*.3);g2.lineTo(cx-dx*sz+nx*sz*.7,cy-dy*sz+ny*sz*.7);g2.stroke();
+    }
+  }
+  if(layWind){
+    // frecce su un reticolo di 10 celle: lunghezza = forza locale (i boschi la frenano), onde di luce che corrono nel verso del vento
+    const w=env.windNow();
+    for(let cy=5;cy<N;cy+=10)for(let cx=5;cx<N;cx+=10){
+      const l=env.windAt(cx,cy,w),px=(cx+.5)*OPX,py=(cy+.5)*OPX,len=14+34*l.sp,hx=l.vx,hy=l.vy,hs=5+4*l.sp;
+      const x0=px-hx*len/2,y0=py-hy*len/2,x1=px+hx*len/2,y1=py+hy*len/2;
+      const al=0.55+0.4*Math.sin((cx*hx+cy*hy)*0.45-t*(1.6+3.2*l.sp));
+      for(const [col,lw] of [[`rgba(12,28,48,${(al*0.6).toFixed(2)})`,5.5],[`rgba(238,248,255,${al.toFixed(2)})`,2.6]]){
+        g2.beginPath();g2.moveTo(x0,y0);g2.lineTo(x1,y1);
+        g2.moveTo(x1-hx*hs-hy*hs*.6,y1-hy*hs+hx*hs*.6);g2.lineTo(x1,y1);g2.lineTo(x1-hx*hs+hy*hs*.6,y1-hy*hs-hx*hs*.6);
+        g2.strokeStyle=col;g2.lineWidth=lw;g2.stroke();
+      }
+    }
+  }
+  ovD.t.needsUpdate=true;
+}
+// ogni fotogramma: bussola, visibilità dei layer, ridisegno (la fertilità solo quando cambia la valle, vento e corrente ~6 volte al secondo)
+function envFrame(now){
+  if(Math.abs(cam.yaw-compYaw)>1e-4){
+    compYaw=cam.yaw;$('compRose').style.transform=`rotate(${(cam.yaw*180/Math.PI).toFixed(2)}deg)`;
+    $('compN').style.left=(50+Math.sin(cam.yaw)*37.5).toFixed(1)+'%';$('compN').style.top=(50-Math.cos(cam.yaw)*37.5).toFixed(1)+'%';
+  }
+  const ek=S.seed+'/'+S.mode+'/'+S.mapTries;if(ek!==envKey){envKey=ek;fertDirty=true;}
+  ovF.m.visible=layFert;ovD.m.visible=layWind||(layFlow&&S.mode==='river');
+  if(layFert&&fertDirty){drawFert();fertDirty=false;}
+  if(ovD.m.visible&&now-dynT>160){dynT=now;drawDyn(now);}
+}
+$('compass').addEventListener('click',()=>{cam.yaw=Math.round(cam.yaw/TAU2)*TAU2;});
+$('compass').addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();ev.stopPropagation();cam.yaw=Math.round(cam.yaw/TAU2)*TAU2;}});
+const FERT_HTML=`<div class="bar" style="background:linear-gradient(90deg,${[5,25,50,70,95].map(v=>FC[v]).join(',')})"></div><div class="scale"><span>magra</span><span>media</span><span>ottima</span></div>Verde intenso: terra ottima per le colture (circa un quinto della valle). Più ricca vicino ai fiumi, magra vicino a rocce e minerali.`;
+const LAYMSG={fert:'Fertilità: verde intenso = terra ottima per le colture, bruno = suolo magro.',wind:'Vento: le frecce mostrano da dove soffia e quanto forte (più lunghe = più forte). I boschi lo frenano.',flow:'Corrente: azzurro = debole, arancio = forte; i segni a V scorrono a valle. In primavera il disgelo gonfia il fiume, d\'inverno il ghiaccio lo ferma.'};
+function refreshLayers(){
+  if(!layOpen)return;
+  const e=Sim.env,w=e.windNow(),ri=e.riverInfo();
+  if($('lgFert').innerHTML!==FERT_HTML)$('lgFert').innerHTML=FERT_HTML;
+  $('lgWind').innerHTML=`<b>Da ${w.fromName}</b> (${w.trad})<br>${w.label} · ${w.kmh} km/h`;
+  $('lgFlow').innerHTML=!ri.on?'Nessuna corrente: in questa valle c\'è un lago calmo.':ri.frozen?'<b>Ferma</b>: il fiume è ghiacciato.':`<b>Corrente ${ri.label}</b> · ${ri.ms} m/s`+(ri.factor>1.15?'<br>Piena di disgelo':ri.factor<0.8?'<br>Fiume magro':'');
+}
+function setLayer(k){
+  if(k==='flow'&&S.mode!=='river'){toast('Nessuna corrente: in questa valle c\'è un lago calmo. La corrente c\'è solo sulle mappe con il fiume.');return;}
+  if(k==='fert')layFert=!layFert;else if(k==='wind')layWind=!layWind;else layFlow=!layFlow;
+  const on=k==='fert'?layFert:k==='wind'?layWind:layFlow;
+  $(k==='fert'?'layFert':k==='wind'?'layWind':'layFlow').classList.toggle('on',on);
+  if(on){toast(LAYMSG[k]);dynT=0;if(k==='fert')fertDirty=true;}
+}
+function toggleLayers(){layOpen=!layOpen;$('layers').hidden=!layOpen;$('layBtn').classList.toggle('on',layOpen);refreshLayers();}
+$('layBtn').addEventListener('click',toggleLayers);
+$('layFert').addEventListener('click',()=>setLayer('fert'));$('layWind').addEventListener('click',()=>setLayer('wind'));$('layFlow').addEventListener('click',()=>setLayer('flow'));
+
 // ---------- velocità ----------
 let speed=1;
 function setSpeed(s){speed=s;document.querySelectorAll('#speed .btn[data-s]').forEach(b=>b.classList.toggle('on',+b.dataset.s===s));}
@@ -5999,7 +6235,7 @@ function updateHUD(){
   $('rDay').textContent=`${Sim.SEASONS[st.season]} ${st.day%Sim.SEASON_DAYS+1}/${Sim.SEASON_DAYS} · annata ${st.year} · ${PHN[st.ph]}`;
   $('rPop').textContent=`${st.pop}/${st.cap}`+(st.children?` (👶${st.children})`:'');$('rJobs').textContent=`${st.jobs}/${st.slots}`;$('rBarter').textContent=st.barters;
   $('rFire').textContent=`${st.fire}/${st.fireNeed}`;$('rSick').textContent=st.sick+(st.plague?' ☣':'');$('chipSick').classList.toggle('alert',st.sick>0);$('rWell').textContent=Math.round(st.avgJoy)+(st.unhappy?' · '+st.unhappy+' tristi':'');$('chipJoy').classList.toggle('alert',st.unhappy>0&&st.avgJoy<45);
-  refreshGuide(st);pollEnvoy();refreshPalette();if(!$('projects').hidden)renderProjects();else $('projBtn').classList.toggle('on',newProjects());refreshSel();if(cardId)renderCard();renderPop(st);renderTrade();
+  refreshLayers();refreshGuide(st);pollEnvoy();refreshPalette();if(!$('projects').hidden)renderProjects();else $('projBtn').classList.toggle('on',newProjects());refreshSel();if(cardId)renderCard();renderPop(st);renderTrade();
   for(const t of TOOLS)if(BT[t.id])toolBtns[t.id].classList.toggle('poor',!Sim.afford(t.id));
 }
 
@@ -6216,6 +6452,7 @@ function frame2(now){
   updateCam(dt);
   if(treesDirty)rebuildTrees();if(rocksDirty)rebuildRocks();if(sapsDirty)rebuildSaps();
   if(groundDirty&&now-lastGround>350){drawGround();groundDirty=false;lastGround=now;}
+  envFrame(now);
   for(const e of ents.values()){
     const b=e.b,ud=e.body.userData;
     if(e.sheep)animSheep(e,dt);
