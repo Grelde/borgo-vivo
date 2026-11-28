@@ -2130,6 +2130,7 @@ function expandGarden(b){
     let cells=c.cells.filter(i=>!lot.has(i));
     if(cells.length>room)cells=cells.slice(0,room);
     if(!cells.length||!reachable(b.door,cells))continue;
+    if(!gardenThick(G.concat(cells))&&gardenThick(G))continue; // v86.2: l'ampliamento non deve trasformare il giardino in una striscia
     const xs=cells.map(i=>i%N),ys=cells.map(i=>(i/N)|0);
     if(!doorsOK(Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys),cells))continue;
     if(beginGardenWork(b,'ext',cells))return true;
@@ -2175,6 +2176,24 @@ function growGarden1(hcs,doorCell,hx,hy,hw,hh,target,seed,pp,start,minLen,selfId
   }
   return g.length>=(minLen||9)&&gardenThick(g)?g:null;
 }
+// v86.2: giardino sottile (case già salvate o ampliamenti passati): si allarga con celle libere affiancate alla striscia finché diventa largo almeno due celle
+function thickenGarden(b){
+  if(b.work||b.dens)return false;
+  const G=b.gcells.concat(b.ext||[]),gs=new Set(G),lot=new Set(b.cells.concat(b.ext||[]));
+  const room=Math.max(0,ROADMAX+6-G.length);if(room<=0)return false;
+  const free=new Set();
+  for(const c of G)for(let k=0;k<4;k++){const x=c%N+GX[k],y=((c/N)|0)+GY[k];if(x<0||y<0||x>=N||y>=N)continue;const i=y*N+x;
+    if(lot.has(i)||dist[i]!==1||road[i]||plev[i]>=PATH||!doorFree(i)||i===b.door||foreignNear(i,b.id))continue;free.add(i);}
+  const out=new Set();
+  for(const i of free)for(let k=0;k<4;k++){const x=i%N+GX[k],y=((i/N)|0)+GY[k];if(x<0||y<0||x>=N||y>=N)continue;const j=y*N+x;
+    if(!free.has(j))continue;
+    for(const[px,py]of[[GY[k],GX[k]],[-GY[k],-GX[k]]]){const a2=(((i/N)|0)+py)*N+i%N+px,b2=(((j/N)|0)+py)*N+j%N+px;if(gs.has(a2)&&gs.has(b2)){out.add(i);out.add(j);}}}
+  const cells=[...out].slice(0,Math.min(room,4));
+  if(cells.length<2||!reachable(b.door,cells))return false;
+  const xs=cells.map(i=>i%N),ys=cells.map(i=>(i/N)|0);
+  if(!doorsOK(Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys),cells))return false;
+  return beginGardenWork(b,'ext',cells);
+}
 // v44: le celle di passaggio tra due lotti (a contatto con l'altro lotto) che per un anno intero nessuno ha calpestato diventano giardino
 function claimLane(b){
   if(b.work)return false;
@@ -2188,6 +2207,7 @@ function claimLane(b){
   }
   const cells=[...cand].slice(0,Math.min(room,3));
   if(!cells.length||!reachable(b.door,cells))return false;
+  if(!gardenThick(b.gcells.concat(b.ext,cells))&&gardenThick(b.gcells.concat(b.ext)))return false;
   const xs=cells.map(i=>i%N),ys=cells.map(i=>(i/N)|0);
   if(!doorsOK(Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys),cells))return false;
   return beginGardenWork(b,'ext',cells);
@@ -2822,6 +2842,7 @@ function houseTick(b){
   // v36.1: il giardino cresce piano piano verso la strada più vicina (non solo al salto di livello)
   if(!b.work&&!b.dens){
     if(b.gfull===false){if(b.level>=2&&hash(S.t|0,b.id*7)<0.6)planGarden(b);}
+    else if(!gardenThick(b.gcells.concat(b.ext))){if(hash(S.t|0,b.id*17)<0.5)thickenGarden(b);}
     else if(b.gcells.length+b.ext.length<ROADMAX){
       if(hash(S.t|0,b.id*13)<0.25)expandGarden(b);
       else if(hash(S.t|0,b.id*29)<0.2)claimLane(b);

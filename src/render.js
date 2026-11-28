@@ -487,9 +487,10 @@ function fenceDiag(g,b,fx,fz,mat){
 // v27: le botteghe del giardino (fabbro, panettiere, tessitore, sarto) sono piccoli laboratori ben visibili, con tettoia e insegna colorata
 function shopSign(g,x,z,col){cyl(g,.04,.05,1.25,6,MAT.timber,x,.62,z);bx(g,.34,.04,.04,MAT.timber,x-.15,1.2,z);bx(g,.42,.24,.04,col,x-.2,1.02,z);bx(g,.46,.04,.06,MAT.timber,x-.2,1.16,z);}
 function shopRoof(g,hh,col){for(const sx of[-.72,.72])for(const sz of[.34,.9])bx(g,.07,hh,.07,MAT.timber,sx,hh/2,sz);bx(g,1.7,.07,.7,col,0,hh+.04,.62).rotation.x=.14;}
-function shopProps(g,b){
+// v86.2: attrezzi della specializzazione (pesca, caccia, bacche) in una cella del giardino lontana dalla porta, a scala piena della cella (prima stavano nel blocco centrale, piccoli e coperti dalle aiuole)
+function sideProps(g,b){
   if(b.side==='fish'){ // v74: la casa che pesca ha un'asta con la rete, pesce che essicca sul graticcio e un cesto
-    const z0=-.58;
+    const z0=0;
     for(const sx of[-.7,.1])bx(g,.06,.95,.06,MAT.timber,sx,.48,z0);
     bx(g,.9,.05,.05,MAT.timber,-.3,.93,z0);
     for(let k=0;k<7;k++){const ln=.55-Math.abs(k-3)*.07;bx(g,.03,ln,.02,MAT.cream,-.67+k*.12,.9-ln/2,z0+.02);} // rete appesa
@@ -499,13 +500,13 @@ function shopProps(g,b){
     cyl(g,.16,.13,.14,8,MAT.fw,.1,.07,z0+.42);cyl(g,.15,.15,.02,8,MAT.fishM,.1,.15,z0+.42);
   }
   if(b.side==='berry'){ // v73.2: la casa che raccoglie bacche ha cespugli carichi di frutti, un cesto colmo e un ripiano con bacche ad essiccare
-    const z0=-.58,bc=[MAT.red,MAT.blue,MAT.flower1];
+    const z0=0,bc=[MAT.red,MAT.blue,MAT.flower1];
     for(let k=0;k<3;k++){const sx=-.7+k*.38;sph(g,.2,MAT.leaf,sx,.2,z0,1.2,.9,1);for(let j=0;j<6;j++){const a2=j*1.05+k;sph(g,.04,bc[(k+j)%3],sx+Math.cos(a2)*.17,.2+Math.sin(a2*1.7)*.08+.06,z0+Math.sin(a2)*.15+.1);}}
     cyl(g,.17,.13,.16,8,MAT.wattle,.6,.08,z0+.05);for(let j=0;j<7;j++)sph(g,.045,bc[j%3],.6+Math.cos(j*0.9)*.09,.18,z0+.05+Math.sin(j*0.9)*.09);
     for(const sx of[.82,1.12])bx(g,.05,.4,.05,MAT.timber,sx,.2,z0+.12);bx(g,.4,.04,.22,MAT.timber,.97,.4,z0+.12);for(let j=0;j<5;j++)sph(g,.04,bc[j%3],.85+j*.06,.45,z0+.12);
   }
   if(b.side==='hunt'){ // v74: la casa che caccia ha pelli tese su un telaio, un arco appeso e selvaggina appesa a un palo
-    const z0=-.58;
+    const z0=0;
     for(const sx of[-.75,-.15])bx(g,.06,.8,.06,MAT.timber,sx,.4,z0);
     bx(g,.7,.05,.05,MAT.timber,-.45,.78,z0);bx(g,.7,.05,.05,MAT.timber,-.45,.25,z0);
     bx(g,.52,.46,.03,MAT.rust,-.45,.52,z0+.02);bx(g,.2,.2,.035,MAT.wattle,-.52,.58,z0+.03);
@@ -513,6 +514,8 @@ function shopProps(g,b){
     for(let k=0;k<2;k++){const sx=.55+k*.3;bx(g,.03,.12,.03,MAT.cream,sx,.8,z0);sph(g,.1,MAT.meatM,sx,.64,z0,.8,1.2,.8);sph(g,.05,MAT.wattle,sx,.5,z0,1,1,1);}
     const bw=bx(g,.03,.5,.03,MAT.timber,.1,.32,z0+.35);bw.rotation.z=.4;bx(g,.015,.52,.015,MAT.cream,.04,.32,z0+.35).rotation.z=.4;
   }
+}
+function shopProps(g,b){
   if(b.craft){
     bx(g,1.6,.04,.62,MAT.stoneD,0,.02,.62);shopRoof(g,.95,MAT.thatch);
     bx(g,.55,.42,.42,MAT.stoneD,-.4,.21,.55);bx(g,.4,.08,.3,MAT.fire,-.4,.44,.55);cyl(g,.08,.1,.85,7,MAT.stoneD,-.4,.85,.4);
@@ -635,6 +638,10 @@ const BUILD={
     const fm=b.pure?MAT.cream:MAT.timber;
     if(b.gfull!==false)fenceLoops(g,OL,fx,fz,fm);
     shopProps(gg,b);
+    if(b.side==='fish'||b.side==='hunt'||b.side==='berry'){
+      let bc2=-1,bd2=-1;for(const c of b.gcells.concat(b.ext||[])){const d=Math.hypot(c%N-b.door%N,((c/N)|0)-((b.door/N)|0));if(d>bd2){bd2=d;bc2=c;}}
+      if(bc2>=0){const sg=new THREE.Group();sg.position.set(Sim.cx2w(bc2%N)-fx-.05,0,Sim.cy2w((bc2/N)|0)-fz);sg.rotation.y=rotY;sg.scale.setScalar(.62);sideProps(sg,b);g.add(sg);}
+    }
     for(const c of extra){const e2=new THREE.Group();e2.position.set(Sim.cx2w(c%N)-fx,0,Sim.cy2w((c/N)|0)-fz);{const ct=OL.cut.get(c);if(ct){e2.position.x-=Math.sign(ct[0])*CS*.2;e2.position.z-=Math.sign(ct[1])*CS*.2;}}if(b.pure){const q=(c*7+b.id)%5;if(q===0){cyl(e2,.04,.06,.4,6,MAT.timber,0,.2,0);sph(e2,.22,MAT.leaf2,0,.55,0,1,.9,1);}else if(q<3)sph(e2,.15,MAT.leaf2,0,.14,0,1.2,.8,1.2);}else if(b.crop==='herd'){sph(e2,.12,MAT.wool,0,.2,0,1.2,.9,1);}else if(b.crop==='eggs'){sph(e2,.12,MAT.hen,0,.18,0,1,.9,1.3);sph(e2,.06,MAT.henR,0,.3,.08);}else if(b.crop==='wood'){cyl(e2,.09,.09,.5,7,MAT.log,-.1,.1,0,0,Math.PI/2);cyl(e2,.09,.09,.5,7,MAT.logD,.1,.1,.05,0,Math.PI/2);cyl(e2,.09,.09,.5,7,MAT.log,0,.26,.02,0,Math.PI/2);}else{for(const rz of[-.15,.15]){bx(e2,.5,.1,.14,MAT.soil,0,.05,rz);for(let k=-1;k<=1;k++){const m=(k+(rz>0?1:0)+b.id+c)%3===0?MAT.carrot:(k%2?MAT.leaf:MAT.leaf2);sph(e2,.09,m,k*.18,.18,rz,1,1.1,1);}}}
       if(b.pure){const fl=[MAT.flower1,MAT.flower2,MAT.flower3];sph(e2,.07,fl[(c+b.id)%3],-.24,.13,-.24);sph(e2,.07,fl[(c+b.id+1)%3],.24,.13,.24);}g.add(e2);}
     g.add(gg);return g;},

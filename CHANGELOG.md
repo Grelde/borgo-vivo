@@ -1,5 +1,11 @@
 # Changelog
 
+## v92.1 – 2026-11-28
+Ritocco ai giardini e alla grafica delle specializzazioni.
+- **Giardini sottili:** anche ampliamenti e corsie annesse non possono più trasformare il giardino in una striscia (controllo dei blocchi 2x2). I giardini già sottili (salvataggi precedenti) si allargano da soli: ogni giorno la casa può affiancare due celle libere alla striscia, come lavoro con materiale, finché è larga almeno due celle (`thickenGarden`).
+- **Grafica di pesca, caccia e bacche:** gli attrezzi (rete e pesce ad essiccare; pelli, selvaggina e arco; cespugli con bacche e cesto) non stanno più nel blocco centrale del giardino, dove erano piccoli e coperti dalle aiuole, ma in una cella del giardino lontana dalla porta, a scala piena. Case che pescano: quelle vicino ad acqua, assegnate alla nascita; cacciatori: vicino al bosco. **Le bacche (`side='berry'`) non vengono ancora assegnate a nessuna casa** (la raccolta non esiste, v85): la grafica è pronta ma non si vede finché non arriva la funzione.
+- Non verificato in un browser WebGL: qui non c'è Three.js né rete; il test forzato smoke con tutte le case in pesca/caccia/bacche non dà errori.
+
 ## v92 – 2026-11-28
 Funzione nuova: filiera 9, cantiere navale (barche da pesca e chiatte da fiume).
 - **Pece:** la carbonaia produce anche 1 pece ogni 2 cicli (`PITCH_CAP` 20), merce del Magazzino.
