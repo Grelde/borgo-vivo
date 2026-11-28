@@ -37,7 +37,8 @@ body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--seri
 #lvl h2{margin:0;font:700 13px/1.2 var(--disp);letter-spacing:.1em;text-transform:uppercase;color:var(--gold);cursor:pointer;display:flex;justify-content:space-between;gap:8px}
 #lvl h2::after{content:'–';color:var(--muted)}
 #lvl.collapsed h2::after{content:'+'}
-#lvl.collapsed ul,#lvl.collapsed h4{display:none}
+#lvl.collapsed ul,#lvl.collapsed h4,#lvl.collapsed #advBtn{display:none}
+#advBtn{margin-top:8px}
 #guide{margin:8px 0 0;font-size:16px;line-height:1.35;color:var(--parch);font-style:italic}
 #guide:empty,#goalsH:empty{display:none}
 #goalsH{margin:9px 0 0;font:700 11px/1.2 var(--disp);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
@@ -306,7 +307,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
       <input type="range" id="musVol" min="0" max="1" step="0.05" value="0.5" aria-label="Volume musica" style="width:70px;accent-color:#d6ad4e">
     </div>
   </div>
-  <div id="lvl" class="panel"><h2 id="lvlTitle"></h2><p id="guide"></p><h4 id="goalsH"></h4><ul id="goals"></ul></div>
+  <div id="lvl" class="panel"><h2 id="lvlTitle"></h2><p id="guide"></p><h4 id="goalsH"></h4><ul id="goals"></ul><button class="btn sm" id="advBtn" type="button" title="I cittadini suggeriscono cosa fare">💬 Consigli: sì</button></div>
   <div id="edicts" hidden role="dialog" aria-label="Editti">
     <div class="edBox"><h2>Editti del Borgo</h2><p class="sub">La tua parola è legge: emana un editto, o ritiralo quando vuoi.</p><div id="edList"></div><button class="btn x" id="edClose" type="button">Chiudi</button></div>
   </div>

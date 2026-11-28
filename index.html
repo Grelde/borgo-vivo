@@ -41,7 +41,8 @@ body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--seri
 #lvl h2{margin:0;font:700 13px/1.2 var(--disp);letter-spacing:.1em;text-transform:uppercase;color:var(--gold);cursor:pointer;display:flex;justify-content:space-between;gap:8px}
 #lvl h2::after{content:'–';color:var(--muted)}
 #lvl.collapsed h2::after{content:'+'}
-#lvl.collapsed ul,#lvl.collapsed h4{display:none}
+#lvl.collapsed ul,#lvl.collapsed h4,#lvl.collapsed #advBtn{display:none}
+#advBtn{margin-top:8px}
 #guide{margin:8px 0 0;font-size:16px;line-height:1.35;color:var(--parch);font-style:italic}
 #guide:empty,#goalsH:empty{display:none}
 #goalsH{margin:9px 0 0;font:700 11px/1.2 var(--disp);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
@@ -285,7 +286,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v48</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v49</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -310,7 +311,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
       <input type="range" id="musVol" min="0" max="1" step="0.05" value="0.5" aria-label="Volume musica" style="width:70px;accent-color:#d6ad4e">
     </div>
   </div>
-  <div id="lvl" class="panel"><h2 id="lvlTitle"></h2><p id="guide"></p><h4 id="goalsH"></h4><ul id="goals"></ul></div>
+  <div id="lvl" class="panel"><h2 id="lvlTitle"></h2><p id="guide"></p><h4 id="goalsH"></h4><ul id="goals"></ul><button class="btn sm" id="advBtn" type="button" title="I cittadini suggeriscono cosa fare">💬 Consigli: sì</button></div>
   <div id="edicts" hidden role="dialog" aria-label="Editti">
     <div class="edBox"><h2>Editti del Borgo</h2><p class="sub">La tua parola è legge: emana un editto, o ritiralo quando vuoi.</p><div id="edList"></div><button class="btn x" id="edClose" type="button">Chiudi</button></div>
   </div>
@@ -4650,16 +4651,59 @@ const GUIDE=[
   [[s=>false,'Siamo una Città. Il Re ci osserva con sospetto: più cresciamo, più ci teme. Prepariamo le difese.']],
   [[s=>false,'Sei il Re. La capitale del regno è nata da una carovana di sette carri.']]
 ];
-function guideLine(st,inf){
+// allarmi: guerra e predoni si leggono sempre, anche con i consigli spenti
+function alertLine(inf){
   const W=inf.war;
   if(W.phase==='warn'){const d=Math.max(1,Math.ceil((W.at-S.t)/Sim.DAY));return {t:`Il Re ci ha dichiarato guerra! L'esercito arriverà tra ${d} ${d===1?'giorno':'giorni'}: torri di guardia e caserme intorno al centro del borgo!`,war:true};}
   if(W.phase==='fight')return {t:'L\'esercito del Re assedia il centro del borgo: difendilo!',war:true};
   if(inf.raiders)return {t:'Predoni! Le torri e la caserma difendono i magazzini.',war:true};
+  return null;
+}
+// consigli urgenti: la prima condizione vera vince (ordine = priorità)
+const ADVICE=[
+  [(st)=>st.pop>=4&&st.hungry>=2,'Molte famiglie hanno fame. Servono ortaggi, uova, pesce o grano: i giardini delle case, una zona agricola o un pescatore aiutano.'],
+  [(st)=>st.houses>=3&&st.fireNeed>0&&st.fire<st.fireNeed*0.4,'La legna da ardere scarseggia e le case al freddo si ammalano. Un giardino della legna, o il mercato, ne danno.'],
+  [(st)=>st.plague,'Epidemia! I malati restano a letto. Un ospizio con un erborista, un pozzo e legna in casa frenano il contagio.'],
+  [(st)=>st.sick>=3&&!(st.built.infirmary),'Ci sono troppi malati. '+'Un ospizio con un erborista li cura più in fretta.'],
+  [(st)=>st.unhappy>=3,'Alcuni sono scontenti. Apri il pannello della gente (clic su Abitanti, poi Felicità): dice cosa manca, tra cibo, casa, acqua e chiesa.'],
+  [(st)=>st.sites>0&&S.stock.wood<8,'Il legno è finito e i cantieri aspettano. Servono più taglialegna, oppure una zona forestale con un guardaboschi.'],
+  [(st)=>st.sites>0&&S.stock.stone<5,'La pietra è finita e i cantieri aspettano. Una seconda cava, vicino alle rocce, risolve.'],
+  [(st)=>st.houses>0&&st.pop>=st.cap-1&&st.pop>=8,'Nelle case non c\'è più posto. Disegna altri lotti residenziali.'],
+  [(st)=>st.pop>=8&&st.att.unemp>=3,'Troppi adulti senza lavoro. Servono nuove botteghe, cave o fattorie per dar loro un mestiere.'],
+  [(st)=>st.pop>=8&&st.att.unemp===0&&st.slots-st.jobs>=5,'Molti posti di lavoro restano vuoti. Servono più famiglie: più case e più attrattiva (pozzo, mercato, chiesa).'],
+  [(st)=>{const m=Sim.maintStats();return m.worn>=2&&S.stock.tools<1&&!(st.built.smithy);},'Gli edifici si logorano. Senza attrezzi non si ripara nulla: serve un fabbro con la sua fucina.'],
+  [(st)=>{const m=Sim.maintStats();return m.worn>=2&&S.stock.tools<1;},'Gli edifici logori aspettano gli attrezzi: la fucina deve avere ferro (miniera) e lavoratori.'],
+  [(st)=>{const m=Sim.maintStats();return m.worn>=2&&S.stock.tools>=1;},'Gli edifici logori verranno riparati: servono muratori o gente libera che porti gli attrezzi.'],
+  [(st)=>S.stock.wood>=(st.capRes||80)*0.97&&st.pop>=8,'Il magazzino è pieno di legno. Un secondo magazzino, o botteghe che lo usino, evitano gli sprechi.'],
+  [(st)=>S.coins>=300&&Sim.S.routes.some(r=>!r.open)&&(st.built.mercery||0)>=1,'Abbiamo denari da parte: apri una nuova rotta commerciale (💰).']
+];
+// quando non c'è nulla di urgente e i passi del titolo sono fatti, a rotazione (cambia ogni due giorni)
+const TIPS=[
+  ['Il lavoro non finisce: più famiglie arrivano se il paese è tranquillo e ha da mangiare.','Le strade nascono dai passi: costruisci i lavori vicino alle case e i sentieri si formeranno da soli.','Un taglialegna e una cava vicino alle case lavorano meglio, ma fanno rumore: la gente non ama abitarci accanto.'],
+  ['Un pozzo e un mercato tra le case rendono la zona più piacevole: le famiglie ci arrivano volentieri.','Un guardaboschi pianta nuovi alberi: il legno non è infinito.','Frate Anselmo dice che una chiesa non è lontana: gente che prega è gente che resta.'],
+  ['Ogni casa ha il suo giardino: qui nascono ortaggi, galline, legna da ardere. Lascia spazio tra i lotti.','Con una scuola, i bambini imparano a leggere e le case crescono più in fretta.','Un granaio conserva il cibo delle fattorie, un mulino lo trasforma in farina per il pane.'],
+  ['Le torri di guardia vicino ai magazzini fermano i predoni: ne servono almeno due vicine.','Una miniera di ferro, con una fucina, dà gli attrezzi: gli edifici logori ne hanno bisogno.','Un ospizio con un erborista salva molte vite d\'inverno.'],
+  ['La merceria porta le carovane: apri le rotte con le città vicine per vendere le eccedenze.','Una locanda attira viandanti, e qualcuno resta a vivere in paese.','Una caserma con soldati e tre torri attorno al centro: così si difende un borgo.'],
+  ['La sala delle feste e la piazza rendono felici le case intorno: la gente festeggia nei giorni di mercato.','Telai e sartorie vestono la gente: chi è ben vestito è più contento.','Le rotte commerciali fruttano denari: spendili per i progetti del Re.'],
+  ['Una città ricca attira l\'attenzione del Re. Torri e caserme intorno al centro non sono mai troppe.','Tieni scorte di legno, pietra e attrezzi: se il Re ci assedierà, serviranno per ricostruire.','Più case signorili, più rotte e più abitanti: il Re ci osserva e non è tranquillo.'],
+  ['Il regno è tuo. Costruisci, abbellisci e fai crescere la tua capitale.','Le feste di paese, le piazze e le statue rendono memorabile una capitale.','I predoni arrivano ancora: tieni in ordine le difese.']
+];
+const SEASON_TIP=['In primavera il ghiaccio si scioglie: i giardini tornano a produrre.','L\'estate è la stagione dei raccolti: fai scorta di cibo per l\'inverno.','L\'autunno è l\'ultimo raccolto: fate scorta di cibo e di legna da ardere.','È inverno: i laghi gelano, la pesca si ferma e serve legna in ogni casa.'];
+function adviceLine(st,inf){
+  for(const [c,t] of ADVICE)if(c(st))return {t};
   const list=GUIDE[Math.min(inf.rank,GUIDE.length-1)]||[];
   for(const [done,txt] of list)if(!done(st))return {t:txt};
-  return {t:inf.rank<6?'Il borgo è pronto: attendiamo il messo del Re.':list.length?list[list.length-1][1]:''};
+  if(inf.rank>=1&&newProjects())return {t:'Il Re ci concede dei progetti e possiamo permetterceli: apri i Progetti del Re (🏛️).'};
+  const tips=(TIPS[Math.min(inf.rank,TIPS.length-1)]||[]).concat([SEASON_TIP[S.season|0]||'']);
+  const k=Math.floor((S.day|0)/2)%tips.length;
+  return {t:(inf.rank<6?'Il borgo è pronto: attendiamo il messo del Re. ':'')+tips[k]};
 }
-let guideKey='',guideN=0;
+function guideLine(st,inf){
+  const a=alertLine(inf);if(a)return a;
+  return adviceOn?adviceLine(st,inf):{t:''};
+}
+let guideKey='',guideN=0,adviceOn=true;
+function setAdvice(v){adviceOn=!!v;guideKey='';const b=$('advBtn');b.textContent=adviceOn?'💬 Consigli: sì':'💬 Consigli: no';b.classList.toggle('on',adviceOn);}
 function refreshGuide(st){
   guideN++;const inf=Sim.regnoInfo(st);
   $('lvl').hidden=!inf.story;if(!inf.story)return;
@@ -4675,6 +4719,8 @@ function refreshGuide(st){
   for(const x of needs){const li=document.createElement('li');li.className=x.cur>=x.n?'done':'';li.innerHTML=`<span>${esc(x.t)}</span><em>${x.cur}/${x.n}</em>`;ul.appendChild(li);}
 }
 function showLevel(){guideKey='';refreshGuide(Sim.stats());}
+$('advBtn').addEventListener('click',()=>{setAdvice(!adviceOn);showLevel();});
+setAdvice(true);
 $('lvlTitle').addEventListener('click',()=>$('lvl').classList.toggle('collapsed'));
 if(window.innerWidth<640||COARSE)$('lvl').classList.add('collapsed');
 
@@ -4985,7 +5031,7 @@ let lastAuto=performance.now(),saveErrShown=false;
 function makeSave(){
   return {app:SAVE_APP,ver:GAME_VER,at:Date.now(),
     meta:{pop:Sim.villagers().length,date:Sim.dateStr(S.t),day:S.day,lvl:S.rank+1,mode:S.mode},
-    ui:{lvl:S.rank,speed,cam:{x:cam.x,z:cam.z,yaw:cam.yaw,pitch:cam.pitch,dist:cam.dist,goal:cam.goal}},
+    ui:{lvl:S.rank,advice:adviceOn,speed,cam:{x:cam.x,z:cam.z,yaw:cam.yaw,pitch:cam.pitch,dist:cam.dist,goal:cam.goal}},
     sim:Sim.exportState()};
 }
 function writeSlot(k,quiet){
@@ -5002,7 +5048,7 @@ function applySave(w){
   const u=w.ui||{};
   started=true;$('story').hidden=true;$('modal').hidden=true;
   closeCard();closePop();select(null);openEdicts(false);openSaves(false);
-  $('envoy').hidden=true;envBusy=false;openProjects(false);palKey='';refreshPalette();showLevel();
+  $('envoy').hidden=true;envBusy=false;openProjects(false);palKey='';refreshPalette();setAdvice(u.advice!==false);showLevel();
   const c=u.cam;if(c&&['x','z','yaw','pitch','dist','goal'].every(k=>Number.isFinite(c[k])))Object.assign(cam,{x:c.x,z:c.z,yaw:c.yaw,pitch:c.pitch,dist:c.dist,goal:c.goal});
   Music.start();setSpeed(u.speed===0?0:u.speed===3?3:1);
   if(treesDirty)rebuildTrees();if(rocksDirty)rebuildRocks();if(sapsDirty)rebuildSaps();groundDirty=true;
@@ -5083,6 +5129,13 @@ function showStory(){
     const showD=()=>{dbs.forEach(([k,bt])=>bt.classList.toggle('on',k===curDiff));dd.textContent='Manutenzione degli edifici — '+Sim.DIFFS[curDiff].d;};
     for(const k of ['facile','normale','difficile']){const bt=document.createElement('button');bt.className='btn';bt.type='button';bt.textContent=Sim.DIFFS[k].n;bt.addEventListener('click',()=>{curDiff=k;showD();});dbs.push([k,bt]);dw.appendChild(bt);dw.appendChild(document.createTextNode(' '));}
     dw.appendChild(dd);$('sBtns').appendChild(dw);showD();
+    // v49: i cittadini possono suggerire cosa fare (sempre, non solo all'inizio); si può cambiare in partita con il tasto 💬
+    const aw=document.createElement('div');aw.style.cssText='width:100%;margin-bottom:8px';
+    const ad=document.createElement('p');ad.style.cssText='margin:6px 0;font-size:14px';
+    const abs=[];
+    const showA=()=>{abs.forEach(([k,bt])=>bt.classList.toggle('on',k===adviceOn));ad.textContent=adviceOn?'I cittadini ti suggeriscono cosa fare a ogni passo, per tutta la partita.':'Nessun suggerimento: i cittadini parlano solo di guerra e predoni. Restano visibili i requisiti del Re.';};
+    for(const [k,l] of [[true,'Consigli dei cittadini: sì'],[false,'No, decido io']]){const bt=document.createElement('button');bt.className='btn';bt.type='button';bt.textContent=l;bt.addEventListener('click',()=>{setAdvice(k);showA();});abs.push([k,bt]);aw.appendChild(bt);}
+    aw.appendChild(ad);$('sBtns').appendChild(aw);showA();
     for(const [m,l] of[['lake','Il lago'],['river','Il fiume']]){const b=document.createElement('button');b.className='btn';b.type='button';b.textContent=l;b.addEventListener('click',()=>begin(m));$('sBtns').appendChild(b);}
   }else{
     const mk=(txt,fn)=>{const b=document.createElement('button');b.className='btn';b.type='button';b.textContent=txt;b.addEventListener('click',fn);$('sBtns').appendChild(b);};

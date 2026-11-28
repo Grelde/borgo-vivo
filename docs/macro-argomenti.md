@@ -1,4 +1,4 @@
-# Borgo Vivo — macro argomenti (stato a v48)
+# Borgo Vivo — macro argomenti (stato a v49)
 
 Prototipo: city builder medievale, un solo file HTML (Three.js). Sorgente di riferimento: il repository GitHub `Grelde/borgo-vivo` (`src/`, build con `./build.sh`, gioco in `index.html`). I documenti `claude/borgo-vivo-v*.html` nel Progetto sono solo istantanee. La v21 unisce la linea "popolazione" (malattie, eredità, editti, scheda, legna per casa) con la linea "giardini puri" (35% di giardini che non diventano mai allevamento/bottega; solo le case col giardino della legna la raccolgono, le altre la comprano al mercato).
 
@@ -52,6 +52,7 @@ Da fare: salvataggio con seme casuale per riprodurre le partite, verifica su tel
 
 ## 5b. Il Regno: storia, titoli, progetti, difesa (v48)
 Stato: modalità storia (`S.story`, attivata da `begin()` con `Sim.init(seme,mode,difficoltà,{story:true})`); 8 titoli da Accampamento a Capitale del Regno (`S.rank`, requisiti in `RANK_NEEDS` e `WAR_NEEDS` in `sim.js`); il messo del Re lascia pergamene in `S.msgs` (le legge l'interfaccia con `takeMsg`); 32 progetti (`PROJ`, tutti con titolo e costo in legno/pietra e, dal titolo 5, denari) che si comprano con `buyProject` dal pannello 🏛️; la palette mostra solo gli strumenti posseduti (`Sim.owns`). La guida narrata sostituisce gli obiettivi (`GUIDE` in `render.js`). Difesa: Torre di guardia e Caserma, predoni dal titolo di Borgo, guerra del Re (tre giorni dopo la dichiarazione), truppe in `guests` con `mil:true`.
+Guida dei cittadini (v49): `alertLine`, `ADVICE`, `GUIDE`, `TIPS` in `render.js`; si sceglie prima della partita e si cambia con 💬 (`adviceOn`, salvato in `ui.advice`).
 Da fare: bilanciare soglie, prezzi, forza di torri e truppe giocando; nuovi progetti per i titoli alti (es. mura, fortezza); effetti dei titoli sulle rotte e sui mercanti; predoni che distruggono o uccidono (ora rubano soltanto); messo e pergamene con più varietà; guerra con più ondate e con eventi (resa, tregua).
 
 ## 6. Pubblicazione e infrastruttura

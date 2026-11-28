@@ -1,5 +1,13 @@
 # Changelog
 
+## v49 – 2026-11-28
+Funzione nuova: i cittadini guidano il giocatore per tutta la partita, e si può scegliere se farlo.
+- **Scelta prima della partita:** nella schermata di lago/fiume, accanto alla difficoltà, «Consigli dei cittadini: sì» oppure «No, decido io». In partita il tasto 💬 nel pannello del titolo li accende e spegne; la scelta si salva con la partita.
+- **Guida sempre presente:** per ogni titolo (8) c'è una frase. Ordine: allarmi (guerra, predoni) → consigli urgenti (fame, legna scarsa, epidemia, troppi malati senza ospizio, scontenti, legno o pietra finiti con cantieri in attesa, case piene, disoccupati, posti di lavoro vuoti, edifici logori senza attrezzi o senza fabbro, magazzino pieno, denari da spendere in rotte) → passi del titolo → nuovi progetti acquistabili → consigli a rotazione per titolo (cambiano ogni due giorni, con una frase di stagione).
+- **Consigli spenti:** il pannello non dà suggerimenti; restano gli allarmi di guerra e predoni e i requisiti del Re (sono la regola del gioco, non un suggerimento). Le pergamene del messo restano sempre.
+- Test: nuovo `tests/guida.js` (77 controlli: frase a ogni titolo e giorno, rotazione, consigli urgenti, consigli spenti con allarme di guerra).
+- Non verificato in un browser WebGL: aspetto del tasto 💬 e della scelta nella schermata iniziale.
+
 ## v48 – 2026-11-28
 Funzione nuova: la storia guida il giocatore (niente più livelli con obiettivi). Titoli del Re, progetti da comprare, predoni e guerra.
 - **Niente più livelli.** Il pannello degli obiettivi è sostituito da una **guida narrata**: gli abitanti dicono cosa serve ("Servono legno e pietra… indicaci dove costruire il taglialegna"; poi la cava, il quartiere residenziale, ecc.). Sotto, in piccolo, "Il Re concederà il titolo di X quando:" con i requisiti e i conteggi. Su telefono il pannello si ripiega ma la frase della guida resta visibile.
