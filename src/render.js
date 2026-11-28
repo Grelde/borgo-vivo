@@ -928,6 +928,18 @@ const BUILD={
     bx(g,1.8,.4,.8,MAT.log,1.8,.2,.9);for(const [x,y] of[[1.3,.5],[1.8,.5],[2.3,.5],[1.55,.72],[2.05,.72]])cyl(g,.26,.26,.2,10,MAT.hay,x,y,.9);
     for(const x of[.6,.95])cyl(g,.16,.2,.34,8,MAT.timber,x,.17,1.5);
     return g;},
+  apiary(b){const g=new THREE.Group();
+    bx(g,1.8,.9,1.4,MAT.plaster,-.6,.45,-.8);bx(g,1.9,.1,1.5,MAT.timber,-.6,.9,-.8);gab(g,2.1,1.4,.6,MAT.thatch,1.0,-.6,-.8);bx(g,.45,.7,.06,MAT.door,-1.0,.35,-.08);
+    // arnie di paglia su ceppi e fiori attorno
+    for(const [x,z] of[[.6,.7],[1.5,.7],[2.4,.7],[1.0,1.7],[1.95,1.7]]){bx(g,.5,.25,.5,MAT.log,x,.12,z);cyl(g,.24,.28,.4,10,MAT.thatch,x,.45,z);sph(g,.2,MAT.thatch,x,.72,z,1,.8,1);}
+    for(let i=0;i<6;i++)sph(g,.1,MAT.leaf2,.3+i*.45,.1,2.4,1,1,1);
+    return g;},
+  chandler(b){const g=new THREE.Group();
+    bx(g,2.0,1.0,1.6,MAT.plaster,-.5,.5,-.8);bx(g,2.1,.1,1.7,MAT.timber,-.5,1.0,-.8);gab(g,2.3,1.6,.65,MAT.tile,1.1,-.5,-.8);bx(g,.5,.8,.06,MAT.door,-.9,.4,.02);
+    // calderone per la cera e candele appese ad asciugare su un'asta
+    cyl(g,.4,.35,.45,10,MAT.iron,1.6,.25,.9);bx(g,.06,1.0,.06,MAT.timber,.5,.5,1.1);bx(g,.06,1.0,.06,MAT.timber,2.6,.5,1.1);bx(g,2.2,.05,.05,MAT.timber,1.55,1.0,1.1);
+    for(let i=0;i<7;i++)cyl(g,.04,.04,.4,6,MAT.plaster,.75+i*.28,.78,1.1);
+    return g;},
   brewery(b){const g=new THREE.Group();
     bx(g,2.6,1.3,2.0,MAT.plaster,-.5,.65,-.9);bx(g,2.7,.1,2.1,MAT.timber,-.5,1.3,-.9);gab(g,2.9,2.0,.8,MAT.tile,1.1,-.5,-.9);bx(g,.5,.8,.06,MAT.door,-1.0,.4,.12);
     // grandi botti e caldaia con il comignolo
@@ -1340,6 +1352,8 @@ const TOOLS=[
   {id:'smokehouse',label:'Affumicatoio',key:'',hint:"Con il pesce in eccedenza, sale e legna in abbondanza fa 4 conserve da 2 pesci. Il fumo richiede un comignolo di mattoni."},
   {id:'dairy',label:'Caseificio',key:'',hint:"Serve un ovile con i pastori vicino: il latte e il sale diventano formaggio. Il formaggio sfama le case come le conserve."},
   {id:'brewery',label:'Birrificio',key:'',hint:"Con il grano in eccedenza (oltre la riserva del mulino) e legna fa 3 birre da 2 grani. La taverna serve un boccale al giorno e rende più contento il vicinato."},
+  {id:'apiary',label:'Apiario',key:'',hint:"Dopo l'ovile (Campi, titolo 4). Le arnie danno 2 miele e 1 cera per ciclo (non con il gelo). Il miele è cibo di riserva e il birrificio ne fa idromele."},
+  {id:'chandler',label:'Bottega del ceraiolo',key:'',hint:"Dopo l'apiario (Campi, titolo 5). Fa 3 candele da 1 cera. Le candele si consumano (1 ogni 8 abitanti al giorno): con candele per almeno il 30% degli abitanti il paese guadagna fino a +2 di benessere."},
   {id:'tannery',label:'Conceria',key:'',hint:"Sulla riva di un lago o di un fiume (la concia puzza: abbassa l'attrattiva attorno). 2 pelli di cacciatore e macellaio + 1 calce + 1 legno → 2 cuoio. Vasche di mattoni e calce."},
   {id:'cobbler',label:'Bottega del calzolaio',key:'',hint:"Dal cuoio della conceria fa 2 scarpe per cuoio. Le scarpe si consumano (1 ogni 10 abitanti al giorno); con scarpe per almeno il 40% degli abitanti tutto il paese è più contento (fino a +3)."},
   {id:'winery',label:'Cantina',key:'',hint:"Spremi l'uva delle fattorie con la coltura vigna: 3 uve diventano 2 vini. Il vino rende la taverna ancora più allegra e si vende bene in città. Volta di mattoni e calce."},
@@ -1381,7 +1395,7 @@ const CATS=[
   {id:'tools',label:'Strumenti',ids:['select','pan','demolish']},
   {id:'zone',label:'Zone e strade',ids:['d1','d2','d3','d4','nocut','cutok','d5','d6','undistrict','road']},
   {id:'prod',label:'Produzione',ids:['wood','quarry','mine','forester','granary','mill']},
-  {id:'shop',label:'Botteghe',ids:['carpenter','sawmill','shipyard','cooper','wheelwright','mason','claypit','brickworks','limekiln','saltworks','butcher','smokehouse','dairy','brewery','winery','tannery','cobbler','smithy','bakery','sheepfold','charcoal','smelter','retting','ropewalk','dyehouse','weaver','tailor','fisher','hunter','mercery']},
+  {id:'shop',label:'Botteghe',ids:['carpenter','sawmill','shipyard','apiary','chandler','cooper','wheelwright','mason','claypit','brickworks','limekiln','saltworks','butcher','smokehouse','dairy','brewery','winery','tannery','cobbler','smithy','bakery','sheepfold','charcoal','smelter','retting','ropewalk','dyehouse','weaver','tailor','fisher','hunter','mercery']},
   {id:'serv',label:'Servizi',ids:['store','well','dowse','school','infirmary','surgeon','church','inn','tavern','hall','taxoffice']},
   {id:'deco',label:'Decorazioni',ids:['plaza','flowers','statue']},
   {id:'def',label:'Difesa',ids:['watchtower','barracks','armory','bowyer']}];
@@ -1471,6 +1485,8 @@ function refreshSel(){
       butcher:`Un macellaio fa 4 conserve con 2 carni e 1 sale ogni ${spec.t} s, ma solo con almeno ${Sim.MEAT_KEEP+2} tra carni e selvaggina nei Granai (la riserva fresca resta alle case). Carne ${S.stock.meat|0} · selvaggina ${S.stock.game|0} · sale ${S.stock.salt|0} · conserve ${S.stock.cured|0}/${Sim.CURED_CAP}.`,
       smokehouse:`Un affumicatore fa 4 conserve con 2 pesci, 1 sale e 1 legno ogni ${spec.t} s, con almeno ${Sim.FISH_KEEP+2} pesci nei Granai e 20 legni. Pesce ${S.stock.fish|0} · sale ${S.stock.salt|0} · conserve ${S.stock.cured|0}/${Sim.CURED_CAP}.`,
       dairy:`Un casaro fa 2 formaggi con 2 latte e 1 sale ogni ${spec.t} s. Il latte lo danno gli ovili vicini (entro ${Sim.BAND} celle). Sale ${S.stock.salt|0} · formaggi ${S.stock.cheese|0}/${Sim.CHEESE_CAP}.`,
+      apiary:`Un apicoltore raccoglie 2 miele e 1 cera ogni ${spec.t} s (non con il gelo). Miele ${S.stock.honey|0}/${Sim.HONEY_CAP} · cera ${S.stock.wax|0}/${Sim.WAX_CAP}. Il miele nutre in caso di fame e il birrificio ne fa idromele.`,
+      chandler:`Un ceraiolo fa 3 candele con 1 cera ogni ${spec.t} s. Cera ${S.stock.wax|0} · candele ${S.stock.candles|0}/${Sim.CANDLE_CAP}. Copertura del paese: ${Math.round(Sim.candleCover()*100)}% (benessere fino a +${Sim.CANDLE_JOY}).`,
       brewery:`Un birraio fa 3 birre con 2 grani e 1 legno ogni ${spec.t} s, con almeno ${Sim.GRAIN_KEEP+2} grani nei Granai e 20 legni. Grano ${S.stock.grain|0} · birra ${S.stock.beer|0}/${Sim.BEER_CAP}. La taverna ne serve una al giorno.`,
       tannery:`Un conciatore ricava 2 cuoio da 2 pelli, 1 calce e 1 legno ogni ${spec.t} s (con almeno 20 legni). Pelli ${S.stock.hides|0} · calce ${S.stock.lime|0} · cuoio ${S.stock.leather|0}/${Sim.LEATHER_CAP}. Le pelli le danno il cacciatore e il macellaio.`,
       cobbler:`Un calzolaio fa 2 scarpe con 1 cuoio ogni ${spec.t} s. Cuoio ${S.stock.leather|0} · scarpe ${S.stock.shoes|0}/${Sim.SHOE_CAP}. Copertura del paese: ${Math.round(Sim.shoeCover()*100)}% (benessere fino a +3 a copertura piena).`,
@@ -1559,7 +1575,7 @@ function refreshSel(){
 }
 function selB(){return sel&&Sim.buildings().get(sel);}
 // v36: pannello di accettazione e massimali di Magazzino e Granaio (le righe si creano una volta per edificio, poi si aggiornano solo i numeri)
-const STKNAME={weapons:'Armi',wood:'Legno',stone:'Pietra',iron:'Ferro',planks:'Assi',tools:'Attrezzi',cloth:'Tessuto',clothes:'Abiti',rope:'Corde',charcoal:'Carbone',bars:'Barre di ferro',clay:'Argilla',bricks:'Mattoni',lime:'Calce',salt:'Sale',hides:'Pelli',leather:'Cuoio',shoes:'Scarpe',barrels:'Botti',pitch:'Pece',boats:'Barche',barges:'Chiatte',carts:'Carri',cured:'Conserve',cheese:'Formaggio',beer:'Birra',wine:'Vino',grain:'Grano',flour:'Farina',bread:'Pane',fish:'Pesce',meat:'Carne'};
+const STKNAME={weapons:'Armi',wood:'Legno',stone:'Pietra',iron:'Ferro',planks:'Assi',tools:'Attrezzi',cloth:'Tessuto',clothes:'Abiti',rope:'Corde',charcoal:'Carbone',bars:'Barre di ferro',clay:'Argilla',bricks:'Mattoni',lime:'Calce',salt:'Sale',hides:'Pelli',leather:'Cuoio',shoes:'Scarpe',barrels:'Botti',pitch:'Pece',wax:'Cera',candles:'Candele',honey:'Miele',mead:'Idromele',boats:'Barche',barges:'Chiatte',carts:'Carri',cured:'Conserve',cheese:'Formaggio',beer:'Birra',wine:'Vino',grain:'Grano',flour:'Farina',bread:'Pane',fish:'Pesce',meat:'Carne'};
 // v85: l'elenco delle merci di Magazzino e Granaio è diviso in gruppi che si comprimono ed espandono (lo stato si ricorda tra una selezione e l'altra)
 const STK_GROUPS=[['Materiali da costruzione',['wood','stone','planks','clay','bricks','lime','salt']],['Metalli e armi',['iron','bars','tools','weapons']],['Tessuti, pelli e corde',['cloth','clothes','rope','hides','leather','shoes']],['Cibo',['grain','flour','bread','fish','meat','game','cured','cheese','beer','wine']]];
 const stkClosed={};

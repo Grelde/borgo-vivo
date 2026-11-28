@@ -14,6 +14,13 @@ Ritocco ai giardini e alla grafica delle specializzazioni.
 - **Grafica di pesca, caccia e bacche:** gli attrezzi (rete e pesce ad essiccare; pelli, selvaggina e arco; cespugli con bacche e cesto) non stanno più nel blocco centrale del giardino, dove erano piccoli e coperti dalle aiuole, ma in una cella del giardino lontana dalla porta, a scala piena. Case che pescano: quelle vicino ad acqua, assegnate alla nascita; cacciatori: vicino al bosco. **Le bacche (`side='berry'`) non vengono ancora assegnate a nessuna casa** (la raccolta non esiste, v85): la grafica è pronta ma non si vede finché non arriva la funzione.
 - Non verificato in un browser WebGL: qui non c'è Three.js né rete; il test forzato smoke con tutte le case in pesca/caccia/bacche non dà errori.
 
+## v93 – 2026-11-28
+Funzione nuova: filiera 10, cera, miele e candele.
+- **Apiario** (ramo Campi, titolo 4, dopo l'ovile): 1 posto; 2 miele e 1 cera per ciclo (non con il gelo), `HONEY_CAP`/`WAX_CAP` 30.
+- **Bottega del ceraiolo** (Campi, titolo 5, dopo l'apiario): 1 cera → 3 **candele** (`CANDLE_CAP` 30). Le candele si consumano (1 ogni `CANDLE_PER` = 8 abitanti al giorno); con candele per il 30% degli abitanti il paese guadagna fino a +2 di benessere.
+- **Idromele:** il birrificio, con almeno 2 miele, fa anche 2 idromele (`MEAD_CAP` 30); la taverna lo serve come vino. Il miele è anche cibo di riserva quando le famiglie non hanno altro.
+- Miele e idromele sono merci del Granaio, cera e candele del Magazzino. Grafica, hint, pannelli, mestieri (apicoltore, ceraiolo) e salari. Test: `tests/cera.js`; `tests/storage.js` aggiornato. Non si commerciano.
+
 ## v92 – 2026-11-28
 Funzione nuova: filiera 9, cantiere navale (barche da pesca e chiatte da fiume).
 - **Pece:** la carbonaia produce anche 1 pece ogni 2 cicli (`PITCH_CAP` 20), merce del Magazzino.
