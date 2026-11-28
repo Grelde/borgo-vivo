@@ -2262,6 +2262,28 @@ for(const [id,tab] of [['chipPop','pop'],['chipJoy','joy']]){
   el.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();ev.stopPropagation();openPop(tab);}});
 }
 
+// v79: famiglie che chiedono di fermarsi (accetta / rifiuta)
+let petSig='';
+function renderPets(){
+  const box=$('petBox');if(!box)return;
+  const L=(S.pet||[]);
+  const sig=L.map(p=>p.id).join(',');
+  if(sig!==petSig){
+    petSig=sig;
+    box.hidden=!L.length;
+    box.innerHTML=L.map(p=>`<div class="pet" data-pid="${p.id}"><b>Famiglia ${p.fam}</b><div class="pt">${Sim.famText(p)} chiedono di fermarsi in paese<span class="pl"></span></div><div class="pb"><button class="btn" type="button" data-pa="1">Accetta</button><button class="btn" type="button" data-pa="0">Rifiuta</button></div></div>`).join('');
+  }
+  for(const el of box.querySelectorAll('.pet')){
+    const p=L.find(x=>x.id===+el.getAttribute('data-pid'));const sp=el.querySelector('.pl');
+    if(p&&sp)sp.textContent=' · restano '+Math.max(0,Math.ceil((p.exp-S.t)/Sim.DAY*10)/10).toFixed(1).replace('.',',')+' giorni';
+  }
+}
+if($('petBox'))$('petBox').addEventListener('click',ev=>{
+  const bt=ev.target.closest&&ev.target.closest('[data-pa]');if(!bt)return;
+  const el=bt.closest('.pet'),id=+el.getAttribute('data-pid');
+  const r=bt.getAttribute('data-pa')==='1'?Sim.acceptPetition(id):Sim.refusePetition(id);
+  toast(r.msg,!r.ok);renderPets();
+});
 // ---------- HUD ----------
 let hudT=0;const PHN={work:'lavoro',meal:'pasto',evening:'sera',night:'notte'};
 function updateHUD(){
@@ -2271,7 +2293,7 @@ function updateHUD(){
   $('rDay').textContent=`${Sim.SEASONS[st.season]} ${st.day%Sim.SEASON_DAYS+1}/${Sim.SEASON_DAYS} · annata ${st.year} · ${PHN[st.ph]}`;
   $('rPop').textContent=`${st.pop}/${st.cap}`+(st.children?` (👶${st.children})`:'');$('rJobs').textContent=`${st.jobs}/${st.slots}`;$('rBarter').textContent=st.barters;
   $('rFire').textContent=`${st.fire}/${st.fireNeed}`;$('rSick').textContent=st.sick+(st.plague?' ☣':'');$('chipSick').classList.toggle('alert',st.sick>0);$('rWell').textContent=Math.round(st.avgJoy)+(st.unhappy?' · '+st.unhappy+' tristi':'');$('chipJoy').classList.toggle('alert',st.unhappy>0&&st.avgJoy<45);
-  refreshLayers();refreshGuide(st);pollEnvoy();refreshPalette();if(!$('projects').hidden)renderProjects();else $('projBtn').classList.toggle('on',newProjects());refreshSel();if(cardId)renderCard();renderPop(st);renderTrade();
+  renderPets();refreshLayers();refreshGuide(st);pollEnvoy();refreshPalette();if(!$('projects').hidden)renderProjects();else $('projBtn').classList.toggle('on',newProjects());refreshSel();if(cardId)renderCard();renderPop(st);renderTrade();
   for(const t of TOOLS)if(BT[t.id])toolBtns[t.id].classList.toggle('poor',!Sim.afford(t.id));
 }
 

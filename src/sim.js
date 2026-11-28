@@ -478,7 +478,7 @@ function init(sd,mode,diff,opt){
   gate.fill(0);gatedSet.clear();
   occ.fill(0);field.fill(0);lastStep.fill(0);wear.fill(0);plev.fill(0);phit.fill(0);pexp.fill(0);attr.fill(0);sapT.fill(0);
   buildings.clear();stCache=null;villagers=[];vmap.clear();reg.clear();resv.clear();plantResv.clear();nextId=1;guests.length=0;
-  S.t=0;S.festA=[];S.fests=0;festSeq=0;S.edicts=EDICT0();S.births=0;S.deaths=0;S.buried=0;S.unburied=0;S.extra={};S.wh={wood:0,stone:0,iron:0};S.xf={wood:0,stone:0,iron:0};S.stock={wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,rope:0,charcoal:0,bars:0,weapons:0,clay:0,bricks:0,lime:0,salt:0,cured:0,cheese:0,beer:0,wine:0,hides:0,leather:0,shoes:0};S.inflight={wood:0,stone:0,iron:0};S.grow=0;S.left=0;S.att={joy:0,unemp:0,a:0,bonus:0};S.barters=0;S.helps=0;S.visits=0;S.settled=0;S.season=0;S.year=1;S.frozen=false;acc.a1=0;acc.a05=0;acc.farm=0;acc.attr=99;for(const k in told)delete told[k];
+  S.t=0;S.festA=[];S.fests=0;festSeq=0;S.edicts=EDICT0();S.births=0;S.deaths=0;S.buried=0;S.unburied=0;S.extra={};S.wh={wood:0,stone:0,iron:0};S.xf={wood:0,stone:0,iron:0};S.stock={wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,rope:0,charcoal:0,bars:0,weapons:0,clay:0,bricks:0,lime:0,salt:0,cured:0,cheese:0,beer:0,wine:0,hides:0,leather:0,shoes:0};S.inflight={wood:0,stone:0,iron:0};S.grow=0;S.left=0;S.att={joy:0,unemp:0,a:0,bonus:0};S.pet=[];S.petNext=0;S.petSeq=0;S.petOk=0;S.petNo=0;S.petLate=0;S.arrivedFam=0;S.barters=0;S.helps=0;S.visits=0;S.settled=0;S.season=0;S.year=1;S.frozen=false;acc.a1=0;acc.a05=0;acc.farm=0;acc.attr=99;for(const k in told)delete told[k];
   S.deathsBy={age:0,cold:0,hunger:0,ill:0};S.plague={on:false,since:0,dead:0};S.inherits=0;S.cured=0;S.sickTot=0;S.moves=0;S.made={};S.delivered=0;S.coins=COINS0;S.fin=mkFin();S.taxDay=-1;S.taxRate='normal';S.ledger={snap:null,rows:[]};S.routes=mkRoutes();S.tradeOpt={sell:true,buy:true};S.tlog=[];S.trade={sold:0,bought:0,visits:0};
   S.story=!!(opt&&opt.story);S.rank=0;S.proj={};S.msgs=[];S.raid=raid0();S.wolf=wolf0();S.war=war0();S.rk=0;
   let okT=false,att=0;const base=(sd||7)|0;
@@ -1588,7 +1588,7 @@ function onArrive(v){
     case 'toHomeF':{const h=buildings.get(v.home);if(h)h.goods.grain=Math.min(12,h.goods.grain+(v.cq||1));v.carry=null;v.state='idle';break;}
     case 'toHomeLife':{
       if(v.newc){ // nuovo arrivato: è giunto a piedi in paese, ora comincia la sua vita (casa, bisogni, lavoro)
-        v.newc=false;v.path=[];v.moving=false;v.state='idle';logV(v,'Arriva alla sua nuova casa.');S.arrived=(S.arrived||0)+1;break;
+        v.newc=false;v.path=[];v.moving=false;v.state='idle';logV(v,v.home?'Arriva alla sua nuova casa.':'Arriva in paese senza una casa.');S.arrived=(S.arrived||0)+1;break;
       }
       const h=buildings.get(v.home);if(h)arriveHome(v,h);else{v.carry=null;v.state='idle';}break;}
     case 'toErr':{
@@ -2057,12 +2057,14 @@ function tentTick(){
       if(was)tell('tentDown','Una famiglia ha lasciato la tenda per una casa: la tenda è stata smontata e metà del legno è tornato al magazzino.');
     }
   }
-  const homeless=villagers.filter(v=>!v.child&&!v.home&&(!v.tentId||!buildings.get(v.tentId)));
+  const homeless=villagers.filter(v=>!v.home&&(!v.tentId||!buildings.get(v.tentId))).sort((a,b)=>(a.child?1:0)-(b.child?1:0)); // v79: anche i bambini senza casa (con la famiglia)
   if(!homeless.length)return;
-  const open=[...buildings.values()].filter(b=>b.type==='tent'&&b.members.length<TENT_CAP);
+  const adultsIn=t=>t.members.reduce((n,id)=>{const m=vmap.get(id);return n+(m&&!m.child?1:0);},0);
+  const open=[...buildings.values()].filter(b=>b.type==='tent'&&adultsIn(b)<TENT_CAP);
   let pending=false;for(const b of buildings.values())if(b.type==='tent'&&b.state==='site')pending=true;
   for(const v of homeless){
-    let t=open.find(b=>b.members.length<TENT_CAP);
+    let t=v.child?(open.find(b=>b.members.some(id=>{const m=vmap.get(id);return m&&m.fam===v.fam;}))||open.find(b=>b.members.length)||[...buildings.values()].find(b=>b.type==='tent'&&b.members.length)):open.find(b=>adultsIn(b)<TENT_CAP);
+    if(v.child&&!t)continue; // un bambino senza tenda aspetta che i genitori ne abbiano una
     if(!t){
       if(pending||uncommitted('wood')<BT.tent.cost.wood)break;
       const c=centerCell();if(c<0)break;
@@ -3639,6 +3641,79 @@ function arriveNewcomer(pk,lit){
   if(!lit)tell('newcomer','I nuovi abitanti arrivano a piedi dai confini della mappa e raggiungono le case libere: più il paese è felice e ha lavoro, più gente arriva.');
   return v;
 }
+// v79: famiglie in arrivo. Ogni tanto una famiglia (1-2 adulti e 0-3 bambini) si presenta ai confini e chiede di fermarsi: il giocatore sceglie se accettarla.
+// Arrivano anche se non ci sono case libere: chi non trova posto si accampa in una tenda (tentTick) e, se la casa non arriva, prima o poi se ne va.
+// Più il paese è felice e ha lavoro (S.att.a), più spesso arrivano. Se nessuno risponde entro PET_LIFE la famiglia riparte.
+const PET_LIFE=DAY*3,PET_MAX=2,PET_MINPOP=8;
+function petitionRate(){return Math.max(0.25,Math.min(2,0.4+S.att.a*1.6));}
+function newPetition(){
+  const ad=Math.random()<0.6?2:1,kids=Math.random()<0.25?0:1+((Math.random()*3)|0);
+  const p={id:(S.petSeq=(S.petSeq|0)+1),fam:pick(FAMS),ad,kids:Math.min(kids,5-ad),t:S.t,exp:S.t+PET_LIFE};
+  S.pet.push(p);return p;
+}
+function petitionTick(){
+  if(!Array.isArray(S.pet))S.pet=[];
+  for(const p of S.pet.slice())if(S.t>=p.exp){S.pet=S.pet.filter(x=>x!==p);S.petLate=(S.petLate|0)+1;hooks.toast('La famiglia '+p.fam+' non ha avuto risposta e si è rimessa in cammino.');}
+  if(S.edicts.noImmig||S.edicts.quarantine||villagers.length<PET_MINPOP||S.pet.length>=PET_MAX)return;
+  if(!S.petNext){S.petNext=S.t+DAY*(1+Math.random()*2);return;}
+  if(S.t<S.petNext)return;
+  S.petNext=S.t+DAY*(4+Math.random()*4)/petitionRate();
+  const p=newPetition();
+  tell('petition1','Una famiglia chiede di fermarsi in paese (riquadro in alto a sinistra): accettala o rifiutala. Arrivano anche se non hai case libere, ma senza casa vivono in tenda e, se stanno male, se ne vanno.');
+  hooks.toast('La famiglia '+p.fam+' ('+famText(p)+') bussa alle porte del paese.');
+}
+function famText(p){return (p.ad===1?'1 adulto':p.ad+' adulti')+(p.kids?' e '+(p.kids===1?'1 bambino':p.kids+' bambini'):'');}
+function refusePetition(id){
+  const p=(S.pet||[]).find(x=>x.id===id);if(!p)return {ok:false,msg:'La famiglia è già ripartita.'};
+  S.pet=S.pet.filter(x=>x!==p);S.petNo=(S.petNo|0)+1;
+  return {ok:true,msg:'Hai rifiutato la famiglia '+p.fam+': riprende la strada.'};
+}
+function acceptPetition(id){
+  const p=(S.pet||[]).find(x=>x.id===id);if(!p)return {ok:false,msg:'La famiglia è già ripartita.'};
+  S.pet=S.pet.filter(x=>x!==p);S.petOk=(S.petOk|0)+1;
+  const ms=arriveFamily(p);
+  const homed=ms.filter(v=>v.home).length;
+  return {ok:true,msg:'La famiglia '+p.fam+' è la benvenuta: '+(homed===ms.length?'ha trovato casa.':homed?'solo una parte trova casa, gli altri dormiranno in tenda.':'non ci sono case libere: dormiranno in tenda finché non ne costruisci una.'),members:ms};
+}
+function bestHouseFor(n,excl){
+  let pk=null,ps=-1e9;
+  for(const b of buildings.values())if(b.type==='house'&&b.state==='done'&&b.attr>-4.5&&capOf(b)-b.members.length>=n){
+    const sc=b.attr+(capOf(b)-b.members.length)*0.3+lone(b)+b.well*0.01+(b.flags.water?0.8:0)+(b.level>=2&&b.flags.church?0.6:0);if(sc>ps){ps=sc;pk=b;}
+  }
+  return pk;
+}
+function centerStore(){for(const b of buildings.values())if(b.type==='store'&&b.state==='done'&&b.center)return b;for(const b of buildings.values())if(b.type==='store'&&b.state==='done')return b;return null;}
+function arriveFamily(p){
+  const whole=bestHouseFor(p.ad+p.kids);
+  const st=centerStore();
+  const ref=whole||st;
+  let sides=['w','e','n','s'];
+  if(ref){const hx=ref.cell%N,hy=(ref.cell/N)|0,dd={w:hx,e:N-1-hx,n:hy,s:N-1-hy};sides.sort((a,b)=>dd[a]-dd[b]);}
+  else sides.sort(()=>Math.random()-0.5);
+  let e=-1;for(const sd of sides){e=edgeCell(sd);if(e>=0)break;}
+  const ms=[];const adults=[],kids=[];
+  for(let i=0;i<p.ad+p.kids;i++){
+    const child=i>=p.ad,age=child?1+Math.random()*11:20+Math.random()*18;
+    const x=e>=0?cx2w(e%N):cx2w(CEN),z=e>=0?cy2w((e/N)|0):cy2w(CEN);
+    const v=addVillager(x+(Math.random()-0.5)*0.6,z+(Math.random()-0.5)*0.6,age,p.fam);
+    if(e<0&&st){v.x=cx2w(st.door%N);v.z=cy2w((st.door/N)|0);v.cell=w2cell(v.x,v.z);}
+    arrivalLit(v);
+    (child?kids:adults).push(v);ms.push(v);
+  }
+  for(const v of ms){
+    const h=whole&&roomFor(whole)?whole:bestHouseFor(1);
+    if(h){v.home=h.id;h.members.push(v.id);}
+    let path=null;
+    if(e>=0){const tgt=h||st;if(tgt)path=astar(e,tgt.cell,tgt.id);}
+    if(path&&path.length){v.newc=true;v.path=path;v.state='toHomeLife';v.moving=true;v.next='sleep';}
+    else if(h){v.x=cx2w(h.door%N);v.z=cy2w((h.door/N)|0);v.cell=w2cell(v.x,v.z);}
+    logV(v,h?'Arriva in paese con la sua famiglia e trova casa.':'Arriva in paese con la sua famiglia ma non c\'è una casa libera: dormirà in tenda.');
+    const r=reg.get(v.id);if(r){if(v.child)r.par=adults.map(a=>a.id);else r.kids=kids.map(k=>k.id);}
+  }
+  S.arrivedFam=(S.arrivedFam|0)+ms.length;
+  acc.attr=99;
+  return ms;
+}
 // v74: assunzione da fuori. Per HIRE_COST argento arriva a piedi una persona che sa leggere e scrivere, già destinata a questo edificio
 // (utile per gli edifici solo per istruiti e per il +30% delle botteghe). Serve una casa con un posto libero. Se l'edificio è al completo,
 // l'istruito prende il posto di un addetto non istruito, che torna libero.
@@ -3705,6 +3780,7 @@ function tick1(){
   S.grow+=TK;
   let openSlots=0;for(const b of buildings.values())if(b.state==='done'&&!b.sur)openSlots+=b.want-b.workers.length;
   attractTick(capD);
+  petitionTick();
   if(!S.edicts.noImmig&&!S.edicts.quarantine&&villagers.length<capD+S.att.bonus&&hungry*2<=nh&&S.grow>=(openSlots>0?9:16)){
     let pk=null,ps=-1e9;
     // chi arriva preferisce le case vicine ai posti di lavoro liberi e ai servizi
@@ -3883,6 +3959,7 @@ function importState(d){
   S.extra=(S.extra&&typeof S.extra==='object')?S.extra:{};S.edicts=Object.assign(EDICT0(),S.edicts);S.stock=Object.assign({wood:0,stone:0,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,rope:0,charcoal:0,bars:0,weapons:0,clay:0,bricks:0,lime:0,salt:0,cured:0,cheese:0,beer:0,wine:0,hides:0,leather:0,shoes:0},S.stock);
   for(const k of ['wh','xf','inflight'])S[k]=Object.assign({wood:0,stone:0,iron:0},S[k]);
   S.coins=Number.isFinite(S.coins)?S.coins:COINS0;S.fin=Object.assign(mkFin(),S.fin);if(!TAX_RATES[S.taxRate])S.taxRate='normal';if(!S.ledger||!Array.isArray(S.ledger.rows))S.ledger={snap:null,rows:[]};S.taxDay=Number.isFinite(S.taxDay)?S.taxDay:-1;{const rt=Array.isArray(S.routes)?S.routes:[];S.routes=mkRoutes().map(r=>Object.assign(r,rt.find(x=>x&&x.id===r.id)||{}));}S.tradeOpt=Object.assign({sell:true,buy:true},S.tradeOpt);S.tlog=Array.isArray(S.tlog)?S.tlog:[];S.trade=Object.assign({sold:0,bought:0,visits:0},S.trade);
+  S.pet=Array.isArray(S.pet)?S.pet.filter(p=>p&&Number.isFinite(p.id)&&Number.isFinite(p.exp)):[];S.petNext=S.petNext||0;S.petSeq=S.petSeq|0;S.petOk=S.petOk|0;S.petNo=S.petNo|0;S.petLate=S.petLate|0;S.arrivedFam=S.arrivedFam|0;
   S.mode=S.mode==='river'?'river':'lake';S.diff=DIFFS[S.diff]?S.diff:'facile';S.repairs=S.repairs|0;S.ruined=S.ruined|0;
   windP=null;computeEnv(naturalTerrain());   // v64: fertilità e corrente si ricavano dall'acqua e dal seme, il vento dal seme: niente da salvare
   for(const k of Object.keys(acc))delete acc[k];Object.assign(acc,{a1:0,a05:0,farm:0,attr:99},ac);
@@ -3905,7 +3982,7 @@ function importState(d){
   for(const g of guests)hooks.villager(g);
   hooks.trees();hooks.rocks();hooks.saps();hooks.ground();
 }
-return {MT,CT,CEN,dowse,soilOf,soilF,soilName,AQ_FIND_R,AQ_COST,TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWanted,WEAPON_PER_POST,startHouseWork,mergeTick,trySpawnDense,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,EDUREQ,EDU_BLD,IMM_LIT,HIRE_COST,canWorkAt,eduBld,hireEducated,hireNeeded,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
+return {capOf,PET_LIFE,petitionTick,acceptPetition,refusePetition,arriveFamily,famText,newPetition,MT,CT,CEN,dowse,soilOf,soilF,soilName,AQ_FIND_R,AQ_COST,TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWanted,WEAPON_PER_POST,startHouseWork,mergeTick,trySpawnDense,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,EDUREQ,EDU_BLD,IMM_LIT,HIRE_COST,canWorkAt,eduBld,hireEducated,hireNeeded,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,NEEDS,NEED_LOW,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
   TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,WAGE_JOB,EDU_JOBS,CITY_RANK,WAGE_OWE_CAP,wageJob,wageOf,wagePayer,TAX_TABLE,TAX_WEEK,TAX_POUCH,WAGE,WAGE_SEC,SILVER_GOLD,TAX_MARGIN,MSELL,MSELL_KEEP,MSELL_LIM,taxOf,joyOf,TAX_RATES,TAX_JOY,setTaxRate,taxForecast,ledgerTick,money,taxActive,taxStats,taxDue,taxRefuses,merceryTakes,merceryBuy,merceryBuyer,jobless,kingJob,cityMakes,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,

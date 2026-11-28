@@ -1,6 +1,15 @@
 # Changelog
 
 ## v82 – 2026-11-28
+Funzione nuova: famiglie che chiedono di fermarsi, anche senza case libere. Il giocatore sceglie se accettarle.
+- **Richieste (`S.pet`, `petitionTick`):** quando il paese ha almeno 8 abitanti, ogni tanto una famiglia (1-2 adulti e 0-3 bambini, con cognome) si presenta ai confini e chiede di fermarsi. Al massimo 2 richieste in attesa. L'intervallo è di 4-8 giorni diviso per `petitionRate()` = 0,4 + 1,6 × attrattiva `S.att.a` (limitato tra 0,25 e 2): più il paese è felice e ha lavoro, più famiglie bussano. Con l'editto «Blocca l'immigrazione» o la quarantena non arriva nessuno.
+- **Accetta / Rifiuta:** riquadro in alto a sinistra (`#petBox`) con un riquadro per famiglia, i giorni che restano e i pulsanti. **Rifiuta**: la famiglia riparte. **Accetta (`acceptPetition`, `arriveFamily`)**: la famiglia entra a piedi dal bordo della mappa (lato più vicino alla casa scelta) come i nuovi abitanti della v70. Senza risposta entro `PET_LIFE` (3 giorni) riparte da sola.
+- **Anche senza case:** la famiglia va in una casa con posto per tutti, altrimenti si divide tra le case con un posto libero. Chi non trova casa resta senza (`v.home` nullo): va al magazzino e dorme in una tenda (v55). Ora le tende ospitano anche i bambini: 2 adulti per tenda, i bambini seguono la famiglia. La sfida è costruire le case: la città le avvia da sola quando gli abitanti superano i posti, e una nuova casa prende i senza casa. Se la casa non arriva la felicità scende e chi è infelice se ne va (regola v22).
+- I singoli immigrati dalla v70 restano come prima (solo dove c'è una casa libera). Le persone arrivate con una famiglia hanno il cognome comune e sono registrate come genitori e figli (`reg.par`, `reg.kids`).
+- Salvataggi: `S.pet`, `petNext`, `petSeq`, `petOk`, `petNo`, `petLate`, `arrivedFam` si salvano; i salvataggi precedenti partono con valori di riserva.
+- Test: `node tests/famiglie.js` (FAMIGLIE_OK): richiesta, rifiuto, accettazione con case tutte piene (tenda, bordo mappa), casa libera, scadenza, editto, salvataggio.
+- **Non verificato in un browser:** posizione e aspetto del riquadro delle richieste (anche su telefono), pulsanti e testi.
+
 Funzione nuova: concia e cuoio (conceria, calzolaio, pelli, cuoio, scarpe). Punto 6 delle filiere.
 - **Pelli:** il cacciatore (1 per ciclo) e il macellaio (1 per ciclo) ora danno anche pelli, che vanno nelle scorte (massimo 30).
 - **Conceria** (sulla riva, 2 posti; vasche di mattoni e calce nel costo): 2 pelli + 1 calce + 1 legno → 2 cuoio ogni 11 s. Usa la calce del calcinaio senza toccare quella dei cantieri e lavora solo con almeno 20 legni. La concia **puzza**: abbassa l'attrattiva delle case entro 24 celle (come cava e miniera).
