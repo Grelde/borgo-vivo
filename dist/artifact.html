@@ -347,7 +347,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v88</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v89</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -452,7 +452,7 @@ const SC=3,MT=(typeof process!=='undefined'&&process.versions&&process.versions.
 const PATH=3,ROADT=20,WMAX=28,MAXP=4,NEEDP=[1,2,4,8],DUR=[0,20,40,80,240],PCOST=[1,0.92,0.8,0.62,0.5],PSPD=[1,1.04,1.1,1.2,1.25];
 // v26: il giorno dura DAY secondi (era 100). TK riporta ai ritmi 'per giorno' di prima i fenomeni calcolati a ogni secondo (produzione, malattie, rischi, immigrazione).
 // v58: il giorno dura 300 s (era 150) ma la notte resta di 27 s (9 dopo la mezzanotte + 18 prima): in percentuale è il 9% del giorno invece del 18%. Le ore del giorno si ridistribuiscono sui 273 s restanti (tabella TL più sotto).
-const DAY=300,DK=DAY/100,TK=100/DAY,STORE_CAP=1000,CENTER_CAP=80,BUFCAP=8,GRAIN_CAP=1000,FLOUR_CAP=40,SAPLING_T=140;
+const DAY=300,DK=DAY/100,TK=100/DAY,STORE_CAP=1000,CENTER_CAP=30,BUFCAP=8,GRAIN_CAP=1000,FLOUR_CAP=40,SAPLING_T=140;
 const TYPES=['veg','eggs','grain','fish','meat','game','bread'];
 const GN={veg:'ortaggi',eggs:'uova',grain:'grano',fish:'pesce',meat:'carne',game:'selvaggina',bread:'pane',firewood:'legna da ardere',tools:'attrezzi',iron:'ferro',flour:'farina',wool:'lana',cloth:'tessuto',clothes:'abiti'};
 const GOODS=TYPES.concat(['firewood','tools','iron','flour','wool','cloth','clothes']);
@@ -463,8 +463,8 @@ const BT={
   quarry:{name:'Cava di pietra',w:6,h:6,cost:{wood:8,stone:0},time:10,slots:3,want:2,need:'rock'},
   mine:{name:'Miniera di ferro',w:6,h:6,cost:{wood:10,stone:6},time:12,slots:3,want:2,need:'ore'},
   forester:{name:'Guardaboschi',w:6,h:6,cost:{wood:6,stone:0},time:7,slots:2,want:1},
-  store:{name:'Magazzino',w:6,h:6,cost:{wood:12,stone:4,planks:4},time:12,slots:3,want:3},
-  granary:{name:'Granaio',w:6,h:6,cost:{wood:10,stone:2},time:9,slots:2,want:1},
+  store:{name:'Magazzino',w:6,h:6,cost:{wood:12,stone:4,planks:4},time:12,slots:6,want:6},
+  granary:{name:'Granaio',w:6,h:6,cost:{wood:10,stone:2},time:9,slots:4,want:2},
   mill:{name:'Mulino',w:6,h:6,cost:{wood:10,stone:5,planks:4,lime:3},time:12,slots:2,want:1},
   inn:{name:'Locanda',w:9,h:6,cost:{wood:14,stone:8,planks:6},time:14,slots:2,want:1},
   // v32: ovile costruibile dal giocatore, con pastori (gli ovili fondati dalle famiglie restano senza addetti propri: li servono i membri della casa)
@@ -590,7 +590,7 @@ const TGN={wood:'legno',stone:'pietra',planks:'assi',iron:'ferro',tools:'attrezz
 // si vende solo sopra T_KEEP (più il fabbisogno delle case per cibo, attrezzi e abiti) e si compra solo sotto T_TARGET: così non si compra e vende lo stesso bene
 const T_KEEP={hides:16,leather:10,shoes:12,salt:12,cured:16,cheese:10,beer:10,wine:10,weapons:99,bars:10,rope:8,wood:60,stone:45,iron:24,planks:18,tools:14,bread:20,cloth:14,clothes:12,fish:25,meat:25,game:25},T_TARGET={hides:0,leather:0,shoes:0,salt:6,cured:0,cheese:0,beer:0,wine:0,weapons:6,bars:0,rope:0,wood:30,stone:20,iron:10,planks:10,tools:8,bread:10,cloth:6,clothes:6,fish:10,meat:10,game:10};
 const mkRoutes=()=>ROUTE_IDS.map(id=>({id,open:false,next:0,visits:0,earned:0,spent:0,last:-1,blocked:false}));
-const S={t:0,mode:'lake',extra:{},stock:{wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,game:0},inflight:{wood:0,stone:0,iron:0},grow:0,barters:0,helps:0,visits:0,settled:0,season:0,year:1,frozen:false,day:0,f:0.06,ph:'work',wh:{wood:0,stone:0,iron:0},xf:{wood:0,stone:0,iron:0},edicts:EDICT0(),births:0,deaths:0,buried:0,unburied:0,
+const S={t:0,mode:'lake',extra:{},stock:{wood:30,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,game:0},inflight:{wood:0,stone:0,iron:0},grow:0,barters:0,helps:0,visits:0,settled:0,season:0,year:1,frozen:false,day:0,f:0.06,ph:'work',wh:{wood:0,stone:0,iron:0},xf:{wood:0,stone:0,iron:0},edicts:EDICT0(),births:0,deaths:0,buried:0,unburied:0,
   deathsBy:{age:0,cold:0,hunger:0,ill:0},plague:{on:false,since:0,dead:0},inherits:0,cured:0,sickTot:0,moves:0,left:0,att:{joy:0,unemp:0,a:0,bonus:0},made:{},delivered:0,
   coins:COINS0,fin:mkFin(),taxDay:-1,taxRate:'normal',ledger:{snap:null,rows:[]},routes:mkRoutes(),tradeOpt:{sell:true,buy:true},tlog:[],trade:{sold:0,bought:0,visits:0},
   story:false,rank:0,proj:{},msgs:[],raid:{next:0,repelled:0,killed:0,lost:0,stolen:0,bands:{},seq:0},wolf:{next:0,seq:0,arm:0,killed:0,lost:0,eaten:0,bitten:0,dead:0,bands:{}},war:{phase:'none',at:0,wave:0,hold:0,defeats:0,killed:0},rk:0};
@@ -628,15 +628,15 @@ const heldCenter=r=>Math.max(0,S.stock[r]-S.wh[r]-S.xf[r]);
 // Per ogni merce il giocatore sceglie se accettarla (on) e il massimale (max). Accettano solo merci di edifici veri: i giardini delle case non depositano mai.
 // Magazzino: materiali da costruzione + prodotti degli artigiani (fabbro, tessitore, sarto). Granaio: cibo che non viene dai giardini (fattorie, mulino, forno, pesca, caccia).
 // Il centro cittadino resta com'era: 80 per ogni materiale, non configurabile. Le scorte restano un contatore per merce (S.stock); la loro suddivisione fra edifici è calcolata da layout().
-const GRAN_TOTAL=1000;
+const GRAN_TOTAL=1000,ITEM_CAP=100;
 const STORE_KEYS=['wood','stone','iron','planks','tools','cloth','clothes','rope','charcoal','bars','weapons','clay','bricks','lime','salt','hides','leather','shoes'];
 const GRAN_KEYS=['grain','flour','bread','fish','meat','game','cured','cheese','beer','wine'];
-const CENTER_KEYS=['wood','stone','iron','planks','charcoal','bars','clay','bricks','lime','salt','cured','cheese','beer','wine','hides','leather','shoes'];
+const CENTER_KEYS=['wood','stone','iron','clay']; // v89: solo materie prime
 const ALLKEYS=STORE_KEYS.concat(GRAN_KEYS);
 const keysOf=b=>b.type==='granary'?GRAN_KEYS:(b.center?CENTER_KEYS:STORE_KEYS);
 const totalOf=b=>b.type==='granary'?GRAN_TOTAL:(b.center?Infinity:STORE_CAP);
-const polOf=b=>{if(!b.pol)b.pol={};for(const k of keysOf(b))if(!b.pol[k])b.pol[k]={on:true,max:b.type==='granary'?GRAN_TOTAL:STORE_CAP};return b.pol;};
-const polMax=(b,k)=>{if(!keysOf(b).includes(k))return 0;if(b.center)return CENTER_CAP;const p=polOf(b)[k];return p&&p.on?p.max:0;};
+const polOf=b=>{if(!b.pol)b.pol={};for(const k of keysOf(b))if(!b.pol[k])b.pol[k]={on:true,max:ITEM_CAP};return b.pol;};
+const polMax=(b,k)=>{if(!keysOf(b).includes(k))return 0;if(b.center)return CENTER_CAP;const p=polOf(b)[k];return p&&p.on?Math.min(p.max,ITEM_CAP):0;};
 let stCache=null;
 const storages=()=>stCache||(stCache=[...buildings.values()].filter(b=>b.state==='done'&&(b.type==='store'||b.type==='granary')));
 // suddivisione "virtuale" delle scorte fra gli edifici: il centro tiene ciò che non è stato trasferito, il resto si riempie per merce e per edificio (ordine di costruzione)
@@ -644,10 +644,8 @@ function layout(){
   const L=new Map(),left={};for(const k of ALLKEYS)left[k]=Math.max(0,Math.floor(S.stock[k]||0));
   const bs=storages();
   for(const b of bs)L.set(b.id,{inv:{},tot:0});
-  for(const b of bs){if(!b.center)continue;const e=L.get(b.id);
-    for(const k of ['wood','stone','iron']){const q=Math.min(heldCenter(k),polMax(b,k),left[k]);if(q>0){e.inv[k]=q;e.tot+=q;left[k]-=q;}}}
-  for(const k of ALLKEYS)for(const b of bs){
-    if(b.center&&(k==='wood'||k==='stone'||k==='iron'))continue;
+  // v62: se esiste un Magazzino (o un Granaio) la merce va lì; il centro cittadino tiene solo ciò che avanza, al massimo CENTER_CAP per materia prima
+  for(const k of ALLKEYS)for(const b of bs.slice().sort((x,y)=>(x.center?1:0)-(y.center?1:0))){
     const m=polMax(b,k);if(!m)continue;const e=L.get(b.id);
     const q=Math.min(left[k],Math.max(0,Math.min(m,totalOf(b)-e.tot)));
     if(q>0){e.inv[k]=(e.inv[k]||0)+q;e.tot+=q;left[k]-=q;}
@@ -684,7 +682,7 @@ function setPolicy(id,k,patch){
   const b=buildings.get(id);if(!b||(b.type!=='store'&&b.type!=='granary')||b.center||!keysOf(b).includes(k))return false;
   const p=polOf(b)[k];
   if(patch&&patch.on!==undefined)p.on=!!patch.on;
-  if(patch&&patch.max!==undefined){const m=Math.round(+patch.max);if(Number.isFinite(m))p.max=Math.max(0,Math.min(totalOf(b),m));}
+  if(patch&&patch.max!==undefined){const m=Math.round(+patch.max);if(Number.isFinite(m))p.max=Math.max(0,Math.min(ITEM_CAP,totalOf(b),m));}
   return true;
 }
 function storeInfo(b){const {L}=layout(),e=L.get(b.id)||{inv:{},tot:0};return {keys:keysOf(b),inv:e.inv,tot:e.tot,total:totalOf(b),pol:keysOf(b).map(k=>({k,on:b.center?true:polOf(b)[k].on,max:polMax(b,k)||(b.center?0:polOf(b)[k].max),held:e.inv[k]||0}))};}
@@ -928,7 +926,7 @@ function init(sd,mode,diff,opt){
   gate.fill(0);gatedSet.clear();
   occ.fill(0);field.fill(0);lastStep.fill(0);wear.fill(0);plev.fill(0);phit.fill(0);pexp.fill(0);attr.fill(0);sapT.fill(0);
   buildings.clear();stCache=null;villagers=[];vmap.clear();reg.clear();resv.clear();plantResv.clear();nextId=1;guests.length=0;
-  S.t=0;S.festA=[];S.fests=0;festSeq=0;S.edicts=EDICT0();S.births=0;S.deaths=0;S.buried=0;S.unburied=0;S.extra={};S.wh={wood:0,stone:0,iron:0};S.xf={wood:0,stone:0,iron:0};S.stock={wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,game:0,rope:0,charcoal:0,bars:0,weapons:0,clay:0,bricks:0,lime:0,salt:0,cured:0,cheese:0,beer:0,wine:0,hides:0,leather:0,shoes:0};S.inflight={wood:0,stone:0,iron:0};S.grow=0;S.left=0;S.att={joy:0,unemp:0,a:0,bonus:0};S.pet=[];S.petNext=0;S.petSeq=0;S.petOk=0;S.petNo=0;S.petLate=0;S.arrivedFam=0;S.barters=0;S.helps=0;S.visits=0;S.settled=0;S.season=0;S.year=1;S.frozen=false;acc.a1=0;acc.a05=0;acc.farm=0;acc.attr=99;for(const k in told)delete told[k];
+  S.t=0;S.festA=[];S.fests=0;festSeq=0;S.edicts=EDICT0();S.births=0;S.deaths=0;S.buried=0;S.unburied=0;S.extra={};S.wh={wood:0,stone:0,iron:0};S.xf={wood:0,stone:0,iron:0};S.stock={wood:30,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,game:0,rope:0,charcoal:0,bars:0,weapons:0,clay:0,bricks:0,lime:0,salt:0,cured:0,cheese:0,beer:0,wine:0,hides:0,leather:0,shoes:0};S.inflight={wood:0,stone:0,iron:0};S.grow=0;S.left=0;S.att={joy:0,unemp:0,a:0,bonus:0};S.pet=[];S.petNext=0;S.petSeq=0;S.petOk=0;S.petNo=0;S.petLate=0;S.arrivedFam=0;S.barters=0;S.helps=0;S.visits=0;S.settled=0;S.season=0;S.year=1;S.frozen=false;acc.a1=0;acc.a05=0;acc.farm=0;acc.attr=99;for(const k in told)delete told[k];
   S.deathsBy={age:0,cold:0,hunger:0,ill:0};S.plague={on:false,since:0,dead:0};S.inherits=0;S.cured=0;S.sickTot=0;S.moves=0;S.made={};S.delivered=0;S.coins=COINS0;S.fin=mkFin();S.taxDay=-1;S.taxRate='normal';S.ledger={snap:null,rows:[]};S.routes=mkRoutes();S.tradeOpt={sell:true,buy:true};S.tlog=[];S.trade={sold:0,bought:0,visits:0};
   S.story=!!(opt&&opt.story);S.rank=0;S.proj={};S.edp=1;S.msgs=[];S.raid=raid0();S.wolf=wolf0();S.war=war0();S.rk=0;
   let okT=false,att=0;const base=(sd||7)|0;
@@ -1122,11 +1120,13 @@ const PLANK_CAP=24,PLANK_WOOD=2;
 const MATS=['wood','stone','planks','bricks','lime'];
 const mkMat=()=>({wood:0,stone:0,planks:0,bricks:0,lime:0});
 const BRICK_STONE=1.5;
+const hasMagazzino=()=>{for(const b of buildings.values())if(b.type==='store'&&!b.center&&b.state==='done')return true;return false;};
 function costOf(type){
   const c=BT[type].cost;let wood=c.wood,stone=c.stone,planks=c.planks||0,bricks=c.bricks||0,lime=c.lime||0;
-  if(planks&&!countDone('carpenter')){wood+=PLANK_WOOD*planks;planks=0;}
-  if(bricks&&!countDone('brickworks')){stone+=Math.ceil(bricks*BRICK_STONE);bricks=0;}
-  if(lime&&!countDone('limekiln')){stone+=Math.ceil(lime*BRICK_STONE);lime=0;}
+  const noMag=!hasMagazzino(); // v76: assi, mattoni e calce si stoccano solo in un Magazzino: senza, i cantieri si pagano in legno e pietra
+  if(planks&&(noMag||!countDone('carpenter'))){wood+=PLANK_WOOD*planks;planks=0;}
+  if(bricks&&(noMag||!countDone('brickworks'))){stone+=Math.ceil(bricks*BRICK_STONE);bricks=0;}
+  if(lime&&(noMag||!countDone('limekiln'))){stone+=Math.ceil(lime*BRICK_STONE);lime=0;}
   return {wood,stone,planks,bricks,lime};
 }
 const costRes=b=>b.cost||costOf(b.type);
@@ -1349,7 +1349,8 @@ function nearestOf(type,cell,maxd){
   for(const b of buildings.values()){if(b.type!==type||b.state!=='done')continue;const d=(b.cell%N-cx)**2+((b.cell/N|0)-cy)**2;if(d<bd){bd=d;best=b;}}
   return best;
 }
-const nearestStore=cell=>nearestOf('store',cell,600);
+// v62: i materiali si consegnano al Magazzino più vicino; il centro cittadino solo se non c'è nessun Magazzino
+const nearestStore=cell=>{let best=null,bd=600*600;const cx=cell%N,cy=(cell/N)|0;for(const b of buildings.values()){if(b.type!=='store'||b.state!=='done'||b.center)continue;const d=(b.cell%N-cx)**2+((b.cell/N|0)-cy)**2;if(d<bd){bd=d;best=b;}}return best||nearestOf('store',cell,600);};
 // magazziniere: porta dal magazzino ai cantieri
 // v46: chi porta un carico lo prende al magazzino e lo porta a UN cantiere preciso. own=true: lo porta il costruttore di quel cantiere
 // v47: a mano si porta 1 pezzo per viaggio, col carretto 3. Il carretto ce l'hanno solo gli abitanti che lavorano in un Magazzino o nel centro
@@ -1461,6 +1462,7 @@ function findResource(arr,b,r,v){
   return best;
 }
 function startTransfer(v,b){
+  return false; // v62: i materiali vanno direttamente al Magazzino, niente più trasferimenti dal centro
   const ctr=[...buildings.values()].find(q=>q.type==='store'&&q.center&&q.state==='done');if(!ctr)return false;
   for(const r of ['wood','stone','iron']){
     if(heldCenter(r)<1||S.wh[r]+S.xf[r]>=capSec(r))continue;
@@ -2335,7 +2337,7 @@ function jobNeed(r){
   for(const b of buildings.values())if(b.state==='site'){const c=costRes(b);n+=Math.max(0,(c[r]||0)-((b.got&&b.got[r])||0)-((b.fly&&b.fly[r])||0));}
   return n+needAll(r);
 }
-const jobStock=r=>(S.stock[r]||0)+((TRADE_STOCK[r]||TRADE_FOOD[r])?0:shelfTotal(r));
+const jobStock=r=>S.stock[r]||0; // v76: gli scaffali non contano come scorta
 const jobSurplus=r=>jobStock(r)>jobNeed(r)*JOB_MARGIN;
 function rebalanceJobs(){
   // prestito senza più edifici del mestiere di base: il lavoro attuale diventa il mestiere
@@ -3449,7 +3451,7 @@ const tradeKeep=g=>T_KEEP[g]+(TRADE_STOCK[g]?0:needAll(g));
 function poolOf(g){
   if(TRADE_STOCK[g])return Math.min(heldOf(g),uncommitted(g));
   if(TRADE_FOOD[g])return Math.floor(S.stock[g]||0);
-  return shelfTotal(g)+Math.floor(S.stock[g]||0);
+  return Math.floor(S.stock[g]||0);
 }
 // quanto il paese può vendere senza restare a corto / quanto comprerebbe volentieri
 function surplusOf(g){return Math.max(0,Math.floor(poolOf(g)-tradeKeep(g)));}
@@ -3457,19 +3459,18 @@ function demandOf(g){
   if(TRADE_STOCK[g]){if(g==='planks'&&!countDone('carpenter'))return 0;if(g==='weapons'&&!countDone('barracks'))return 0;return Math.max(0,Math.min(T_TARGET[g]-S.stock[g],stockRoom(g)));}
   const need=needAll(g);if(need<=0)return 0;
   if(TRADE_FOOD[g])return Math.max(0,Math.min(T_TARGET[g]-poolOf(g),need));
-  return Math.max(0,Math.min(T_TARGET[g]-poolOf(g),shelfRoom(g),need));
+  return Math.max(0,Math.min(T_TARGET[g]-poolOf(g),stockRoom(g),need));
 }
 function takeGood(g,q){
   q=Math.min(q,surplusOf(g));if(q<=0)return 0;
   if(TRADE_STOCK[g]||TRADE_FOOD[g]){S.stock[g]-=q;return q;}
-  let left=q;const st=Math.min(Math.floor(S.stock[g]||0),left);S.stock[g]-=st;left-=st;
-  for(const o of openMerceries()){if(left<=0)break;const n=Math.min(left,o.shelf[g]||0);o.shelf[g]-=n;left-=n;}
-  return q-left;
+  const st=Math.min(Math.floor(S.stock[g]||0),q);S.stock[g]-=st;return st;
 }
 function receiveGood(g,q){
   q=Math.min(q,demandOf(g));if(q<=0)return 0;
   if(TRADE_STOCK[g]){S.stock[g]+=q;return q;}
   let left=q;
+  if(!TRADE_FOOD[g]){const n=Math.min(q,stockRoom(g));S.stock[g]+=n;return n;}
   if(TRADE_FOOD[g]){
     const hs=[...buildings.values()].filter(h=>h.type==='house'&&h.state==='done'&&h.members.length&&needOfGood(h,g)>0).sort((a,b)=>needOfGood(b,g)-needOfGood(a,g));
     for(const h of hs){const n=Math.min(left,Math.ceil(needOfGood(h,g)));h.goods[g]+=n;left-=n;if(left<=0)break;}

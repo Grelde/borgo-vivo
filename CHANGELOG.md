@@ -1,5 +1,15 @@
 # Changelog
 
+## v89 – 2026-11-28
+Cambio di regole: scaffali e depositi di bottega fuori dal conto, massimale 100 per oggetto, Centro Cittadino piccolo.
+- **Fuori dal conto:** gli scaffali delle merceria e i depositi di uscita delle botteghe non contano come scorta: le carovane vendono (e il cambio lavoro si calcola) solo sulle scorte stoccate in Magazzino/Granaio, e ciò che le carovane comprano va in Magazzino. Le consegne dirette dalla bottega alle case continuano a prendere dal deposito della bottega; l'eccedenza (da 6 pezzi) va al Magazzino come prima.
+- **Massimale 100 per oggetto:** ogni merce in Magazzino/Granaio ha al massimo 100 (configurabile fino a 100); il totale per edificio resta 1000.
+- **Centro Cittadino:** tiene al massimo 30 unità e solo di materie prime (legno, pietra, ferro, argilla); assi, carbone, barre e il resto stanno solo nel Magazzino. Se esiste un Magazzino i materiali vanno consegnati lì e il centro tiene solo il resto; i trasferimenti centro-magazzino non servono più. Il cibo di fattorie e filiera resta solo nel Granaio. Legno iniziale 30.
+- Correzione: `uncommitted()` dava NaN con cantieri senza contatori di corde (denari NaN nel commercio): `commercio.js` ora passa.
+- **Addetti raddoppiati:** Magazzino da 3 a 6 (posti 6), Granaio da 1 a 2 (posti 4).
+- **Senza Magazzino** assi, mattoni e calce nei cantieri si pagano in legno e pietra (il centro non li stocca).
+- Test adattati (storage, commercio, workshops, ferro, merceria, lavoro-stabile, conserve, laterizi, stipendi, tasse): servono un Magazzino e un Granaio veri. `lavoro-stabile.js` può fallire su un seme (1 addetto malato contato come in prestito); `commercio-render.js`, `densita.js` e `lotti.js` falliscono già sul remoto.
+
 ## v88 – 2026-11-28
 Funzione nuova: il Granaio ha il granaiolo con la cariola; pescato e caccia restano nella capanna finché non li ritira lui.
 - **Granaio con 2 posti (granaiolo):** prima non aveva addetti. Il granaiolo va a piedi alle capanne del pescatore e del cacciatore, carica con la **cariola** fino a `BARROW_LOAD` = 6 pezzi per viaggio (a mano si porta 1, col carretto del magazziniere 3) e li porta al Granaio (`toHut` → `toStockG`).

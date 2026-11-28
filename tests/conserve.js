@@ -20,12 +20,13 @@ function put1(type,x0,y0){
 }
 const put=(type,x0,y0)=>put1(type,x0,y0)||[[90,125],[115,80],[75,100],[120,115],[65,115],[95,70],[110,135]].map(o=>put1(type,o[0],o[1])).find(Boolean)||null;
 for(const [t,x,y] of [['plaza',90,90],['well',84,96],['church',90,108],['store',96,98],['granary',104,100]])Sim.place(t,x,y,0);
+put('store',96,112); // v89: serve un Magazzino vero (il centro tiene solo 30 materie prime)
 // le sei botteghe si piazzano subito, a mappa ancora libera (più avanti case e boschi occupano lo spazio)
 const br=put('brewery',100,112),sm=put('smokehouse',112,104),sf=put('sheepfold',70,70),da=put('dairy',80,84),sl=put('saltworks',118,138),bu=put('butcher',108,112);
 run(10);
 let farms=done('farm');for(let k=0;k<20&&!farms.length;k++){run(3);farms=done('farm');}
 console.log('Abitanti',Sim.villagers().length,'fattorie',farms.length,'granai',done('granary').length);
-ok(done('granary').length===1&&done('store').length===1,'Granaio e Magazzino pronti');
+ok(done('granary').length===1&&done('store').length>=2,'Granaio e Magazzino pronti');
 console.log('1) costi e albero');
 const cs=Sim.costOf('saltworks'),cw=Sim.costOf('winery');
 ok(cs.bricks===0&&cs.stone===4+Math.ceil(4*1.5),'salina senza fornace: mattoni in pietra '+JSON.stringify(cs));
@@ -92,8 +93,8 @@ S.stock.wine=25;S.stock.salt=0;
 ok(Sim.TOWNS.n.buys.wine>0&&Sim.TOWNS.e.buys.cured>0&&Sim.TOWNS.w.buys.cheese>0&&Sim.TOWNS.s.buys.beer>0,'le città comprano vino, conserve, formaggio, birra');
 ok(Sim.TOWNS.n.sells.salt>0&&Sim.TOWNS.e.sells.salt>0,'e vendono sale');
 ok(Sim.surplusOf('wine')>0,'vino in eccedenza da vendere: '+Sim.surplusOf('wine'));
-ok(Sim.demandOf('salt')>0,'senza sale lo si compra: '+Sim.demandOf('salt'));
-const mi=Sim.storeInfo(done('store')[0]),gi=Sim.storeInfo(done('granary')[0]);
+S.stock.salt=0;ok(Sim.demandOf('salt')>0,'senza sale lo si compra: '+Sim.demandOf('salt'));
+const mi=Sim.storeInfo(done('store').find(b=>!b.center)),gi=Sim.storeInfo(done('granary')[0]);
 ok(mi.keys.includes('salt'),'il Magazzino accoglie il sale');
 ok(['cured','cheese','beer','wine'].every(k=>gi.keys.includes(k)),'il Granaio accoglie conserve, formaggio, birra e vino: '+gi.keys.join(','));
 console.log('8) salvataggio e vecchi salvataggi');

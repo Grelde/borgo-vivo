@@ -1,4 +1,4 @@
-// v76: fertilità che rende, ricchezza dei giacimenti, falde acquifere e Rabdomante.
+// v89: fertilità che rende, ricchezza dei giacimenti, falde acquifere e Rabdomante.
 const Sim=require('../src/sim.js');const {N,SC,grids:G,S}=Sim;const FE=Sim.env.fert;
 let fail=0,n=0;const ok=(c,m)=>{n++;if(!c){fail++;console.log('FALLITO:',m);}};
 const run=(sec,dt=0.2)=>{for(let i=0;i<sec/dt;i++)Sim.step(dt);};

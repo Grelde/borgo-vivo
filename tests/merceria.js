@@ -4,7 +4,7 @@ const Sim=require('../src/sim.js');const S=Sim.S;
 let fails=0;const ok=(c,m)=>{console.log((c?'  ok ':'  ERRORE ')+m);if(!c)fails++;};
 Sim.init(7,'lake');S.stock.wood=500;S.stock.stone=300;
 Sim.paintDistrict(60,100,125,128,1);Sim.paintDistrict(100,70,130,92,3);Sim.paintDistrict(60,60,90,92,5);
-const hold=()=>{S.stock.wood=Math.max(S.stock.wood,300);S.stock.stone=Math.max(S.stock.stone,200);S.stock.iron=Math.max(S.stock.iron,60);S.stock.flour=Math.max(S.stock.flour,60);};
+const hold=()=>{S.stock.wood=Math.max(S.stock.wood,Math.min(300,Sim.capRes('wood')));S.stock.stone=Math.max(S.stock.stone,Math.min(200,Sim.capRes('stone')));S.stock.iron=Math.max(S.stock.iron,Math.min(60,Sim.capRes('iron')));S.stock.flour=Math.max(S.stock.flour,60);};
 const run=d=>{for(let i=0;i<d*Sim.DAY/0.2;i++){Sim.step(0.2);if(i%10===0)hold();}};
 const B=()=>[...Sim.buildings().values()];
 const of=t=>B().filter(b=>b.type===t);
@@ -18,6 +18,7 @@ function put(type,x0,y0){
   return null;
 }
 for(const [t,x,y] of [['plaza',90,90],['well',84,96],['church',90,108]])Sim.place(t,x,y,0);
+put('store',96,112);put('granary',112,116); // v64: il centro tiene solo 30 materie prime
 run(12);
 console.log('Abitanti',Sim.villagers().length,'case',hs().length);
 

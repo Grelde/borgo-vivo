@@ -1,4 +1,4 @@
-# Borgo Vivo — macro argomenti (stato a v88)
+# Borgo Vivo — macro argomenti (stato a v89)
 
 Prototipo: city builder medievale, un solo file HTML (Three.js). Sorgente di riferimento: il repository GitHub `Grelde/borgo-vivo` (`src/`, build con `./build.sh`, gioco in `index.html`). I documenti `claude/borgo-vivo-v*.html` nel Progetto sono solo istantanee. La v21 unisce la linea "popolazione" (malattie, eredità, editti, scheda, legna per casa) con la linea "giardini puri" (35% di giardini che non diventano mai allevamento/bottega; solo le case col giardino della legna la raccolgono, le altre la comprano al mercato).
 

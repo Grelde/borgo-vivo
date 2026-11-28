@@ -3,7 +3,7 @@ const Sim=require('../src/sim.js');const S=Sim.S;
 let fails=0;const ok=(c,m)=>{console.log((c?'  ok ':'  ERRORE ')+m);if(!c)fails++;};
 Sim.init(7,'lake','facile');S.stock.wood=500;S.stock.stone=300;S.stock.planks=20;
 Sim.paintDistrict(60,100,125,128,1);Sim.paintDistrict(100,70,130,92,3);Sim.paintDistrict(60,60,90,92,5);
-const hold=()=>{S.stock.wood=Math.max(S.stock.wood,300);S.stock.stone=Math.max(S.stock.stone,200);};
+const hold=()=>{S.stock.wood=Math.max(S.stock.wood,Math.min(300,Sim.capRes('wood')));S.stock.stone=Math.max(S.stock.stone,Math.min(200,Sim.capRes('stone')));};
 const run=d=>{for(let i=0;i<d*Sim.DAY/0.2;i++){Sim.step(0.2);if(i%10===0)hold();}};
 const B=()=>[...Sim.buildings().values()];
 const done=t=>B().filter(b=>b.type===t&&b.state==='done');
@@ -15,6 +15,7 @@ function put(type,x0,y0){
   return null;
 }
 for(const [t,x,y] of [['plaza',90,90],['well',84,96],['church',90,108],['store',96,98]])Sim.place(t,x,y,0);
+{const stM=put('store',96,112);if(stM)Sim.setPolicy(stM.id,'tools',{on:false});} // v64: il centro tiene solo 30 materie prime; attrezzi non stoccati (niente eccedenza che metta in prestito il fabbro)
 run(10);
 console.log('1) senza fonderia la fucina lavora come prima');
 S.stock.iron=40;S.stock.bars=0;

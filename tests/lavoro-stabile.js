@@ -20,12 +20,13 @@ for(const seed of [3,7,11]){
   Math.random=mulberry(seed*104729+5);
   Sim.init(seed,'lake');S.stock.wood=70;S.stock.stone=50;
   Sim.paintDistrict(76,76,106,104,1);
-  run(2,()=>{S.stock.wood=Math.max(S.stock.wood,70);S.stock.stone=Math.max(S.stock.stone,50);});
+  run(2,()=>{S.stock.wood=Math.max(S.stock.wood,Math.min(70,Sim.capRes('wood')));S.stock.stone=Math.max(S.stock.stone,Math.min(50,Sim.capRes('stone')));});
   put('well',92,88,28);put('wood',70,80,28);put('quarry',112,92,28);
-  run(8,()=>{S.stock.wood=Math.max(S.stock.wood,70);S.stock.stone=Math.max(S.stock.stone,50);});
+  run(8,()=>{S.stock.wood=Math.max(S.stock.wood,Math.min(70,Sim.capRes('wood')));S.stock.stone=Math.max(S.stock.stone,Math.min(50,Sim.capRes('stone')));});
   const wc=done('wood')[0],qu=done('quarry')[0];
   ok(wc&&qu,'seed '+seed+': taglialegna e cava completati');if(!wc||!qu)continue;
   ok(wc.workers.length>=1,'seed '+seed+': il taglialegna ha addetti ('+wc.workers.length+')');
+  put('store',92,96,28);run(8,()=>{S.stock.wood=Math.min(S.stock.wood,50);S.stock.stone=Math.min(S.stock.stone,40);}); // v64: Magazzino per tenere le scorte (qui basse: niente eccedenza)
   crew=wc.workers.slice();sick.clear();
 
   // 2) soglia esatta (stato fermo, nessun passo)

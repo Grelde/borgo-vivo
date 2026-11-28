@@ -19,6 +19,7 @@ function put(type,x0,y0){
   return null;
 }
 for(const [t,x,y] of [['plaza',90,90],['well',84,96],['church',90,108]])Sim.place(t,x,y,0);
+put('store',96,112);put('granary',112,116); // v62: il centro tiene solo 30 materie prime, il resto sta nel Magazzino
 run(12,true);
 console.log('Abitanti',Sim.villagers().length,'case',hs().length);
 
@@ -67,6 +68,7 @@ S.routes.forEach(r=>{r.open=true;r.next=1e9;});
 S.edicts.quarantine=false;S.coins=500;
 const mer=done('mercery')[0];
 // vendita dal magazzino: solo sopra la scorta da tenere
+for(const k of ['wood','stone','iron']){S.wh[k]=0;S.xf[k]=0;}
 S.stock.wood=Sim.T_KEEP.wood-10;S.stock.stone=Sim.T_KEEP.stone+30;
 const e1=Sim._t.doTrade({route:'w'});
 ok(e1&&!e1.sold.some(x=>x.k==='wood'),'sotto la scorta da tenere il legno non si vende');
@@ -74,21 +76,21 @@ ok(e1.sold.some(x=>x.k==='stone')&&e1.sold.find(x=>x.k==='stone').q<=Sim.VISIT_C
 ok(S.stock.stone>=Sim.T_KEEP.stone,'la pietra non scende sotto la soglia: '+S.stock.stone);
 // vendita dagli scaffali della merceria: pane oltre il fabbisogno delle case
 for(const h of hs())h.goods.bread=5;
-mer.shelf.bread=40;S.stock.bread=0;
+mer.shelf.bread=0;S.stock.bread=40;
 const need=Sim.needAll('bread'),keep=Sim.T_KEEP.bread+need;
-ok(Sim.surplusOf('bread')===Math.max(0,40-keep),'eccedenza di pane = scaffale - (scorta da tenere + bisogno delle case): '+Sim.surplusOf('bread'));
-const b0=mer.shelf.bread;const e1b=Sim._t.doTrade({route:'w'});
+ok(Sim.surplusOf('bread')===Math.max(0,40-keep),'eccedenza di pane = scorta nei Granai - (scorta da tenere + bisogno delle case): '+Sim.surplusOf('bread'));
+const b0=S.stock.bread;const e1b=Sim._t.doTrade({route:'w'});
 const soldBread=(e1b.sold.find(x=>x.k==='bread')||{q:0}).q;
-ok(soldBread===Math.min(Sim.VISIT_CAP,Math.max(0,40-keep))&&mer.shelf.bread===b0-soldBread,'pane venduto dagli scaffali: '+soldBread+' (scaffale '+b0+' -> '+mer.shelf.bread+')');
+ok(soldBread===Math.min(Sim.VISIT_CAP,Math.max(0,40-keep))&&S.stock.bread===b0-soldBread,'pane venduto dalla scorta dei Granai: '+soldBread+' ('+b0+' -> '+S.stock.bread+')');
 // se le case hanno bisogno di pane non si vende oltre il necessario
-for(const h of hs())h.goods.bread=0;mer.shelf.bread=10;
+for(const h of hs())h.goods.bread=0;S.stock.bread=10;mer.shelf.bread=500;
 ok(Sim.surplusOf('bread')===0,'con le case a corto di pane non si vende pane');
 // acquisto: ferro mancante da Rocca Alta, fino al fabbisogno e mai oltre
 S.stock.iron=0;S.coins=500;
 for(const h of hs())h.goods.tools=0;mer.shelf.tools=0;S.stock.tools=0;
 let spentTot=0;for(let k=0;k<6;k++){const c=S.coins;const e=Sim._t.doTrade({route:'n'});spentTot+=c-S.coins;ok(e.earned>=0&&e.spent>=0,'visita '+k+' ok');}
 ok(S.stock.iron>0&&S.stock.iron<=Sim.T_TARGET.iron,'ferro comprato fino al fabbisogno: '+S.stock.iron+' (max '+Sim.T_TARGET.iron+')');
-ok(mer.shelf.tools>=1&&mer.shelf.tools<=Sim.T_TARGET.tools,'attrezzi comprati e messi sugli scaffali della merceria: '+mer.shelf.tools+' (max '+Sim.T_TARGET.tools+')');
+ok(S.stock.tools>=1&&S.stock.tools<=Sim.T_TARGET.tools,'attrezzi comprati e messi in Magazzino: '+S.stock.tools+' (max '+Sim.T_TARGET.tools+')');
 ok(spentTot>0,'denari spesi per gli acquisti: '+spentTot);
 // senza denari non si compra
 S.coins=0;S.stock.iron=0;const e2=Sim._t.doTrade({route:'n'});

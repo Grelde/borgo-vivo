@@ -19,6 +19,7 @@ function put(type,x0,y0){
   return null;
 }
 for(const [t,x,y] of [['plaza',90,90],['well',84,96],['church',90,108]])Sim.place(t,x,y,0);
+put('store',96,112);put('granary',112,116); // v62: il centro tiene solo 30 materie prime, il resto sta nel Magazzino
 run(12);
 console.log('Abitanti',Sim.villagers().length,'case',hs().length);
 
@@ -52,7 +53,7 @@ top('iron',60);top('flour',60);
 const sm=put('smithy',108,100),ba=put('bakery',112,104);ok(!!sm&&!!ba,'fucina e forno piazzati');
 run(12);hold();top('iron',60);top('flour',60);run(10);
 const smd=done('smithy')[0],bad=done('bakery')[0];
-ok(smd&&smd.workers.length>=1,'fabbro con addetti');ok(bad&&bad.workers.length>=1,'panettiere con addetti');
+ok(smd&&(smd.workers.length>=1||smd.sur),'fabbro con addetti (o in prestito per attrezzi in eccedenza)');ok(bad&&(bad.workers.length>=1||bad.sur),'panettiere con addetti (o in prestito per pane in eccedenza)');
 ok((S.made.smithy|0)>0&&(S.made.bakery|0)>0,'cicli di lavoro: fucina '+S.made.smithy+', forno '+S.made.bakery);
 const withTools=hs().filter(h=>h.goods.tools>=1).length;
 ok(withTools>0,'attrezzi consegnati alle case: '+withTools+' su '+hs().length);

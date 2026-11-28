@@ -25,7 +25,7 @@ const ctr=B().find(b=>b.type==='store'&&b.center);
 ok(!!ctr,'centro cittadino presente');
 ok(Sim.setPolicy(ctr.id,'wood',{on:false})===false,'il centro non si configura');
 ok(Sim.capRes('wood')===Sim.CENTER_CAP&&Sim.capRes('tools')===0&&Sim.capRes('grain')===0,'senza Magazzino e Granaio: legno '+Sim.capRes('wood')+' (80 come prima), attrezzi e grano 0');
-const M=put('store',100,100),G=put('granary',108,100);
+S.stock.wood=500;S.stock.stone=300;const M=put('store',100,100),G=put('granary',108,100);
 ok(!!M&&!!G,'Magazzino e Granaio piazzati');
 run(10);
 ok(M.state==='done'&&G.state==='done','Magazzino e Granaio completati');
@@ -34,23 +34,23 @@ ok(mi.total===1000&&gi.total===1000,'1000 unità in tutto per edificio');
 ok(JSON.stringify(mi.keys)===JSON.stringify(['wood','stone','iron','planks','tools','cloth','clothes','rope','charcoal','bars','weapons','clay','bricks','lime','salt','hides','leather','shoes']),'il Magazzino accoglie materiali e prodotti degli artigiani: '+mi.keys.join(','));
 ok(JSON.stringify(gi.keys)===JSON.stringify(['grain','flour','bread','fish','meat','game','cured','cheese','beer','wine']),'il Granaio accoglie cibo di fattorie e filiera: '+gi.keys.join(','));
 ok(!mi.keys.concat(gi.keys).some(k=>['veg','eggs','firewood'].includes(k)),'nessuna merce dei giardini (ortaggi, uova, legna da ardere)');
-ok(mi.pol.every(p=>p.on&&p.max===1000)&&gi.pol.every(p=>p.on&&p.max===1000),'di base tutto acceso con massimale 1000');
+ok(mi.pol.every(p=>p.on&&p.max===100)&&gi.pol.every(p=>p.on&&p.max===100),'di base tutto acceso con massimale 100 per oggetto');
 ok(Sim.setPolicy(G.id,'tools',{on:false})===false&&Sim.setPolicy(M.id,'bread',{on:true})===false,'una merce non adatta all\'edificio non si configura (attrezzi al Granaio, pane al Magazzino)');
 
 console.log('2) accettazione e massimale per merce');
 const w0=Sim.capRes('wood');
 // il posto del Magazzino è condiviso: la capacità per il legno è 1000 meno quanto occupano le altre merci
 const miw=Sim.storeInfo(M),usedOther=miw.tot-miw.pol.find(p=>p.k==='wood').held;
-ok(w0===Sim.CENTER_CAP+1000-usedOther,'legno: centro 80 + Magazzino (1000 meno '+usedOther+' occupati da altre merci) = '+w0);
+ok(w0===Sim.CENTER_CAP+Math.min(100,1000-usedOther),'legno: centro 80 + Magazzino (massimo 100 per oggetto) = '+w0);
 Sim.setPolicy(M.id,'wood',{on:false});
 ok(Sim.capRes('wood')===Sim.CENTER_CAP,'legno spento nel Magazzino: resta solo il centro ('+Sim.capRes('wood')+')');
 Sim.setPolicy(M.id,'wood',{on:true});
-Sim.setPolicy(M.id,'stone',{max:200});
-ok(Sim.capRes('stone')===Sim.CENTER_CAP+200,'massimale pietra 200: '+Sim.capRes('stone'));
-Sim.setPolicy(M.id,'stone',{max:99999});ok(Sim.storeInfo(M).pol.find(p=>p.k==='stone').max===1000,'massimale limitato a 1000');
+Sim.setPolicy(M.id,'stone',{max:60});
+ok(Sim.capRes('stone')===Sim.CENTER_CAP+60,'massimale pietra 60: '+Sim.capRes('stone'));
+Sim.setPolicy(M.id,'stone',{max:99999});ok(Sim.storeInfo(M).pol.find(p=>p.k==='stone').max===100,'massimale limitato a 100 per oggetto');
 Sim.setPolicy(M.id,'stone',{max:-5});ok(Sim.storeInfo(M).pol.find(p=>p.k==='stone').max===0,'massimale negativo diventa 0');
 Sim.setPolicy(M.id,'stone',{max:'abc'});ok(Sim.storeInfo(M).pol.find(p=>p.k==='stone').max===0,'valore non numerico ignorato');
-Sim.setPolicy(M.id,'stone',{max:1000});
+Sim.setPolicy(M.id,'stone',{max:100});
 
 console.log('3) totale condiviso di 1000 per edificio');
 const keep={wood:S.stock.wood,stone:S.stock.stone};
@@ -58,8 +58,8 @@ Sim.setPolicy(M.id,'wood',{max:700});Sim.setPolicy(M.id,'stone',{max:700});
 S.stock.wood=700;S.stock.stone=700;
 const mi2=Sim.storeInfo(M);
 ok(mi2.tot<=1000,'il Magazzino non supera 1000 in tutto: '+mi2.tot);
-ok(Sim.stockRoom('stone')===0||mi2.tot===1000||mi2.pol.find(p=>p.k==='stone').held===700-Sim.CENTER_CAP,'la pietra trova posto solo finché il totale non è pieno: spazio '+Sim.stockRoom('stone'));
-S.stock.wood=keep.wood;S.stock.stone=keep.stone;Sim.setPolicy(M.id,'wood',{max:1000});Sim.setPolicy(M.id,'stone',{max:1000});
+ok(mi2.pol.every(p=>p.held<=100),'nessuna merce oltre 100 nel Magazzino');
+S.stock.wood=keep.wood;S.stock.stone=keep.stone;Sim.setPolicy(M.id,'wood',{max:100});Sim.setPolicy(M.id,'stone',{max:100});
 
 console.log('4) prodotti degli artigiani: solo se accettati');
 for(const b of B())if(b.type==='house'&&b.state==='done')for(const g of ['tools','bread'])b.goods[g]=12;
@@ -98,14 +98,14 @@ console.log('6) v53: conta solo ciò che è stoccato in Granai, Magazzini e Cent
   S.stock.bread=7;S.stock.fish=3;S.stock.meat=2;
   ok(Sim.stats().food===12,'pane 7 + pesce 3 + carne 2 nei Granai: Cibo = '+Sim.stats().food+' (12)');
   // merce spenta: ciò che c'era non conta più, ma non va perso
-  Sim.setPolicy(M.id,'tools',{on:true,max:1000});S.stock.tools=40;S.extra={};Sim.reconcileStock();
+  Sim.setPolicy(M.id,'tools',{on:true,max:100});S.stock.tools=40;S.extra={};Sim.reconcileStock();
   ok(S.stock.tools===40&&!S.extra.tools,'attrezzi 40 stoccati nel Magazzino: tutti contano');
   Sim.setPolicy(M.id,'tools',{on:false});Sim.reconcileStock();
   ok(S.stock.tools===0&&S.extra.tools===40,'Magazzino spento per gli attrezzi: 0 contano, 40 fuori dal conto ('+S.stock.tools+', '+S.extra.tools+')');
   ok(Sim.stockRoom('tools')===0,'e non si può consegnare altro finché non c\'è posto');
   Sim.setPolicy(M.id,'tools',{on:true,max:25});Sim.reconcileStock();
   ok(S.stock.tools===25&&S.extra.tools===15,'massimale 25: 25 contano, 15 restano fuori ('+S.stock.tools+', '+S.extra.tools+')');
-  Sim.setPolicy(M.id,'tools',{max:1000});Sim.reconcileStock();
+  Sim.setPolicy(M.id,'tools',{max:100});Sim.reconcileStock();
   ok(S.stock.tools===40&&!S.extra.tools,'tornato il posto: rientrano tutti i 40, niente perso');
   ok(Sim.stats().extra===0,'stats: nulla fuori dal conto');
   // legno oltre la capacità (rimborso, regalo): l'eccedenza non conta
