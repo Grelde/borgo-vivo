@@ -23,7 +23,7 @@ global.Blob=class{constructor(p,o){this.p=p;this.o=o;}};global.URL={createObject
 const errs=[];console.error=(...a)=>{errs.push(a.map(x=>x&&x.stack||String(x)).join(' '));};
 process.on('uncaughtException',e=>{console.log('ERRORE',e.stack);process.exit(1)});
 const fs=require('fs');
-eval(fs.readFileSync(__dirname+'/../dist/all.js','utf8').replace('requestAnimationFrame(frame);\n})();','global.__begin=begin;global.__t={writeSlot,readSlot,applySave,makeSave,quickSave,newestSave,renderSaves,loadFrom,saveTo,exportFile,autoSave,setLvl:n=>{lvl=n;showLevel(true);},ui:()=>({lvl,cleared,speed,started})};requestAnimationFrame(frame);\n})();')+';global.Sim=Sim;');
+eval(fs.readFileSync(__dirname+'/../dist/all.js','utf8').replace('requestAnimationFrame(frame);\n})();','global.__begin=begin;global.__t={writeSlot,readSlot,applySave,makeSave,quickSave,newestSave,renderSaves,loadFrom,saveTo,exportFile,autoSave,setLvl:n=>{Sim.S.rank=n;showLevel();},ui:()=>({lvl:Sim.S.rank,speed,started})};requestAnimationFrame(frame);\n})();')+';global.Sim=Sim;');
 let fails=0;const ok=(c,m)=>{console.log((c?'  ok ':'  ERRORE ')+m);if(!c)fails++;};
 const T=global.__t,S=Sim.S;
 

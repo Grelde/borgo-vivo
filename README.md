@@ -26,6 +26,7 @@ node tests/population.js         # malattie, eredità, editti (lento)
 node tests/legna.js              # legna e giardini puri (lento)
 node tests/commercio.js          # merceria, rotte e carovane (lento)
 node tests/commercio-render.js   # grafica del commercio (DOM finto)
+node tests/regno.js              # titoli del Re, progetti, predoni, caserma, guerra, salvataggi
 ```
 Dopo ogni modifica: `./build.sh`, aggiornare `CHANGELOG.md`, commit.
 

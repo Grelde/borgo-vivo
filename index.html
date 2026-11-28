@@ -41,7 +41,11 @@ body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--seri
 #lvl h2{margin:0;font:700 13px/1.2 var(--disp);letter-spacing:.1em;text-transform:uppercase;color:var(--gold);cursor:pointer;display:flex;justify-content:space-between;gap:8px}
 #lvl h2::after{content:'–';color:var(--muted)}
 #lvl.collapsed h2::after{content:'+'}
-#lvl.collapsed ul{display:none}
+#lvl.collapsed ul,#lvl.collapsed h4{display:none}
+#guide{margin:8px 0 0;font-size:16px;line-height:1.35;color:var(--parch);font-style:italic}
+#guide:empty,#goalsH:empty{display:none}
+#goalsH{margin:9px 0 0;font:700 11px/1.2 var(--disp);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+#guide.war{color:#f0b8a8;font-style:normal;font-weight:700}
 #goals{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:5px}
 #goals li{display:flex;gap:8px;align-items:baseline;font-size:15px;color:var(--parch)}
 #goals li::before{content:'';flex:none;width:11px;height:11px;border:1.5px solid var(--muted);border-radius:2px;transform:translateY(1px)}
@@ -49,8 +53,9 @@ body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--seri
 #goals li.done::before{background:var(--moss);border-color:var(--moss)}
 #goals em{font-style:normal;color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap}
 
-#edicts,#trade{position:absolute;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(12,8,3,.62);padding:12px}
-#edicts[hidden],#trade[hidden]{display:none}
+#edicts,#trade,#projects,#envoy{position:absolute;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(12,8,3,.62);padding:12px}
+#envoy{z-index:45;background:rgba(12,8,3,.74)}
+#edicts[hidden],#trade[hidden],#projects[hidden],#envoy[hidden]{display:none}
 .edBox{position:relative;width:min(600px,100%);max-height:92vh;overflow:auto;background:linear-gradient(#ecdcae,#d8c48c);color:#3a2812;border:3px solid #6b4a2b;border-radius:6px;box-shadow:0 10px 40px rgba(0,0,0,.6),inset 0 0 40px rgba(120,80,30,.35);padding:18px 20px 16px}
 .edBox h2{margin:0 0 2px;font-family:Georgia,'Times New Roman',serif;font-size:24px;text-align:center;letter-spacing:.04em;color:#4a2f12}
 .edBox .sub{margin:0 0 12px;text-align:center;font-size:13px;opacity:.8;font-style:italic}
@@ -93,6 +98,27 @@ body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.35 var(--seri
 .trP span{white-space:nowrap}
 .trLog h4{margin:10px 0 4px;font-family:Georgia,serif;font-size:14px;color:#4a2f12}
 .trLog div{font-size:12px;line-height:1.35;border-bottom:1px dashed rgba(90,60,25,.3);padding:3px 0}
+/* messo del Re e progetti (v48) */
+#envoy .edBox{width:min(520px,100%);text-align:center;padding:24px 28px 18px}
+#envoy .evSeal{width:54px;height:54px;margin:-6px auto 6px;border-radius:50%;background:radial-gradient(#c0392b,#7b1f14);color:#f6d9a0;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 2px 6px rgba(0,0,0,.5)}
+#envoy .evFrom{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#7a5a30;margin-bottom:10px}
+#envoy .evText{font-family:Georgia,'Times New Roman',serif;font-size:18px;line-height:1.45;color:#3a2812;text-align:left}
+#envoy .evText p{margin:0 0 10px}
+#envoy .evNew{margin:12px 0 4px;font-size:13px;line-height:1.4;color:#5a3c1c;text-align:left;border-top:1px dashed rgba(90,60,25,.45);padding-top:8px}
+#envoy .evBtns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+#envoy .evBtns .btn,#projects .btn{background:#5a3c1c;color:#fff0cc;border-color:#3a2410}
+.prRank{margin:14px 0 4px;font-family:Georgia,serif;font-size:15px;color:#4a2f12;border-bottom:1px solid rgba(90,60,25,.45);padding-bottom:2px}
+.prRank.lock{opacity:.6}
+.prC{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:8px 12px;margin:6px 0;border:1px solid rgba(90,60,25,.45);border-radius:5px;background:rgba(255,246,214,.55)}
+.prC b{font-family:Georgia,serif;font-size:16px;color:#3a1f0c}
+.prC span.d{display:block;font-size:12px;line-height:1.35;margin-top:2px}
+.prC.own{background:rgba(190,215,150,.45)}
+.prC.lock{opacity:.55;border-style:dashed}
+.prCost{display:flex;gap:10px;font-size:14px;margin-top:3px;color:#3a1f0c;font-variant-numeric:tabular-nums}
+.prCost span{display:inline-flex;align-items:center;gap:4px}
+.prCost span.no{color:#8c2f23;font-weight:bold}
+.prC .btn:disabled{opacity:.45;cursor:default}
+@media (max-width:560px){.prC{grid-template-columns:1fr}.prC .btn{min-height:44px}}
 @media (max-width:560px){.edC{grid-template-columns:44px 1fr}.edC .ic{width:42px;height:42px;font-size:22px}.edC .btn{grid-column:1/-1}}
 #camctl{position:absolute;top:104px;right:16px;display:flex;flex-direction:column;gap:5px}
 #camctl .btn{width:36px;height:36px;padding:0;font-size:18px;line-height:1}
@@ -259,7 +285,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v47</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v48</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -284,7 +310,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
       <input type="range" id="musVol" min="0" max="1" step="0.05" value="0.5" aria-label="Volume musica" style="width:70px;accent-color:#d6ad4e">
     </div>
   </div>
-  <div id="lvl" class="panel"><h2 id="lvlTitle"></h2><ul id="goals"></ul></div>
+  <div id="lvl" class="panel"><h2 id="lvlTitle"></h2><p id="guide"></p><h4 id="goalsH"></h4><ul id="goals"></ul></div>
   <div id="edicts" hidden role="dialog" aria-label="Editti">
     <div class="edBox"><h2>Editti del Borgo</h2><p class="sub">La tua parola è legge: emana un editto, o ritiralo quando vuoi.</p><div id="edList"></div><button class="btn x" id="edClose" type="button">Chiudi</button></div>
   </div>
@@ -293,6 +319,12 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
   </div>
   <div id="trade" hidden role="dialog" aria-label="Rotte commerciali">
     <div class="edBox"><h2>Rotte commerciali</h2><p class="sub">Quattro città vicine mandano carovane alla Merceria: apri le rotte con i denari.</p><div id="trList"></div><button class="btn x" id="trClose" type="button">Chiudi</button></div>
+  </div>
+  <div id="projects" hidden role="dialog" aria-label="Progetti del Re">
+    <div class="edBox"><h2>Progetti del Re</h2><p class="sub" id="prSub"></p><div id="prList"></div><button class="btn x" id="prClose" type="button">Chiudi</button></div>
+  </div>
+  <div id="envoy" hidden role="dialog" aria-label="Messaggio del messo">
+    <div class="edBox"><div class="evSeal">📜</div><h2 id="evTitle"></h2><div class="evFrom" id="evFrom"></div><div class="evText" id="evText"></div><div class="evNew" id="evNew"></div><div class="evBtns" id="evBtns"></div></div>
   </div>
   <div id="card" hidden role="dialog" aria-label="Scheda abitante">
     <div class="cardBox"><div id="cardBody"></div><div class="acts"><button class="btn" id="cardHome" type="button">Vai alla casa</button><button class="btn" id="cardClose" type="button">Chiudi</button></div></div>
@@ -308,6 +340,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
     <button class="btn" id="rotBtn" title="Ruota l'edificio (R): la freccia gialla indica l'ingresso" style="display:none">⟳</button>
     <button class="btn" id="edictBtn" title="Emana Editto: decreti del borgo">📜</button>
     <button class="btn" id="tradeBtn" title="Rotte commerciali e denari">💰</button>
+    <button class="btn" id="projBtn" title="Progetti del Re: compra i progetti dei nuovi edifici">🏛️</button>
     <button class="btn" id="saveBtn" title="Salvataggi (Ctrl+S salva nel posto 1)">💾</button>
     <button class="btn on" id="zoneBtn" title="Zone di caccia e pesca (J): icona arco e freccia = caccia, icona pesce = pesca">🏹</button>
     <button class="btn" id="attrBtn" title="Mappa dell'attrattiva (V): verde piacevole, rosso rumoroso">☺</button>
@@ -379,10 +412,14 @@ const BT={
   well:{name:'Pozzo',w:2,h:2,cost:{wood:2,stone:6},time:6,slots:0,want:0},
   house:{name:'Casa',w:3,h:3,cost:{wood:4,stone:0},time:6,slots:0,want:0},
   farm:{name:'Fattoria',w:6,h:6,cost:{wood:8,stone:0},time:9,slots:0,want:0},
-  stall:{name:'Banco del mercato',w:2,h:2,cost:{wood:0,stone:0},time:0,slots:0,want:0}
+  stall:{name:'Banco del mercato',w:2,h:2,cost:{wood:0,stone:0},time:0,slots:0,want:0},
+  // v48: difesa. La torre tira sui nemici entro TOWER_R celle (TOWER_DPS al secondo); la caserma manda i soldati incontro ai nemici (solo quando ce ne sono).
+  watchtower:{name:'Torre di guardia',w:4,h:4,cost:{wood:22,stone:18},time:14,slots:0,want:0},
+  barracks:{name:'Caserma',w:6,h:6,cost:{wood:26,stone:22,planks:4},time:16,slots:0,want:0}
 };
 // attrattiva: [forza, raggio in celle]. Positivo = piacevole, negativo = rumore e disagio.
 const ATTR={church:[4,36],well:[2.5,24],stall:[1.2,18],wood:[-3,24],quarry:[-4.5,33],mine:[-5,36],farm:[-1.5,18],forester:[0.6,18],granary:[-0.8,15],mill:[-1.5,21],inn:[1,21],sheepfold:[-0.8,15],school:[1,18],infirmary:[0.5,15],cemetery:[-0.5,15],plaza:[3.2,30],flowers:[0.9,12],statue:[2,21],carpenter:[-1.2,18],mason:[-1.2,18],smithy:[-1.8,21],bakery:[0.4,15],weaver:[-0.3,12],tailor:[0.2,12],mercery:[0.8,18],fisher:[-0.3,12],hunter:[-0.4,12],tavern:[1.6,24],hall:[2.6,30]};
+ATTR.watchtower=[0.4,15];ATTR.barracks=[-0.6,15];
 const DECO={flowers:1,statue:1};
 const NOGATE={house:1,stall:1,flowers:1,statue:1,plaza:1,well:1,cemetery:1};
 // Tempo (v20): 1 anno di vita = AGEY secondi; un'annata del calendario (4 stagioni) = YEARL secondi = 10 anni di vita.
@@ -413,7 +450,7 @@ const wb=i=>water[i]===1&&(ignoreFrozen||!S.frozen);
 const DX=[1,-1,0,0,1,1,-1,-1],DY=[0,0,1,-1,1,-1,1,-1];
 const rs=new Uint32Array(N*N),rq=new Int32Array(N*N);let rstamp=0;
 const ROTD=[[0,1],[-1,0],[0,-1],[1,0]];
-const hooks={building(){},done(){},removed(){},villager(){},trees(){},rocks(){},saps(){},gone(){},season(){},ground(){},toast(){},upgraded(){},regarden(){}};
+const hooks={building(){},done(){},removed(){},villager(){},trees(){},rocks(){},saps(){},gone(){},season(){},ground(){},toast(){},upgraded(){},regarden(){},shot(){}};
 let seed=7;
 const tree=new Uint8Array(N*N),rock=new Uint8Array(N*N),ore=new Uint8Array(N*N),water=new Uint8Array(N*N),sap=new Uint8Array(N*N),road=new Uint8Array(N*N),dist=new Uint8Array(N*N),occ=new Int32Array(N*N),field=new Int32Array(N*N),door=new Uint8Array(N*N),cen=new Uint8Array(N*N),gate=new Int32Array(N*N);const gatedSet=new Set();
 // wear: solo per le strade tracciate dal giocatore (usura lenta). plev/phit/pexp: livello del sentiero, passaggi nella finestra corrente, istante di scadenza del livello.
@@ -436,7 +473,8 @@ const T_KEEP={wood:60,stone:45,iron:24,planks:18,tools:14,bread:20,cloth:14,clot
 const mkRoutes=()=>ROUTE_IDS.map(id=>({id,open:false,next:0,visits:0,earned:0,spent:0,last:-1,blocked:false}));
 const S={t:0,mode:'lake',stock:{wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0},inflight:{wood:0,stone:0,iron:0},grow:0,barters:0,helps:0,visits:0,settled:0,season:0,year:1,frozen:false,day:0,f:0.06,ph:'work',wh:{wood:0,stone:0,iron:0},xf:{wood:0,stone:0,iron:0},edicts:EDICT0(),births:0,deaths:0,buried:0,unburied:0,
   deathsBy:{age:0,cold:0,hunger:0,ill:0},plague:{on:false,since:0,dead:0},inherits:0,cured:0,sickTot:0,moves:0,left:0,att:{joy:0,unemp:0,a:0,bonus:0},made:{},delivered:0,
-  coins:COINS0,routes:mkRoutes(),tradeOpt:{sell:true,buy:true},tlog:[],trade:{sold:0,bought:0,visits:0}};
+  coins:COINS0,routes:mkRoutes(),tradeOpt:{sell:true,buy:true},tlog:[],trade:{sold:0,bought:0,visits:0},
+  story:false,rank:0,proj:{},msgs:[],raid:{next:0,repelled:0,killed:0,lost:0,stolen:0,bands:{},seq:0},war:{phase:'none',at:0,wave:0,hold:0,defeats:0,killed:0},rk:0};
 const guests=[];const buildings=new Map();let villagers=[];const vmap=new Map();const resv=new Map();const plantResv=new Set();let nextId=1;
 const acc={a1:0,a05:0,farm:0,attr:99};
 const told={};
@@ -586,7 +624,7 @@ function terrainOK(mode){
   return mw>=(mode==='lake'?11:9)&&wc>=1500&&wc<=3600&&t26>=330&&t18>=100&&r26>=200&&r18>=60&&oT>=30&&o32>=12;
 }
 
-function init(sd,mode,diff){
+function init(sd,mode,diff,opt){
   seed=sd||7;S.mode=mode==='river'?'river':'lake';S.diff=DIFFS[diff]?diff:'normale';S.repairs=0;S.ruined=0;
   for(const a of [tree,rock,ore,water,sap,road,dist,door,cen])a.fill(0);
   gate.fill(0);gatedSet.clear();
@@ -594,6 +632,7 @@ function init(sd,mode,diff){
   buildings.clear();stCache=null;villagers=[];vmap.clear();reg.clear();resv.clear();plantResv.clear();nextId=1;guests.length=0;
   S.t=0;S.festA=[];S.fests=0;festSeq=0;S.edicts=EDICT0();S.births=0;S.deaths=0;S.buried=0;S.unburied=0;S.wh={wood:0,stone:0,iron:0};S.xf={wood:0,stone:0,iron:0};S.stock={wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0};S.inflight={wood:0,stone:0,iron:0};S.grow=0;S.left=0;S.att={joy:0,unemp:0,a:0,bonus:0};S.barters=0;S.helps=0;S.visits=0;S.settled=0;S.season=0;S.year=1;S.frozen=false;acc.a1=0;acc.a05=0;acc.farm=0;acc.attr=99;for(const k in told)delete told[k];
   S.deathsBy={age:0,cold:0,hunger:0,ill:0};S.plague={on:false,since:0,dead:0};S.inherits=0;S.cured=0;S.sickTot=0;S.moves=0;S.made={};S.delivered=0;S.coins=COINS0;S.routes=mkRoutes();S.tradeOpt={sell:true,buy:true};S.tlog=[];S.trade={sold:0,bought:0,visits:0};
+  S.story=!!(opt&&opt.story);S.rank=0;S.proj={};S.msgs=[];S.raid=raid0();S.war=war0();S.rk=0;
   let okT=false,att=0;const base=(sd||7)|0;
   for(;att<48&&!okT;att++){genTerrain(S.mode,base,att);okT=terrainOK(S.mode);}
   S.seed=base;S.mapTries=att;S.mapOK=okT;
@@ -936,6 +975,7 @@ function moveV(v,dt){
   const ti=v.path[0],tx=cx2w(ti%N),tz=cy2w((ti/N)|0),ni=v.path[1];
   let sp=3.0;if(road[ti])sp*=1.45;else if(tree[ti]||water[ti]===2)sp*=0.6;else if(water[ti]===1)sp*=0.85;else sp*=PSPD[plev[ti]];
   if(v.ill)sp*=0.7;
+  if(v.spd)sp*=v.spd;
   const dx=tx-v.x,dz=tz-v.z,d=Math.hypot(dx,dz),step=sp*dt;v.moving=true;
   const last=ni===undefined,reach=last?step:Math.max(step,SMOOTH_REACH);
   if(d<=reach){
@@ -2504,6 +2544,7 @@ function payG(g){
   else if(g.kind==='craftsman'){S.stock.stone+=Math.min(2,stockRoom('stone'));}
 }
 function updG(g,dt){
+  if(g.mil){updMil(g,dt);return;}
   const inn=buildings.get(g.inn);
   if(!inn&&g.state!=='gLeave'){startLeave(g,false);return;}
   switch(g.state){
@@ -2520,7 +2561,7 @@ function updG(g,dt){
 }
 function spawnGuest(){
   if(S.edicts.quarantine)return;
-  if(guests.filter(x=>!x.caravan).length>=5||(S.ph!=='work'&&S.ph!=='evening'))return;
+  if(guests.filter(x=>!x.caravan&&!x.mil).length>=5||(S.ph!=='work'&&S.ph!=='evening'))return;
   const inns=[...buildings.values()].filter(b=>b.type==='inn'&&b.state==='done'&&b.pantry>=2&&b.guestsIn<4);
   if(!inns.length)return;
   const inn=inns[(Math.random()*inns.length)|0];
@@ -2646,6 +2687,241 @@ function tradeTick(){
     guests.push(g);hooks.villager(g);return;
   }
 }
+// ---- v48: il Regno. Titoli (da Accampamento a Capitale del Regno), progetti del Re, predoni e guerra ----
+// In modalità storia (S.story) si parte con pochi strumenti: gli altri sono "progetti" che il Re concede a ogni nuovo titolo e che si comprano con risorse e, più avanti, anche con denari.
+// Fuori dalla modalità storia (test) tutto è disponibile e non arrivano né messi né nemici. S.msgs è la coda delle pergamene del messo (le legge l'interfaccia).
+const RANK_NAMES=['Accampamento','Casale','Villaggio','Borgo','Borgo fortificato','Terra murata','Città','Capitale del Regno'];
+const PROJ=[
+  {id:'well',rank:1,cost:{wood:10,stone:6}},{id:'d3',rank:1,cost:{wood:12}},{id:'store',rank:1,cost:{wood:18,stone:8}},{id:'d4',rank:1,cost:{wood:8}},{id:'forester',rank:1,cost:{wood:10}},
+  {id:'church',rank:2,cost:{wood:20,stone:30}},{id:'d2',rank:2,cost:{wood:14}},{id:'granary',rank:2,cost:{wood:16,stone:8}},{id:'carpenter',rank:2,cost:{wood:16,stone:8}},{id:'mason',rank:2,cost:{wood:12,stone:16}},{id:'fisher',rank:2,cost:{wood:12}},{id:'hunter',rank:2,cost:{wood:12}},
+  {id:'watchtower',rank:3,cost:{wood:22,stone:18}},{id:'mine',rank:3,cost:{wood:20,stone:14}},{id:'mill',rank:3,cost:{wood:20,stone:20}},{id:'school',rank:3,cost:{wood:24,stone:16}},{id:'infirmary',rank:3,cost:{wood:22,stone:16}},{id:'smithy',rank:3,cost:{wood:20,stone:20}},{id:'cemetery',rank:3,cost:{wood:12,stone:16}},
+  {id:'bakery',rank:4,cost:{wood:20,stone:20}},{id:'d5',rank:4,cost:{wood:12}},{id:'sheepfold',rank:4,cost:{wood:16,stone:4}},{id:'inn',rank:4,cost:{wood:26,stone:18}},{id:'mercery',rank:4,cost:{wood:22,stone:16}},{id:'barracks',rank:4,cost:{wood:30,stone:28}},{id:'tavern',rank:4,cost:{wood:24,stone:16}},
+  {id:'weaver',rank:5,cost:{wood:20,stone:10,coins:30}},{id:'tailor',rank:5,cost:{wood:20,stone:10,coins:30}},{id:'hall',rank:5,cost:{wood:30,stone:30,coins:60}},{id:'plaza',rank:5,cost:{stone:30,coins:40}},
+  {id:'flowers',rank:6,cost:{wood:4,coins:10}},{id:'statue',rank:6,cost:{stone:16,coins:50}}
+];
+const PROJ_BY=Object.fromEntries(PROJ.map(p=>[p.id,p]));
+const owns=id=>!S.story||!PROJ_BY[id]||!!S.proj[id];
+const TOWER_R=24,TOWER_DPS=6,SIEGE_HOLD=90,SIDE_TXT={w:'ovest',n:'nord',e:'est',s:'sud'};
+const ENEMY={raider:{hp:24,dps:4,spd:0.9},royal:{hp:90,dps:6,spd:0.9},soldier:{hp:40,dps:7,spd:1.1}};
+const raid0=()=>({next:0,repelled:0,killed:0,lost:0,stolen:0,bands:{},seq:0});
+const war0=()=>({phase:'none',at:0,wave:0,hold:0,defeats:0,killed:0});
+const nd=(t,cur,n)=>({t,cur:Math.min(cur,n),n});
+const openRoutes=()=>S.routes.filter(r=>r.open).length;
+// requisiti per il titolo successivo: RANK_NEEDS[r+1] = ciò che il Re vuole vedere per concedere il titolo r+1
+const RANK_NEEDS=[null,
+  st=>[nd('Abitanti',st.pop,8),nd('Taglialegna',st.built.wood||0,1),nd('Cava di pietra',st.built.quarry||0,1),nd('Case',st.houses,3)],
+  st=>[nd('Abitanti',st.pop,16),nd('Pozzo',st.built.well||0,1),nd('Lotti di mercato',st.dc[3],4)],
+  st=>[nd('Abitanti',st.pop,28),nd('Chiesa',st.built.church||0,1),nd('Fattoria',st.farms,1)],
+  st=>[nd('Abitanti',st.pop,40),nd('Torre di guardia',st.built.watchtower||0,1),nd('Assalti respinti',S.raid.repelled,1)],
+  st=>[nd('Abitanti',st.pop,60),nd('Merceria',st.built.mercery||0,1),nd('Locanda',st.built.inn||0,1),nd('Caserma',st.built.barracks||0,1)],
+  st=>[nd('Abitanti',st.pop,85),nd('Sala delle feste',st.built.hall||0,1),nd('Piazza',st.built.plaza||0,1),nd('Rotte aperte',openRoutes(),2)]];
+const WAR_NEEDS=st=>[nd('Abitanti',st.pop,110),nd('Case signorili',st.levels[4]+st.levels[5],3),nd('Rotte aperte',openRoutes(),3)];
+const needsMet=a=>a.every(x=>x.cur>=x.n);
+function regnoTick(){
+  if(!S.story)return;
+  S.rk=(S.rk|0)+1;
+  if(S.rk%4===0){
+    if(S.rank<6){
+      if(needsMet(RANK_NEEDS[S.rank+1](stats()))){S.rank++;S.msgs.push({k:'rank',r:S.rank});if(S.rank===3)S.raid.next=Math.round(DAY*1.5);}
+    }else if(S.rank===6&&S.war.phase==='none'&&needsMet(WAR_NEEDS(stats()))){
+      S.war.phase='warn';S.war.at=S.t+3*DAY;S.msgs.push({k:'war'});
+    }
+  }
+  raidTick();warTick();
+}
+// progetti del Re
+function projectState(id){
+  const p=PROJ_BY[id];if(!p)return {known:false};
+  const owned=!!S.proj[id]||!S.story,locked=S.rank<p.rank,miss=[];
+  for(const r of ['wood','stone','iron'])if(p.cost[r]&&uncommitted(r)<p.cost[r])miss.push(r);
+  if(p.cost.coins&&S.coins<p.cost.coins)miss.push('coins');
+  return {known:true,owned,locked,afford:!miss.length,miss,rank:p.rank,cost:p.cost};
+}
+function buyProject(id){
+  const p=PROJ_BY[id];if(!p)return {ok:false,msg:'Progetto sconosciuto.'};
+  const ps=projectState(id);
+  if(ps.owned)return {ok:false,msg:'Questo progetto è già tuo.'};
+  if(ps.locked)return {ok:false,msg:'Il Re concede questo progetto solo al titolo di '+RANK_NAMES[p.rank]+'.'};
+  if(!ps.afford){const nm={wood:'legno',stone:'pietra',iron:'ferro',coins:'denari'};return {ok:false,msg:'Non basta: servono '+ps.miss.map(r=>p.cost[r]+' di '+nm[r]).join(' e ')+' (parte del materiale è già destinata ai cantieri).'};}
+  for(const r of ['wood','stone','iron'])if(p.cost[r])S.stock[r]-=p.cost[r];
+  if(p.cost.coins)S.coins-=p.cost.coins;
+  S.proj[id]=true;
+  return {ok:true,msg:'Progetto acquistato: ora puoi costruirlo.'};
+}
+const msgCount=()=>S.msgs.length,peekMsg=()=>S.msgs[0]||null,takeMsg=()=>S.msgs.shift()||null;
+function regnoInfo(st0){
+  const st=st0||stats(),nx=S.rank<6?RANK_NEEDS[S.rank+1](st):(S.rank===6&&S.war.phase==='none')?WAR_NEEDS(st):null;
+  return {story:S.story,rank:S.rank,name:RANK_NAMES[S.rank],nextName:S.rank<6?RANK_NAMES[S.rank+1]:S.rank===6?RANK_NAMES[7]:null,needs:nx,warNeeds:S.rank===6,war:S.war,raid:S.raid,raiders:enemiesOf('raid').length,royals:enemiesOf('royal').length};
+}
+// truppe: predoni (side 'raid'), esercito del Re ('royal') e soldati della caserma ('mine') vivono in `guests` con mil:true, così si salvano e si disegnano come i viandanti
+function enemiesOf(side){const r=[];for(const g of guests)if(g.mil&&g.side===side)r.push(g);return r;}
+function newMil(side,kind,cell,path,target){
+  const E=ENEMY[kind];
+  return {id:nextId++,guest:true,mil:true,side,kind,hp:E.hp,mhp:E.hp,spd:E.spd,target,x:cx2w(cell%N),z:cy2w((cell/N)|0),cell,exit:cell,path,state:'mGo',timer:0,hold:0,moving:false,inside:false,fa:0,carry:null,res:false,horse:false,caravan:false,band:0,loot:0,home:0,tgt:0};
+}
+function pickTarget(){
+  const c=[];for(const b of buildings.values())if(b.state==='done'&&(b.type==='store'||b.type==='granary'||b.type==='mercery'))c.push(b);
+  return c.length?c[(Math.random()*c.length)|0]:null;
+}
+function pickCenter(){let c=null;for(const b of buildings.values())if(b.type==='store'&&b.state==='done'){if(b.center)return b;c=b;}return c;}
+function raidTick(){
+  const R=S.raid;
+  if(S.rank<3||S.war.phase==='warn'||S.war.phase==='fight')return;
+  if(enemiesOf('raid').length)return;
+  if(!R.seq&&!R.next)R.next=Math.round(DAY*1.5);
+  R.next=Math.max(0,R.next-1);
+  if(R.next>0||S.ph==='night')return;
+  if(!spawnRaid())R.next=15;
+}
+function spawnRaid(){
+  const t=pickTarget();if(!t)return false;
+  const side=['w','n','e','s'][(Math.random()*4)|0],n=Math.max(2,Math.min(6,S.rank)),R=S.raid,bid=++R.seq;let made=0;
+  for(let k=0;k<n;k++){
+    const c=edgeCell(side);if(c<0)continue;
+    const path=astar(c,t.cell,t.id);if(!path)continue;
+    const g=newMil('raid','raider',c,path,t.id);g.band=bid;guests.push(g);hooks.villager(g);made++;
+  }
+  if(!made)return false;
+  R.bands[bid]={n:made,k:0,l:0};
+  R.next=Math.round(DAY*(1.6+Math.random()*1.4));
+  hooks.toast('Predoni! Arrivano da '+SIDE_TXT[side]+' verso '+BT[t.type].name.toLowerCase()+'. Le torri di guardia e la caserma difendono il borgo.');
+  return true;
+}
+function milGone(g,why){
+  if(g.side==='raid'){
+    const R=S.raid,bd=R.bands[g.band];
+    if(why==='dead'){R.killed++;if(bd)bd.k++;}else{R.lost++;if(bd)bd.l++;}
+    if(bd&&bd.k+bd.l>=bd.n){
+      delete R.bands[g.band];
+      if(bd.k>=Math.ceil(bd.n/2)){R.repelled++;hooks.toast('Assalto respinto: i predoni sono stati cacciati!');}
+      else hooks.toast('I predoni sono fuggiti col bottino. Servono più torri di guardia e una caserma.');
+    }
+  }else if(g.side==='royal'&&why==='dead')S.war.killed++;
+  endGuest(g);
+}
+function milLeave(g){
+  const p=astar(g.cell,g.exit,0);
+  if(!p){milGone(g,'fled');return;}
+  g.path=p;g.state='mFlee';g.spd=(g.spd||1)*1.05;
+}
+function loot(g){
+  const k=Math.max(1,S.rank),take={wood:8+2*k,stone:5+k};let got=0;
+  for(const r of ['wood','stone']){const q=Math.max(0,Math.min(S.stock[r],take[r]));S.stock[r]-=q;got+=q;}
+  const cq=Math.min(S.coins,4*k);S.coins-=cq;got+=cq;
+  g.loot=got;S.raid.stolen+=got;
+}
+function nearestEnemy(g){
+  let best=null,bd=1e9;
+  for(const e of guests){if(!e.mil||e.side==='mine'||e.hp<=0)continue;const d=Math.hypot(e.x-g.x,e.z-g.z);if(d<bd){bd=d;best=e;}}
+  return best;
+}
+function goHomeMil(g){
+  const b=buildings.get(g.home);if(!b){milGone(g,'home');return;}
+  const p=astar(g.cell,b.entrance>=0?b.entrance:b.cell,0);if(!p){milGone(g,'home');return;}
+  g.path=p;g.state='mHome';
+}
+function updMil(g,dt){
+  if(g.hp<=0){milGone(g,'dead');return;}
+  if(g.hold>0){g.hold-=dt;g.moving=false;return;}
+  switch(g.state){
+    case 'mGo':{
+      let t=buildings.get(g.target);
+      if(!t){const nt=g.side==='royal'?pickCenter():pickTarget();if(!nt){milLeave(g);break;}g.target=nt.id;const p=astar(g.cell,nt.cell,nt.id);if(p)g.path=p;else milLeave(g);break;}
+      if(moveV(g,dt)){
+        if(g.side==='raid'){loot(g);milLeave(g);}
+        else{g.state='mSiege';g.moving=false;}
+      }
+      break;}
+    case 'mSiege':g.moving=false;break;
+    case 'mFlee':if(moveV(g,dt))milGone(g,'fled');break;
+    case 'mHunt':{
+      g.timer-=dt;
+      let e=g.tgt?guests.find(x=>x.id===g.tgt&&x.hp>0):null;
+      if(!e||g.timer<=0){
+        e=nearestEnemy(g);g.tgt=e?e.id:0;g.timer=1.4;
+        if(!e){goHomeMil(g);break;}
+        const p=astar(g.cell,e.cell,0);if(p)g.path=p;
+      }
+      if(e&&Math.hypot(e.x-g.x,e.z-g.z)>1.5)moveV(g,dt);else g.moving=false;
+      break;}
+    case 'mHome':{if(!buildings.get(g.home)){milGone(g,'home');break;}if(moveV(g,dt))milGone(g,'home');break;}
+  }
+}
+function spawnSoldier(b){
+  const c=b.entrance>=0?b.entrance:b.cell,g=newMil('mine','soldier',c,[],0);
+  g.home=b.id;g.state='mHunt';g.timer=0;guests.push(g);hooks.villager(g);
+}
+// combattimento: le torri tirano sul nemico più vicino entro TOWER_R celle; i soldati vengono alle mani con chi hanno a 1,7 passi; la caserma manda fino a 3 soldati (uno ogni 5 s) solo quando ci sono nemici
+function milTick(dt){
+  let any=false;for(const g of guests)if(g.mil){any=true;break;}
+  if(!any)return;
+  const en=[],sol=[];
+  for(const g of guests){if(!g.mil||g.hp<=0)continue;(g.side==='mine'?sol:en).push(g);}
+  if(en.length)for(const b of buildings.values()){
+    if(b.state!=='done')continue;
+    if(b.type==='watchtower'){
+      b.shotT=(b.shotT||0)-dt;
+      const bx=(b.x+b.w/2)*CS-W/2,bz=(b.y+b.h/2)*CS-W/2;let best=null,bd=TOWER_R*CS;
+      for(const e of en){const d=Math.hypot(e.x-bx,e.z-bz);if(d<bd){bd=d;best=e;}}
+      if(best){best.hp-=TOWER_DPS*dt;if(b.shotT<=0){b.shotT=0.7;hooks.shot(bx,bz,best.x,best.z);}}
+    }else if(b.type==='barracks'){
+      b.rcd=(b.rcd||0)-dt;
+      if(b.rcd>0)continue;
+      let alive=0;for(const s of sol)if(s.home===b.id)alive++;
+      if(alive<3){spawnSoldier(b);b.rcd=5;}
+    }
+  }
+  for(const s of sol){
+    let best=null,bd=1.7;for(const e of en){const d=Math.hypot(e.x-s.x,e.z-s.z);if(d<bd){bd=d;best=e;}}
+    if(best){best.hp-=ENEMY.soldier.dps*dt;s.hp-=ENEMY[best.kind].dps*dt;best.hold=Math.max(best.hold,0.25);s.hold=Math.max(s.hold,0.25);}
+  }
+}
+// guerra del Re: tre giorni dopo la dichiarazione arriva l'esercito; se tiene il centro per SIEGE_HOLD punti d'assedio il borgo perde parte delle scorte e il Re ritorna dopo due giorni
+function spawnArmy(){
+  const t=pickCenter();if(!t)return false;
+  const side=['w','n','e','s'][(Math.random()*4)|0],n=10+2*S.war.wave;let made=0;
+  for(let k=0;k<n;k++){
+    const c=edgeCell(side);if(c<0)continue;
+    const path=astar(c,t.cell,t.id);if(!path)continue;
+    const g=newMil('royal','royal',c,path,t.id);guests.push(g);hooks.villager(g);made++;
+  }
+  if(!made)return false;
+  hooks.toast('L\'esercito del Re è alle porte, da '+SIDE_TXT[side]+': difendi il centro del borgo!');
+  return true;
+}
+function warTick(){
+  const Wr=S.war;
+  if(Wr.phase==='warn'&&S.t>=Wr.at){if(spawnArmy()){Wr.phase='fight';Wr.hold=0;}else Wr.at=S.t+20;}
+  if(Wr.phase!=='fight')return;
+  const roy=enemiesOf('royal');
+  let sieging=0;for(const g of roy)if(g.state==='mSiege')sieging++;
+  if(sieging)Wr.hold+=Math.min(sieging,8)*0.5;else Wr.hold=Math.max(0,Wr.hold-1);
+  if(!roy.length){Wr.phase='done';S.rank=7;S.msgs.push({k:'victory'});return;}
+  if(Wr.hold>=SIEGE_HOLD){
+    Wr.defeats++;Wr.wave++;Wr.phase='warn';Wr.at=S.t+2*DAY;Wr.hold=0;
+    for(const r of ['wood','stone','iron','planks','tools'])S.stock[r]=Math.floor((S.stock[r]||0)*0.6);
+    S.coins=Math.floor(S.coins*0.5);
+    for(const g of roy)milLeave(g);
+    S.msgs.push({k:'defeat'});
+  }
+}
+// salvataggi precedenti alla v48: niente titolo né messi; si parte dal titolo che il borgo merita già, con tutti i progetti relativi e quelli degli edifici già costruiti
+function regnoNormalize(){
+  const legacy=S.story===undefined;
+  if(legacy){S.story=true;S.rank=0;S.proj={};}
+  S.story=!!S.story;S.rank=Number.isFinite(S.rank)?Math.max(0,Math.min(7,S.rank|0)):0;
+  S.proj=(S.proj&&typeof S.proj==='object')?S.proj:{};
+  S.msgs=Array.isArray(S.msgs)?S.msgs:[];
+  S.raid=Object.assign(raid0(),S.raid||{});S.raid.bands=Object.assign({},S.raid.bands);
+  S.war=Object.assign(war0(),S.war||{});S.rk=S.rk|0;
+  if(legacy){
+    while(S.rank<6&&needsMet(RANK_NEEDS[S.rank+1](stats())))S.rank++;
+    for(const p of PROJ)if(p.rank<=S.rank)S.proj[p.id]=true;
+    const have={};for(const b of buildings.values())have[b.type]=1;
+    for(const p of PROJ)if(have[p.id])S.proj[p.id]=true;
+    S.raid.next=S.rank>=3?DAY*3:0;
+  }
+}
 function finish(b){
   b.state='done';b.prog=1;acc.attr=99;stCache=null;
   if(b.type==='house')for(const v of villagers)if(!v.home&&b.members.length<capOf(b)&&!v.job){v.home=b.id;b.members.push(v.id);}
@@ -2714,6 +2990,7 @@ function tick1(){
   marketTick();
   if(countDone('inn')&&Math.random()<0.06)spawnGuest();
   tradeTick();
+  regnoTick();
   acc.farm+=1;if(acc.farm>=5){acc.farm=0;farmTick();sheepTick();}
   S.grow+=TK;
   let openSlots=0;for(const b of buildings.values())if(b.state==='done')openSlots+=b.want-b.workers.length;
@@ -2760,6 +3037,7 @@ function step(dt){
   }
   for(const v of villagers)updV(v,dt);
   for(const g of guests.slice())updG(g,dt);
+  milTick(dt);
   acc.a05+=dt;if(acc.a05>=0.5){acc.a05-=0.5;decay();}
   acc.a1+=dt;if(acc.a1>=1){acc.a1-=1;acc.attr+=1;tick1();}
 }
@@ -2883,13 +3161,13 @@ function importState(d){
   guests.length=0;for(const g of gl)guests.push(g);
   nextId=d.nextId;stCache=null;connCache.clear();connStamp=-1;occStamp++;
   festSeq=0;for(const b of buildings.values())if(b.fest&&b.fest.seq>festSeq)festSeq=b.fest.seq;for(const v of villagers)if(v.festSeq>festSeq)festSeq=v.festSeq;
-  computeAttr();
+  computeAttr();regnoNormalize();
   for(const b of buildings.values())hooks.building(b);
   for(const v of villagers)hooks.villager(v);
   for(const g of guests)hooks.villager(g);
   hooks.trees();hooks.rocks();hooks.saps();hooks.ground();
 }
-return {lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
+return {owns,PROJ,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
   TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
@@ -3689,6 +3967,18 @@ const BUILD={
     for(const sx of[-1.5,1.5]){bx(g,1.2,.07,.45,MAT.log,sx,.55,1.5);bx(g,.06,.5,.06,MAT.timber,sx-.5,.27,1.5);bx(g,.06,.5,.06,MAT.timber,sx+.5,.27,1.5);bx(g,1.2,.05,.2,MAT.logD,sx,.3,1.9);bx(g,1.2,.05,.2,MAT.logD,sx,.3,1.1);}
     cyl(g,.05,.05,2.2,6,MAT.timber,-.1,1.1,-2.0);return g;}
 };
+BUILD.watchtower=function(b){const g=new THREE.Group();
+  bx(g,1.9,.5,1.9,MAT.stoneD,0,.25,0);bx(g,1.5,3.6,1.5,MAT.stone,0,2.3,0);bx(g,2.1,.4,2.1,MAT.timber,0,4.3,0);
+  for(const sx of[-.95,.95])for(const sz of[-.95,.95])bx(g,.14,.7,.14,MAT.timber,sx,4.8,sz);
+  for(const sx of[-.95,.95])bx(g,.08,.14,1.9,MAT.timber,sx,5.05,0);
+  for(const sz of[-.95,.95])bx(g,1.9,.14,.08,MAT.timber,0,5.05,sz);
+  cone(g,1.6,1.3,4,MAT.slate,0,5.7,0,Math.PI/4);bx(g,.5,.9,.06,MAT.door,0,.45,.77);
+  cyl(g,.03,.03,1.1,5,MAT.timber,.9,6.3,.9);bx(g,.6,.35,.03,MAT.red,1.2,6.6,.9);return g;};
+BUILD.barracks=function(b){const g=new THREE.Group();
+  bx(g,3.6,.4,3.4,MAT.stoneD,0,.2,0);bx(g,3.4,1.6,3.0,MAT.stone,0,1.2,0);gable(g,3.6,3.0,1.2,MAT.slate,2.0);
+  bx(g,.9,1.2,.06,MAT.door,0,.8,1.52);for(const sx of[-1.1,1.1])bx(g,.4,.5,.06,MAT.glass,sx,1.5,1.52);
+  cyl(g,.04,.04,2.4,5,MAT.timber,1.7,1.6,1.5);bx(g,.7,.5,.03,MAT.red,2.05,2.5,1.5);
+  cyl(g,.05,.05,.9,5,MAT.timber,-1.4,.5,2.2);bx(g,.5,.08,.08,MAT.timber,-1.4,.85,2.2);return g;};
 const ents=new Map(),pickables=[];
 function mountBody(e){
   const b=e.b;if(e.body)e.root.remove(e.body);
@@ -3834,10 +4124,22 @@ Sim.hooks.villager=function(v){
   if(v.guest){hood.material=L(v.kind==='merchant'?0x2f5a3c:v.kind==='pilgrim'?0x6b5a3a:0x4a4a68);
     if(v.caravan){const ct=new THREE.Group();bx(ct,.7,.1,1.0,MAT.log,0,.38,0);for(const sx of[-.4,.4])cyl(ct,.24,.24,.06,10,MAT.logD,sx,.26,0,0,Math.PI/2);bx(ct,.55,.34,.6,MAT.cloth,0,.62,-.05);bx(ct,.3,.22,.3,MAT.hay,.1,.86,.1);bx(ct,.05,.05,.8,MAT.timber,0,.45,.75);ct.position.set(0,0,-1.55);gp.add(ct);gp.userData.cart=ct;}
     if(v.horse){const hs=new THREE.Group();bx(hs,.5,.5,1.1,MAT.horse,0,.55,-.2);bx(hs,.22,.5,.25,MAT.horse,0,.95,.45);for(const sx of[-.16,.16])for(const sz of[-.55,.15])bx(hs,.1,.35,.1,MAT.horse,sx,.18,sz);bx(hs,.55,.1,.5,MAT.cloth,0,.82,-.2);gp.add(hs);gp.userData.horse=hs;}}
+  let hpb=null;
+  if(v.mil){
+    body.material=L(v.kind==='raider'?0x3a1d1d:v.kind==='royal'?0x4a2a6b:0x2f5d9a);hood.material=L(v.kind==='raider'?0x1a0f0f:v.kind==='royal'?0xb0802e:0x6a7a8c);
+    bx(gp,.05,.05,.95,MAT.timber,.24,.6,.18);bx(gp,.07,.18,.07,MAT.iron,.24,.6,.7);
+    hpb=new THREE.Sprite(new THREE.SpriteMaterial({color:v.side==='mine'?0x5fae5f:0xd9553f}));hpb.scale.set(.55,.09,1);hpb.position.y=1.5;gp.add(hpb);
+  }
   if(!v.guest){const vh=new THREE.Mesh(new THREE.SphereGeometry(.6,6,5),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));vh.position.y=.55;vh.userData.vid=v.id;gp.add(vh);vpick.push(vh);}
-  scene.add(gp);vms.set(v.id,{gp,load,carry:null,body,mat,ill:false});
+  scene.add(gp);vms.set(v.id,{gp,load,carry:null,body,mat,ill:false,hpb});
 };
 
+// v48: frecce delle torri di guardia (una linea che dura un attimo)
+const shots=[];
+Sim.hooks.shot=function(x0,z0,x1,z1){
+  const ln=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x0,5.4,z0),new THREE.Vector3(x1,.9,z1)]),new THREE.LineBasicMaterial({color:0xffe6a0,transparent:true,opacity:.9}));
+  scene.add(ln);shots.push({ln,t:.25});
+};
 // ---------- ghost e selezione ----------
 const ghost=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshBasicMaterial({color:0x66cc66,transparent:true,opacity:.45,depthWrite:false}));
 ghost.visible=false;scene.add(ghost);
@@ -3916,6 +4218,8 @@ const TOOLS=[
   {id:'school',label:'Scuola',key:'k',hint:'I bambini dai 6 anni vengono qui al mattino (serve un maestro). Chi sa leggere e scrivere fa migliorare la casa più in fretta. Serve alle case entro 45 celle per salire al livello 4.'},
   {id:'infirmary',label:'Ospizio',key:'o',hint:'Un erborista cura i malati delle case entro 45 celle: guariscono prima e rischiano meno. Frena le epidemie.'},
   {id:'church',label:'Chiesa',key:'c',hint:'Serve alle case entro 54 celle per salire dal livello 2 in su. Molto attraente.'},
+  {id:'watchtower',label:'Torre di guardia',key:'',hint:'Gli arcieri tirano ai predoni e ai soldati nemici entro 24 celle. Mettila vicino ai magazzini e al centro: i predoni cercano le scorte.'},
+  {id:'barracks',label:'Caserma',key:'',hint:'Quando arrivano i nemici manda fino a 3 soldati incontro a loro (uno ogni 5 s); finita la minaccia rientrano.'},
   {id:'demolish',label:'Demolisci',key:'x',hint:'Clicca un edificio, una casa, una strada o un sentiero.'},
   {id:'pan',label:'Muovi',key:'h',hint:'Trascina per spostare la mappa.'}
 ];
@@ -3926,11 +4230,12 @@ const CATS=[
   {id:'prod',label:'Produzione',ids:['wood','quarry','mine','forester','granary','mill']},
   {id:'shop',label:'Botteghe',ids:['carpenter','mason','smithy','bakery','sheepfold','weaver','tailor','fisher','hunter','mercery']},
   {id:'serv',label:'Servizi',ids:['store','well','school','infirmary','church','inn','tavern','hall']},
-  {id:'deco',label:'Decorazioni',ids:['plaza','flowers','statue']}];
+  {id:'deco',label:'Decorazioni',ids:['plaza','flowers','statue']},
+  {id:'def',label:'Difesa',ids:['watchtower','barracks']}];
 const CATOF={};CATS.forEach(c=>c.ids.forEach(i=>{CATOF[i]=c.id;}));
 const catBtns={};
 let curCat='tools';
-function setCat(c){curCat=c;for(const k in toolBtns)toolBtns[k].style.display=CATOF[k]===c?'':'none';for(const k in catBtns)catBtns[k].classList.toggle('on',k===c);}
+function setCat(c){curCat=c;for(const k in toolBtns)toolBtns[k].style.display=CATOF[k]===c&&Sim.owns(k)?'':'none';for(const k in catBtns)catBtns[k].classList.toggle('on',k===c);}
 for(const c of CATS){const b=document.createElement('button');b.className='btn sm';b.type='button';b.textContent=c.label;b.addEventListener('click',()=>setCat(c.id));$('cats').appendChild(b);catBtns[c.id]=b;}
 let tool='select';const toolBtns={};let drag=null,hover=null,pend=false;
 const costHTML=c=>(c.wood?`<span><i class="sw w"></i>${c.wood}</span>`:'')+(c.stone?`<span><i class="sw s"></i>${c.stone}</span>`:'')+(c.planks?`<span><i class="sw p"></i>${c.planks}</span>`:'');
@@ -3939,7 +4244,7 @@ for(const t of TOOLS){
   b.innerHTML=`<span class="nm">${t.label}${t.key?`<kbd>${t.key.toUpperCase()}</kbd>`:''}</span><span class="cs">${BT[t.id]?costHTML(BT[t.id].cost):''}</span>`;
   b.addEventListener('click',()=>setTool(t.id));$('tools').appendChild(b);toolBtns[t.id]=b;
 }
-function setTool(id){pend=false;hover=null;$('pbar').hidden=true;if(CATOF[id]&&CATOF[id]!==curCat)setCat(CATOF[id]);tool=id;ghost.visible=false;arrow.visible=false;$('rotBtn').style.display=(BT[id]&&!NOGATE[id])?'':'none';for(const k in toolBtns)toolBtns[k].classList.toggle('on',k===id);$('hint').textContent=(TOOL[id].hint||'')+((BT[id]&&!NOGATE[id])?' R = ruota: la freccia gialla è l\'ingresso.':'');if(id!=='select')select(null);if(document.body.classList.contains('touch')&&id!=='select')toast(TOOL[id].hint+(BT[id]?' Tocca o trascina sulla mappa, poi conferma con ✓.':''));}
+function setTool(id){if(!Sim.owns(id)){toast('Questo progetto non è ancora tuo: compralo tra i Progetti del Re (🏛️).',true);return;}pend=false;hover=null;$('pbar').hidden=true;if(CATOF[id]&&CATOF[id]!==curCat)setCat(CATOF[id]);tool=id;ghost.visible=false;arrow.visible=false;$('rotBtn').style.display=(BT[id]&&!NOGATE[id])?'':'none';for(const k in toolBtns)toolBtns[k].classList.toggle('on',k===id);$('hint').textContent=(TOOL[id].hint||'')+((BT[id]&&!NOGATE[id])?' R = ruota: la freccia gialla è l\'ingresso.':'');if(id!=='select')select(null);if(document.body.classList.contains('touch')&&id!=='select')toast(TOOL[id].hint+(BT[id]?' Tocca o trascina sulla mappa, poi conferma con ✓.':''));}
 setCat('tools');setTool('select');
 let toastT=0;
 function toast(msg,bad){const t=$('toast');t.textContent=msg;t.classList.toggle('bad',!!bad);t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),5600);}
@@ -4033,6 +4338,8 @@ function refreshSel(){
     info=si?`Contiene ${si.tot}/${si.total} · grano ${S.stock.grain} · farina ${S.stock.flour} · pane ${S.stock.bread} · pesce ${S.stock.fish} · carne ${S.stock.meat}`:'Granaio in costruzione.';
     list='<div>Accoglie il cibo che non viene dai giardini: grano delle fattorie, farina del mulino, pane del forno, pesce e carne dei pescatori e dei cacciatori. Il raccolto dei giardini resta alle case. Il mugnaio ritira il grano.</div>';}
   else if(b.type==='well')info=`Acqua per le case entro ${Sim.WELL_R} celle. Luogo piacevole.`;
+  else if(b.type==='watchtower')info=`Arcieri: tirano al nemico più vicino entro ${Sim.TOWER_R} celle (${Sim.TOWER_DPS} colpi al secondo). Predoni uccisi finora: ${S.raid.killed}.`;
+  else if(b.type==='barracks')info='Quando arrivano nemici manda fino a 3 soldati incontro a loro, uno ogni 5 secondi; finita la minaccia rientrano.';
   else if(b.type==='church'){info=`Le case entro ${Sim.CHURCH_R} celle possono raggiungere il livello massimo. Luogo molto attraente.`+(b.cem?' Il cimitero sorge accanto alla chiesa.':'');}
   else if(b.type==='school'){const w=Sim.villagers().filter(v=>v.job===b.id);info=`Maestri: ${w.length}/${b.want} · alunni ora: ${b.pupils|0}/${Sim.SCHOOL_CAP} · persone istruite: ${stt.schooled}`;
     list=w.map(v=>`<div>Maestro: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>I bambini dai 6 anni vengono al mattino (con l\'editto sull\'istruzione obbligatoria anche al pomeriggio). A 14 anni chi ha studiato abbastanza sa leggere e scrivere: la sua casa migliora più in fretta.</div>'+(w.length===0?'<div>Senza maestro la scuola resta chiusa.</div>':'')+((b.pupils|0)>=Sim.SCHOOL_CAP?'<div>Aula piena: costruisci un\'altra scuola.</div>':'');}
@@ -4045,7 +4352,7 @@ function refreshSel(){
   updStoreCfg((b.type==='granary'||(b.type==='store'&&!b.center))&&b.state==='done'?b:null);
   $('selJobs').hidden=!(b.state==='done'&&t.slots>0&&!(b.type==='sheepfold'&&b.owner));
   $('selZone').hidden=!(Sim.ZONED[b.type]&&b.state==='done');if(!$('selZone').hidden){$('zR').textContent=b.zone?b.zone.r:(b.type==='forester'?72:39);$('zSet').textContent=zoneEdit===b.id?'Clicca sulla mappa…':(b.zone?'Sposta zona':'Scegli sulla mappa');}$('wCount').textContent=b.want;
-  $('selCem').hidden=!(b.type==='church'&&b.state==='done'&&!b.cem);
+  $('selCem').hidden=!(b.type==='church'&&b.state==='done'&&!b.cem&&Sim.owns('cemetery'));
   $('selFest').hidden=!(b.type==='plaza'&&b.state==='done');
   if(!$('selFest').hidden){const fs=b.fest&&b.fest.st;$('selFest').textContent=(fs==='prep'||fs==='ready')?'Annulla la festa':fs==='on'?'Festa in corso…':'Indici la festa di paese';$('selFest').disabled=fs==='on';}
   $('selDemo').hidden=b.type==='stall';
@@ -4306,71 +4613,147 @@ let speed=1;
 function setSpeed(s){speed=s;document.querySelectorAll('#speed .btn[data-s]').forEach(b=>b.classList.toggle('on',+b.dataset.s===s));}
 document.querySelectorAll('#speed .btn[data-s]').forEach(b=>b.addEventListener('click',()=>setSpeed(+b.dataset.s)));
 
-// ---------- livelli ----------
-const lv2=s=>s.levels[2]+s.levels[3]+s.levels[4]+s.levels[5];
-const LEVELS=[
-  {title:'Il Villaggio',intro:'Il centro cittadino è una staccionata con le scorte: tre magazzinieri portano i materiali ai cantieri. Disegna un quartiere e costruisci i primi mestieri.',
-   outro:'Il primo raccolto è in dispensa. Nessuno è morto di fame: dai carri sono nate case, e dalle case un villaggio. Frate Anselmo benedice i tetti di paglia.',goals:[
-    {txt:'Disegna 12 lotti di quartiere residenziale (1 lotto = 3×3 celle)',cur:s=>s.dc[1],n:12},
-    {txt:'Costruisci un taglialegna',cur:s=>s.built.wood||0,n:1},
-    {txt:'Costruisci una cava di pietra',cur:s=>s.built.quarry||0,n:1},
-    {txt:'Raggiungi 8 abitanti',cur:s=>s.pop,n:8}]},
-  {title:'Il Borgo',intro:'Le famiglie vogliono acqua e un mercato. Un pozzo e una zona mercato fanno la differenza.',
-   outro:'Una primavera dopo, sul sentiero arrivano i mercanti: sentono odore di pane e di legna tagliata. Il borgo comincia ad avere un nome.',goals:[
-    {txt:'Costruisci un pozzo',cur:s=>s.built.well||0,n:1},
-    {txt:'Disegna 8 lotti di mercato',cur:s=>s.dc[3],n:8},
-    {txt:'Una casa migliorata a livello 2',cur:s=>lv2(s),n:1},
-    {txt:'Raggiungi 18 abitanti',cur:s=>s.pop,n:18}]},
-  {title:'La Città',intro:'Con una zona agricola le famiglie fonderanno fattorie. Una chiesa porta le case ai livelli alti. Il legname non è infinito: disegna una zona forestale e metti un guardaboschi.',
-   outro:"La chiesa suona per la prima volta. Anselmo apre la cassa che ha sempre custodito: dentro, la carta della valle e una lettera del vescovo. Il borgo ha il diritto di chiamarsi città se saprà battere il ferro.",goals:[
-    {txt:'Disegna 12 lotti di zona agricola',cur:s=>s.dc[2],n:12},
-    {txt:'Una fattoria fondata dagli abitanti',cur:s=>s.farms,n:1},
-    {txt:'Cinque baratti al mercato',cur:s=>s.barters,n:5},
-    {txt:'Costruisci una chiesa',cur:s=>s.built.church||0,n:1},
-    {txt:'Disegna 8 lotti di zona forestale',cur:s=>s.dc[4],n:8},
-    {txt:'Costruisci un guardaboschi',cur:s=>s.built.forester||0,n:1}]},
-  {title:'Le Botteghe',intro:'Nelle rocce scure c\'è il ferro. Con una miniera, le case di terzo livello aprono botteghe di artigianato. Con granaio e mulino, quelle di quarto livello apriranno il panificio.',
-   outro:"Il fabbro batte il primo vomere nuovo. Sotto il portico del mercato qualcuno ricorda il feudo di Rocca Nera, e per la prima volta ne parla senza paura.",goals:[
-    {txt:'Costruisci una miniera di ferro',cur:s=>s.built.mine||0,n:1},
-    {txt:'Un piccolo allevamento nei giardini',cur:s=>s.herds,n:1},
-    {txt:'Una bottega di artigianato',cur:s=>s.crafters,n:1},
-    {txt:'Costruisci un granaio',cur:s=>s.built.granary||0,n:1},
-    {txt:'Costruisci un mulino',cur:s=>s.built.mill||0,n:1},
-    {txt:'Raggiungi 40 abitanti',cur:s=>s.pop,n:40}]},
-  {title:'Locanda e Telai',intro:'Una locanda accoglie i viandanti: mercanti, pellegrini, artigiani. Qualcuno potrebbe fermarsi. Con un pascolo e un ovile nascono la lana, i tessitori (livello 3) e i sarti (livello 4). Abbellisci il centro con piazze e decorazioni.',
-   outro:"La campana della locanda suona la sera. Un mercante parla di fiere lontane e di città che ancora non conoscono Borgo Vivo. Ogni notte, però, le porte si chiudono e i cantieri riposano.",goals:[
-    {txt:'Costruisci una locanda',cur:s=>s.built.inn||0,n:1},
-    {txt:'Servi 5 pasti ai viandanti',cur:s=>s.visits,n:5},
-    {txt:'Disegna 10 lotti di pascolo',cur:s=>s.dc[5],n:10},
-    {txt:'Un tessitore',cur:s=>s.weavers,n:1},
-    {txt:'Un sarto',cur:s=>s.tailors,n:1},
-    {txt:'Una piazza con fontana',cur:s=>s.built.plaza||0,n:1}]},
-  {title:'La Capitale',intro:'Ultimo traguardo del prototipo.',
-   outro:'Dalle mura di legno al campanile di pietra: la carovana di sette carri è diventata una capitale. Ma questa è soltanto la prima pagina della storia di Borgo Vivo.',goals:[
-    {txt:'Due case signorili (livello 4)',cur:s=>s.levels[4]+s.levels[5],n:2},
-    {txt:'Un panificio',cur:s=>s.bakers,n:1},
-    {txt:'Raggiungi 60 abitanti',cur:s=>s.pop,n:60},
-    {txt:'Un viandante diventa abitante',cur:s=>s.settled,n:1},
-    {txt:'Tre banchi aperti al mercato',cur:s=>s.stalls,n:3},
-    {txt:'Traccia 25 tratti di strada',cur:s=>s.roads,n:25}]}
+// ---------- il Regno: guida della storia, messo del Re, progetti (v48) ----------
+// Niente più obiettivi a livelli: gli abitanti dicono cosa serve e il Re concede un nuovo titolo (con nuovi progetti) quando il borgo è cresciuto.
+const ZONE_PRJ={d2:'Zona agricola',d3:'Zona di mercato',d4:'Zona forestale',d5:'Zona di pascolo'};
+const prName=id=>ZONE_PRJ[id]||(BT[id]?BT[id].name:id);
+const prHint=id=>{const t=TOOL[id];return t?t.hint:'';};
+const owns=id=>Sim.owns(id);
+// consigli degli abitanti: il primo passo non ancora fatto è la frase letta nel pannello (GUIDE[titolo])
+const GUIDE=[
+  [[s=>(s.built.wood||0)>=1,'Servono legno e pietra, e ne abbiamo poco. Indicaci dove costruire il taglialegna, vicino a un bosco.'],
+   [s=>(s.built.quarry||0)>=1,'Ora la pietra: costruisci una cava vicino alle rocce.'],
+   [s=>s.dc[1]>=4,'Dove costruiamo le case? Disegna un quartiere residenziale (tasto 2).'],
+   [s=>s.pop>=8&&s.houses>=3,'Le famiglie arrivano dove ci sono case, cibo e lavoro: lascia crescere il borgo.']],
+  [[s=>owns('well')&&owns('d3'),'Il messo ci ha lasciato dei progetti: apri i Progetti del Re (🏛️) e compra il pozzo e la zona di mercato.'],
+   [s=>(s.built.well||0)>=1,'Costruisci il pozzo: con l\'acqua vicina la gente sta meglio.'],
+   [s=>s.dc[3]>=4,'Disegna una zona di mercato: qui le famiglie scambieranno i prodotti dei loro giardini.'],
+   [s=>s.pop>=16,'Più case e più braccia: il borgo deve crescere ancora.']],
+  [[s=>owns('church')&&owns('d2'),'Nuovi progetti dal Re: compra la chiesa e la zona agricola (🏛️).'],
+   [s=>(s.built.church||0)>=1,'Costruisci la chiesa: le case di livello più alto ne hanno bisogno, e la gente vuole pregare.'],
+   [s=>s.farms>=1,'Disegna una zona agricola: le famiglie vi fonderanno le fattorie.'],
+   [s=>s.pop>=28,'Servono ancora abitanti: cibo, acqua e una chiesa vicina li tengono contenti.']],
+  [[s=>owns('watchtower'),'Con il titolo di Borgo arrivano i predoni. Compra il progetto della torre di guardia (🏛️).'],
+   [s=>(s.built.watchtower||0)>=1,'Costruisci una torre di guardia vicino ai magazzini: i predoni cercano le nostre scorte.'],
+   [s=>Sim.S.raid.repelled>=1,'Resisti ai predoni: più torri vicino alle scorte significano meno furti.'],
+   [s=>s.pop>=40,'Il borgo deve crescere ancora.']],
+  [[s=>owns('barracks')&&owns('mercery')&&owns('inn'),'Compra la caserma, la merceria e la locanda (🏛️): servono a difendere e a commerciare.'],
+   [s=>(s.built.mercery||0)>=1,'Costruisci la Merceria: con lei arrivano le carovane e i denari.'],
+   [s=>(s.built.inn||0)>=1,'Costruisci la locanda: i viandanti portano notizie e merci.'],
+   [s=>(s.built.barracks||0)>=1,'Costruisci una caserma: i soldati escono quando ci sono nemici.'],
+   [s=>s.pop>=60,'Il borgo cresce: ancora un po\' di gente e il Re se ne accorgerà.']],
+  [[s=>owns('hall')&&owns('plaza'),'Nuovi progetti, ma ora costano anche denari: commercia con le città e compra la sala delle feste e la piazza (🏛️).'],
+   [s=>(s.built.hall||0)>=1,'Costruisci la sala delle feste.'],
+   [s=>(s.built.plaza||0)>=1,'Costruisci la piazza con la fontana.'],
+   [s=>Sim.S.routes.filter(r=>r.open).length>=2,'Apri almeno due rotte commerciali (💰): servono denari.'],
+   [s=>s.pop>=85,'Ancora un po\' di gente e saremo una Città.']],
+  [[s=>false,'Siamo una Città. Il Re ci osserva con sospetto: più cresciamo, più ci teme. Prepariamo le difese.']],
+  [[s=>false,'Sei il Re. La capitale del regno è nata da una carovana di sette carri.']]
 ];
-let lvl=0,goalEls=[],cleared=false;
-function showLevel(silent){
-  const L0=LEVELS[lvl];$('lvlTitle').textContent=`Livello ${lvl+1} · ${L0.title}`;
-  const ul=$('goals');ul.innerHTML='';goalEls=L0.goals.map(gl=>{const li=document.createElement('li');li.innerHTML=`<span>${gl.txt}</span><em></em>`;ul.appendChild(li);return li;});
-  cleared=false;if(!silent)toast(L0.intro);
+function guideLine(st,inf){
+  const W=inf.war;
+  if(W.phase==='warn'){const d=Math.max(1,Math.ceil((W.at-S.t)/Sim.DAY));return {t:`Il Re ci ha dichiarato guerra! L'esercito arriverà tra ${d} ${d===1?'giorno':'giorni'}: torri di guardia e caserme intorno al centro del borgo!`,war:true};}
+  if(W.phase==='fight')return {t:'L\'esercito del Re assedia il centro del borgo: difendilo!',war:true};
+  if(inf.raiders)return {t:'Predoni! Le torri e la caserma difendono i magazzini.',war:true};
+  const list=GUIDE[Math.min(inf.rank,GUIDE.length-1)]||[];
+  for(const [done,txt] of list)if(!done(st))return {t:txt};
+  return {t:inf.rank<6?'Il borgo è pronto: attendiamo il messo del Re.':list.length?list[list.length-1][1]:''};
 }
-function checkGoals(st){
-  const L0=LEVELS[lvl];let all=true;
-  L0.goals.forEach((gl,i)=>{const c=Math.min(gl.n,Math.floor(gl.cur(st))),done=c>=gl.n;goalEls[i].classList.toggle('done',done);goalEls[i].lastChild.textContent=`${c}/${gl.n}`;if(!done)all=false;});
-  if(all&&!cleared){cleared=true;setTimeout(()=>{
-    const last=lvl===LEVELS.length-1;$('mTitle').textContent=last?'Prototipo completato':`Livello ${lvl+1} completato`;
-    $('mText').textContent=LEVELS[lvl].outro+(last?' Puoi continuare a costruire liberamente.':'');
-    $('modal').hidden=false;setSpeed(0);},700);}
+let guideKey='',guideN=0;
+function refreshGuide(st){
+  guideN++;const inf=Sim.regnoInfo(st);
+  $('lvl').hidden=!inf.story;if(!inf.story)return;
+  $('lvlTitle').textContent=`${inf.name}`;
+  const g=guideLine(st,inf);
+  const needs=inf.needs||[];
+  const head=inf.rank<6?`Il Re concederà il titolo di ${inf.nextName} quando:`:(inf.warNeeds&&inf.needs?'Il Re ti dichiarerà guerra quando il borgo avrà:':'');
+  const key=g.t+'|'+head+'|'+needs.map(x=>x.cur+'/'+x.n).join(',');
+  if(key===guideKey)return;guideKey=key;
+  const gd=$('guide');gd.textContent=g.t;gd.classList.toggle('war',!!g.war);
+  $('goalsH').textContent=head;
+  const ul=$('goals');ul.innerHTML='';
+  for(const x of needs){const li=document.createElement('li');li.className=x.cur>=x.n?'done':'';li.innerHTML=`<span>${esc(x.t)}</span><em>${x.cur}/${x.n}</em>`;ul.appendChild(li);}
 }
-$('mBtn').addEventListener('click',()=>{$('modal').hidden=true;setSpeed(1);if(lvl<LEVELS.length-1){lvl++;showLevel();}});
+function showLevel(){guideKey='';refreshGuide(Sim.stats());}
 $('lvlTitle').addEventListener('click',()=>$('lvl').classList.toggle('collapsed'));
 if(window.innerWidth<640||COARSE)$('lvl').classList.add('collapsed');
+
+// ---- messo del Re: pergamene ----
+const INTRO={t:'Il nostro insediamento',f:'La tua gente',btn:'Al lavoro',x:[
+  'Eccoci arrivati. Questa è la nostra terra.',
+  'Abbiamo parlato a lungo, durante il viaggio, e abbiamo deciso: sarai tu a guidarci. Ogni scelta spetterà a te, e noi ti seguiremo.',
+  'Ci servono presto dei tetti sopra la testa, ma non abbiamo quasi nulla. Prima bisogna procurarsi legno e pietra: indicaci dove tagliare gli alberi e dove cavare la roccia.',
+  'Poi mostraci dove costruire le case.']};
+const RANK_MSG=[null,
+  ['Il Re ha udito che in questa valle si lavora con ordine. Per suo volere il vostro accampamento è riconosciuto come CASALE.','Sua Maestà concede ai vostri capimastri di acquistare i progetti di nuovi edifici: pozzi, magazzini e le prime zone di lavoro.'],
+  ['Le vostre case sono ormai tante e il fumo dei camini si vede da lontano. Il Re vi riconosce il titolo di VILLAGGIO.','Concede i progetti della chiesa e delle prime botteghe: Frate Anselmo dice che sarebbe ora di una campana.'],
+  ['Mercato, chiesa e campi: ora avete tutto ciò che fa di un villaggio un BORGO, e il Re ve ne dà il titolo.','Ma un borgo ricco attira anche cattive attenzioni: dai boschi giungono voci di predoni. Il Re vi esorta a costruire torri di guardia e a difendere le scorte.'],
+  ['Avete respinto i predoni: il Re vi riconosce come BORGO FORTIFICATO.','Concede i progetti della caserma, della merceria e della locanda. Chi ha una guarnigione può permettersi di commerciare.'],
+  ['Le vostre difese hanno fatto parlare tutto il regno. Il Re vi eleva a TERRA MURATA.','I progetti dei telai, della sala delle feste e della piazza si pagano ora anche con denari: i mercanti delle città vicine sapranno come procurarveli.'],
+  ['Il Re vi concede il titolo di CITTÀ, la più alta dignità che un suo suddito possa ricevere.','Ma si dice a corte che il Re non sia sereno: una città tanto ricca e tanto forte potrebbe un giorno non aver più bisogno di lui.']];
+const MSGS={
+  war:{t:'Dichiarazione di guerra',f:'Il messo del Re',btn:'Prepariamoci',x:['Il Re, che un tempo vi concesse i titoli, ora teme la vostra forza e non può più tollerare una città che non gli appartiene.','Tra tre giorni il suo esercito marcerà sul vostro borgo. Chi tiene il centro del borgo resterà padrone di ciò che ha costruito; chi lo perde, perderà scorte e denari.','Torri di guardia e caserme intorno al centro: questo è il momento.']},
+  victory:{t:'Il Re sei tu',f:'Il popolo del borgo',btn:'Lunga vita al Re',x:['L\'esercito del Re è stato respinto e i suoi stendardi giacciono nel fango.','Il popolo ti acclama: il regno non ha più un sovrano, e la tua città è ora la CAPITALE DEL REGNO.','Dalla carovana di sette carri di Rocca Nera a questo trono: la storia di Borgo Vivo comincia adesso. Puoi continuare a costruire liberamente.']},
+  defeat:{t:'Il borgo è stato saccheggiato',f:'Il messo del Re',btn:'Resistiamo',x:['L\'esercito del Re ha tenuto il centro del borgo e ha portato via parte delle scorte e dei denari.','Si è ritirato, ma tra due giorni tornerà. Rafforza le difese: più torri vicino al centro, più caserme.']}
+};
+let envBusy=false,envPrev=1;
+function projNames(r){return Sim.PROJ.filter(p=>p.rank===r).map(p=>prName(p.id)).join(', ');}
+function openEnvoy(o){
+  envBusy=true;envPrev=speed;setSpeed(0);
+  $('evTitle').textContent=o.t;$('evFrom').textContent=o.f;
+  $('evText').innerHTML=o.x.map(p=>`<p>${esc(p)}</p>`).join('');
+  $('evNew').innerHTML=o.proj?`<b>Nuovi progetti concessi:</b> ${esc(projNames(o.proj))}.`:'';
+  const bt=$('evBtns');bt.innerHTML='';
+  const mk=(txt,fn)=>{const b=document.createElement('button');b.className='btn';b.type='button';b.textContent=txt;b.addEventListener('click',fn);bt.appendChild(b);};
+  if(o.proj)mk('Vedi i progetti',()=>{closeEnvoy();openProjects(true);});
+  mk(o.btn||'Continua',closeEnvoy);
+  $('envoy').hidden=false;
+}
+function closeEnvoy(){$('envoy').hidden=true;envBusy=false;setSpeed(envPrev===0?1:envPrev);}
+function showMsg(m){
+  if(m.k==='rank'){openEnvoy({t:`Titolo di ${Sim.RANK_NAMES[m.r]}`,f:'Il messo del Re',x:RANK_MSG[m.r]||[],proj:m.r<=6?m.r:0,btn:'Continua'});return;}
+  const o=MSGS[m.k];if(o)openEnvoy(o);
+}
+function pollEnvoy(){
+  if(envBusy||!$('envoy').hidden||!Sim.msgCount())return;
+  const m=Sim.takeMsg();if(m)showMsg(m);
+}
+
+// ---- progetti del Re: si comprano con risorse e, dai titoli alti, anche con denari ----
+function openProjects(v){$('projects').hidden=!v;if(v)renderProjects();}
+const prChip=(k,n,q)=>{const no=q.miss.includes(k)?' no':'';return k==='coins'?`<span class="${no.trim()}"><i class="sw" style="background:#d6ad4e"></i>${n} denari</span>`:`<span class="${no.trim()}"><i class="sw ${k==='wood'?'w':k==='stone'?'s':'p'}"></i>${n} ${k==='wood'?'legno':k==='stone'?'pietra':'ferro'}</span>`;};
+function renderProjects(){
+  const inf=Sim.regnoInfo();let h='';
+  $('prSub').textContent=`Hai ${Math.floor(S.stock.wood)} di legno, ${Math.floor(S.stock.stone)} di pietra e ${Math.floor(S.coins)} denari. Un progetto acquistato resta tuo: costruiscilo quando vuoi.`;
+  for(let r=1;r<=6;r++){
+    const ps=Sim.PROJ.filter(p=>p.rank===r);if(!ps.length)continue;
+    const lock=inf.rank<r;
+    h+=`<div class="prRank${lock?' lock':''}">${Sim.RANK_NAMES[r]}${lock?' · il Re li concederà più avanti':''}</div>`;
+    for(const p of ps){
+      const q=Sim.projectState(p.id),cost=Object.keys(p.cost).map(k=>prChip(k,p.cost[k],q)).join('');
+      const btn=q.owned?'<b>✓ Tuo</b>':lock?'<span>🔒</span>':`<button class="btn" type="button" data-p="${p.id}"${q.afford?'':' disabled'}>Acquista</button>`;
+      h+=`<div class="prC${q.owned?' own':''}${lock?' lock':''}"><div><b>${esc(prName(p.id))}</b><span class="d">${esc(prHint(p.id))}</span><div class="prCost">${cost}</div></div><div>${btn}</div></div>`;
+    }
+  }
+  $('prList').innerHTML=h;
+}
+$('prList').addEventListener('click',ev=>{
+  const bt=ev.target.closest&&ev.target.closest('[data-p]');if(!bt)return;
+  const res=Sim.buyProject(bt.getAttribute('data-p'));toast(res.msg,!res.ok);renderProjects();refreshPalette();showLevel();
+});
+$('prClose').addEventListener('click',()=>openProjects(false));
+$('projBtn').addEventListener('click',()=>openProjects($('projects').hidden));
+$('projects').addEventListener('click',ev=>{if(ev.target===$('projects'))openProjects(false);});
+// la palette mostra solo gli strumenti posseduti
+let palKey='';
+function refreshPalette(){
+  const key=CATS.map(c=>c.ids.filter(owns).join()).join('|');
+  if(key===palKey)return;palKey=key;
+  for(const c of CATS)catBtns[c.id].style.display=c.ids.some(owns)?'':'none';
+  if(!CATS.find(c=>c.id===curCat)||!CATS.find(c=>c.id===curCat).ids.some(owns))curCat='tools';
+  setCat(curCat);if(!owns(tool))setTool('select');
+}
+function newProjects(){return Sim.PROJ.some(p=>{const q=Sim.projectState(p.id);return !q.owned&&!q.locked&&q.afford;});}
 
 // ---------- bisogni di una casa (felicità) ----------
 function needsHtml(b){
@@ -4534,7 +4917,7 @@ function updateHUD(){
   $('rDay').textContent=`${Sim.SEASONS[st.season]} ${st.day%Sim.SEASON_DAYS+1}/${Sim.SEASON_DAYS} · annata ${st.year} · ${PHN[st.ph]}`;
   $('rPop').textContent=`${st.pop}/${st.cap}`+(st.children?` (👶${st.children})`:'');$('rJobs').textContent=`${st.jobs}/${st.slots}`;$('rBarter').textContent=st.barters;
   $('rFire').textContent=`${st.fire}/${st.fireNeed}`;$('rSick').textContent=st.sick+(st.plague?' ☣':'');$('chipSick').classList.toggle('alert',st.sick>0);$('rWell').textContent=Math.round(st.avgJoy)+(st.unhappy?' · '+st.unhappy+' tristi':'');$('chipJoy').classList.toggle('alert',st.unhappy>0&&st.avgJoy<45);
-  checkGoals(st);refreshSel();if(cardId)renderCard();renderPop(st);renderTrade();
+  refreshGuide(st);pollEnvoy();refreshPalette();if(!$('projects').hidden)renderProjects();else $('projBtn').classList.toggle('on',newProjects());refreshSel();if(cardId)renderCard();renderPop(st);renderTrade();
   for(const t of TOOLS)if(BT[t.id])toolBtns[t.id].classList.toggle('poor',!Sim.afford(t.id));
 }
 
@@ -4601,8 +4984,8 @@ const SAVE_PFX='borgovivo.slot.',SAVE_SLOTS=['auto','1','2','3'],SAVE_APP='borgo
 let lastAuto=performance.now(),saveErrShown=false;
 function makeSave(){
   return {app:SAVE_APP,ver:GAME_VER,at:Date.now(),
-    meta:{pop:Sim.villagers().length,date:Sim.dateStr(S.t),day:S.day,lvl:lvl+1,mode:S.mode},
-    ui:{lvl,cleared,speed,cam:{x:cam.x,z:cam.z,yaw:cam.yaw,pitch:cam.pitch,dist:cam.dist,goal:cam.goal}},
+    meta:{pop:Sim.villagers().length,date:Sim.dateStr(S.t),day:S.day,lvl:S.rank+1,mode:S.mode},
+    ui:{lvl:S.rank,speed,cam:{x:cam.x,z:cam.z,yaw:cam.yaw,pitch:cam.pitch,dist:cam.dist,goal:cam.goal}},
     sim:Sim.exportState()};
 }
 function writeSlot(k,quiet){
@@ -4619,7 +5002,7 @@ function applySave(w){
   const u=w.ui||{};
   started=true;$('story').hidden=true;$('modal').hidden=true;
   closeCard();closePop();select(null);openEdicts(false);openSaves(false);
-  lvl=Math.max(0,Math.min(LEVELS.length-1,u.lvl|0));showLevel(true);cleared=lvl===LEVELS.length-1&&!!u.cleared;
+  $('envoy').hidden=true;envBusy=false;openProjects(false);palKey='';refreshPalette();showLevel();
   const c=u.cam;if(c&&['x','z','yaw','pitch','dist','goal'].every(k=>Number.isFinite(c[k])))Object.assign(cam,{x:c.x,z:c.z,yaw:c.yaw,pitch:c.pitch,dist:c.dist,goal:c.goal});
   Music.start();setSpeed(u.speed===0?0:u.speed===3?3:1);
   if(treesDirty)rebuildTrees();if(rocksDirty)rebuildRocks();if(sapsDirty)rebuildSaps();groundDirty=true;
@@ -4628,7 +5011,7 @@ function applySave(w){
 const askOk=m=>typeof confirm!=='function'||confirm(m);
 function saveInfo(w){
   const m=w.meta||{},d=new Date(w.at),when=isNaN(d)?'':d.toLocaleString('it-IT',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-  return `${esc(m.date||'')} · ${m.pop|0} abitanti · livello ${m.lvl|0}<br>salvato ${esc(when)}`;
+  return `${esc(m.date||'')} · ${m.pop|0} abitanti · titolo ${esc(Sim.RANK_NAMES[(m.lvl|0)-1]||'')}<br>salvato ${esc(when)}`;
 }
 function renderSaves(){
   $('svList').innerHTML=SAVE_SLOTS.map(k=>{
@@ -4717,9 +5100,9 @@ function begin(mode){
   // v42: ogni partita ha una mappa nuova; con ?seme=1234 nell'indirizzo si rivede una mappa già giocata
   let sd=0;try{if(typeof location!=='undefined'){const q=new URLSearchParams(location.search).get('seme');if(q&&/^\d{1,9}$/.test(q))sd=+q;}}catch(e){}
   if(!sd)sd=1+((Math.random()*999999999)|0);
-  Sim.init(sd,mode,curDiff);started=true;setTimeout(()=>toast('Valle n. '+sd+'. Per rivederla: aggiungi ?seme='+sd+' all\'indirizzo.'),1500);if(COARSE)setTimeout(()=>toast('Un dito: sposta la mappa. Due dita: pizzica per zoomare, ruota per girare. Scegli una categoria e uno strumento in basso.'),7000);
+  Sim.init(sd,mode,curDiff,{story:true});started=true;setTimeout(()=>toast('Valle n. '+sd+'. Per rivederla: aggiungi ?seme='+sd+' all\'indirizzo.'),1500);if(COARSE)setTimeout(()=>toast('Un dito: sposta la mappa. Due dita: pizzica per zoomare, ruota per girare. Scegli una categoria e uno strumento in basso.'),7000);
   if(treesDirty)rebuildTrees();if(rocksDirty)rebuildRocks();if(sapsDirty)rebuildSaps();groundDirty=true;
-  showLevel();
+  palKey='';refreshPalette();showLevel();openEnvoy(INTRO);
 }
 showStory();
 let last=performance.now(),clock=0;
@@ -4745,11 +5128,13 @@ function frame2(now){
     const m=vms.get(v.id);if(!m)continue;
     m.gp.visible=!v.inside&&!hiddenIn(v);m.gp.position.set(v.x,v.moving?Math.abs(Math.sin(clock*11+v.id))*0.07:0,v.z);m.gp.rotation.y=v.fa;
     if(v.age!==undefined&&!v.guest){const k=0.8*(0.62+0.38*Math.min(1,v.age/14));if(m.k!==k){m.k=k;m.gp.scale.setScalar(k);}}
+    if(v.mil&&m.hpb)m.hpb.scale.x=.55*Math.max(.03,v.hp/v.mhp);
     if(!v.guest){const ill=!!v.ill;if(m.ill!==ill){m.ill=ill;m.body.material=ill?MAT.sick:m.mat;}}
     const lk=loadKind(v,isWhWorker(v)),lq=lk&&lk.startsWith('cart')?loadQty(v):0,lkey=lk?lk+':'+(lk==='box'?v.carry:lq):'';
     if(lkey!==m.lk){m.lk=lkey;m.carry=v.carry||null;applyLoad(m,v,lk,lq);}
     if(m.rig&&m.rig.cart.visible&&v.moving){const a=dt*7.5;for(const w of m.rig.wheels)w.rotation.x+=a;}
   }
+  for(let i=shots.length-1;i>=0;i--){const sh=shots[i];sh.t-=dt;if(sh.t<=0){scene.remove(sh.ln);if(sh.ln.geometry&&sh.ln.geometry.dispose)sh.ln.geometry.dispose();shots.splice(i,1);}}
   ghost.visible=false;arrow.visible=false;
   if(hover&&(!drag||drag.m==='place')){
     if(BT[tool]){const a=anchor(tool,hover),ok=!Sim.canPlace(tool,a.x,a.y,rot)&&Sim.afford(tool),[gw,gh]=Sim.dimsOf(BT[tool],rot);setGhost(a.x,a.y,gw,gh,ok,1.2);showArrow(tool,a.x,a.y,rot,ok);}

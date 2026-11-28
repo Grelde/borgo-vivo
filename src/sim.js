@@ -44,10 +44,14 @@ const BT={
   well:{name:'Pozzo',w:2,h:2,cost:{wood:2,stone:6},time:6,slots:0,want:0},
   house:{name:'Casa',w:3,h:3,cost:{wood:4,stone:0},time:6,slots:0,want:0},
   farm:{name:'Fattoria',w:6,h:6,cost:{wood:8,stone:0},time:9,slots:0,want:0},
-  stall:{name:'Banco del mercato',w:2,h:2,cost:{wood:0,stone:0},time:0,slots:0,want:0}
+  stall:{name:'Banco del mercato',w:2,h:2,cost:{wood:0,stone:0},time:0,slots:0,want:0},
+  // v48: difesa. La torre tira sui nemici entro TOWER_R celle (TOWER_DPS al secondo); la caserma manda i soldati incontro ai nemici (solo quando ce ne sono).
+  watchtower:{name:'Torre di guardia',w:4,h:4,cost:{wood:22,stone:18},time:14,slots:0,want:0},
+  barracks:{name:'Caserma',w:6,h:6,cost:{wood:26,stone:22,planks:4},time:16,slots:0,want:0}
 };
 // attrattiva: [forza, raggio in celle]. Positivo = piacevole, negativo = rumore e disagio.
 const ATTR={church:[4,36],well:[2.5,24],stall:[1.2,18],wood:[-3,24],quarry:[-4.5,33],mine:[-5,36],farm:[-1.5,18],forester:[0.6,18],granary:[-0.8,15],mill:[-1.5,21],inn:[1,21],sheepfold:[-0.8,15],school:[1,18],infirmary:[0.5,15],cemetery:[-0.5,15],plaza:[3.2,30],flowers:[0.9,12],statue:[2,21],carpenter:[-1.2,18],mason:[-1.2,18],smithy:[-1.8,21],bakery:[0.4,15],weaver:[-0.3,12],tailor:[0.2,12],mercery:[0.8,18],fisher:[-0.3,12],hunter:[-0.4,12],tavern:[1.6,24],hall:[2.6,30]};
+ATTR.watchtower=[0.4,15];ATTR.barracks=[-0.6,15];
 const DECO={flowers:1,statue:1};
 const NOGATE={house:1,stall:1,flowers:1,statue:1,plaza:1,well:1,cemetery:1};
 // Tempo (v20): 1 anno di vita = AGEY secondi; un'annata del calendario (4 stagioni) = YEARL secondi = 10 anni di vita.
@@ -78,7 +82,7 @@ const wb=i=>water[i]===1&&(ignoreFrozen||!S.frozen);
 const DX=[1,-1,0,0,1,1,-1,-1],DY=[0,0,1,-1,1,-1,1,-1];
 const rs=new Uint32Array(N*N),rq=new Int32Array(N*N);let rstamp=0;
 const ROTD=[[0,1],[-1,0],[0,-1],[1,0]];
-const hooks={building(){},done(){},removed(){},villager(){},trees(){},rocks(){},saps(){},gone(){},season(){},ground(){},toast(){},upgraded(){},regarden(){}};
+const hooks={building(){},done(){},removed(){},villager(){},trees(){},rocks(){},saps(){},gone(){},season(){},ground(){},toast(){},upgraded(){},regarden(){},shot(){}};
 let seed=7;
 const tree=new Uint8Array(N*N),rock=new Uint8Array(N*N),ore=new Uint8Array(N*N),water=new Uint8Array(N*N),sap=new Uint8Array(N*N),road=new Uint8Array(N*N),dist=new Uint8Array(N*N),occ=new Int32Array(N*N),field=new Int32Array(N*N),door=new Uint8Array(N*N),cen=new Uint8Array(N*N),gate=new Int32Array(N*N);const gatedSet=new Set();
 // wear: solo per le strade tracciate dal giocatore (usura lenta). plev/phit/pexp: livello del sentiero, passaggi nella finestra corrente, istante di scadenza del livello.
@@ -101,7 +105,8 @@ const T_KEEP={wood:60,stone:45,iron:24,planks:18,tools:14,bread:20,cloth:14,clot
 const mkRoutes=()=>ROUTE_IDS.map(id=>({id,open:false,next:0,visits:0,earned:0,spent:0,last:-1,blocked:false}));
 const S={t:0,mode:'lake',stock:{wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0},inflight:{wood:0,stone:0,iron:0},grow:0,barters:0,helps:0,visits:0,settled:0,season:0,year:1,frozen:false,day:0,f:0.06,ph:'work',wh:{wood:0,stone:0,iron:0},xf:{wood:0,stone:0,iron:0},edicts:EDICT0(),births:0,deaths:0,buried:0,unburied:0,
   deathsBy:{age:0,cold:0,hunger:0,ill:0},plague:{on:false,since:0,dead:0},inherits:0,cured:0,sickTot:0,moves:0,left:0,att:{joy:0,unemp:0,a:0,bonus:0},made:{},delivered:0,
-  coins:COINS0,routes:mkRoutes(),tradeOpt:{sell:true,buy:true},tlog:[],trade:{sold:0,bought:0,visits:0}};
+  coins:COINS0,routes:mkRoutes(),tradeOpt:{sell:true,buy:true},tlog:[],trade:{sold:0,bought:0,visits:0},
+  story:false,rank:0,proj:{},msgs:[],raid:{next:0,repelled:0,killed:0,lost:0,stolen:0,bands:{},seq:0},war:{phase:'none',at:0,wave:0,hold:0,defeats:0,killed:0},rk:0};
 const guests=[];const buildings=new Map();let villagers=[];const vmap=new Map();const resv=new Map();const plantResv=new Set();let nextId=1;
 const acc={a1:0,a05:0,farm:0,attr:99};
 const told={};
@@ -251,7 +256,7 @@ function terrainOK(mode){
   return mw>=(mode==='lake'?11:9)&&wc>=1500&&wc<=3600&&t26>=330&&t18>=100&&r26>=200&&r18>=60&&oT>=30&&o32>=12;
 }
 
-function init(sd,mode,diff){
+function init(sd,mode,diff,opt){
   seed=sd||7;S.mode=mode==='river'?'river':'lake';S.diff=DIFFS[diff]?diff:'normale';S.repairs=0;S.ruined=0;
   for(const a of [tree,rock,ore,water,sap,road,dist,door,cen])a.fill(0);
   gate.fill(0);gatedSet.clear();
@@ -259,6 +264,7 @@ function init(sd,mode,diff){
   buildings.clear();stCache=null;villagers=[];vmap.clear();reg.clear();resv.clear();plantResv.clear();nextId=1;guests.length=0;
   S.t=0;S.festA=[];S.fests=0;festSeq=0;S.edicts=EDICT0();S.births=0;S.deaths=0;S.buried=0;S.unburied=0;S.wh={wood:0,stone:0,iron:0};S.xf={wood:0,stone:0,iron:0};S.stock={wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0};S.inflight={wood:0,stone:0,iron:0};S.grow=0;S.left=0;S.att={joy:0,unemp:0,a:0,bonus:0};S.barters=0;S.helps=0;S.visits=0;S.settled=0;S.season=0;S.year=1;S.frozen=false;acc.a1=0;acc.a05=0;acc.farm=0;acc.attr=99;for(const k in told)delete told[k];
   S.deathsBy={age:0,cold:0,hunger:0,ill:0};S.plague={on:false,since:0,dead:0};S.inherits=0;S.cured=0;S.sickTot=0;S.moves=0;S.made={};S.delivered=0;S.coins=COINS0;S.routes=mkRoutes();S.tradeOpt={sell:true,buy:true};S.tlog=[];S.trade={sold:0,bought:0,visits:0};
+  S.story=!!(opt&&opt.story);S.rank=0;S.proj={};S.msgs=[];S.raid=raid0();S.war=war0();S.rk=0;
   let okT=false,att=0;const base=(sd||7)|0;
   for(;att<48&&!okT;att++){genTerrain(S.mode,base,att);okT=terrainOK(S.mode);}
   S.seed=base;S.mapTries=att;S.mapOK=okT;
@@ -601,6 +607,7 @@ function moveV(v,dt){
   const ti=v.path[0],tx=cx2w(ti%N),tz=cy2w((ti/N)|0),ni=v.path[1];
   let sp=3.0;if(road[ti])sp*=1.45;else if(tree[ti]||water[ti]===2)sp*=0.6;else if(water[ti]===1)sp*=0.85;else sp*=PSPD[plev[ti]];
   if(v.ill)sp*=0.7;
+  if(v.spd)sp*=v.spd;
   const dx=tx-v.x,dz=tz-v.z,d=Math.hypot(dx,dz),step=sp*dt;v.moving=true;
   const last=ni===undefined,reach=last?step:Math.max(step,SMOOTH_REACH);
   if(d<=reach){
@@ -2169,6 +2176,7 @@ function payG(g){
   else if(g.kind==='craftsman'){S.stock.stone+=Math.min(2,stockRoom('stone'));}
 }
 function updG(g,dt){
+  if(g.mil){updMil(g,dt);return;}
   const inn=buildings.get(g.inn);
   if(!inn&&g.state!=='gLeave'){startLeave(g,false);return;}
   switch(g.state){
@@ -2185,7 +2193,7 @@ function updG(g,dt){
 }
 function spawnGuest(){
   if(S.edicts.quarantine)return;
-  if(guests.filter(x=>!x.caravan).length>=5||(S.ph!=='work'&&S.ph!=='evening'))return;
+  if(guests.filter(x=>!x.caravan&&!x.mil).length>=5||(S.ph!=='work'&&S.ph!=='evening'))return;
   const inns=[...buildings.values()].filter(b=>b.type==='inn'&&b.state==='done'&&b.pantry>=2&&b.guestsIn<4);
   if(!inns.length)return;
   const inn=inns[(Math.random()*inns.length)|0];
@@ -2311,6 +2319,241 @@ function tradeTick(){
     guests.push(g);hooks.villager(g);return;
   }
 }
+// ---- v48: il Regno. Titoli (da Accampamento a Capitale del Regno), progetti del Re, predoni e guerra ----
+// In modalità storia (S.story) si parte con pochi strumenti: gli altri sono "progetti" che il Re concede a ogni nuovo titolo e che si comprano con risorse e, più avanti, anche con denari.
+// Fuori dalla modalità storia (test) tutto è disponibile e non arrivano né messi né nemici. S.msgs è la coda delle pergamene del messo (le legge l'interfaccia).
+const RANK_NAMES=['Accampamento','Casale','Villaggio','Borgo','Borgo fortificato','Terra murata','Città','Capitale del Regno'];
+const PROJ=[
+  {id:'well',rank:1,cost:{wood:10,stone:6}},{id:'d3',rank:1,cost:{wood:12}},{id:'store',rank:1,cost:{wood:18,stone:8}},{id:'d4',rank:1,cost:{wood:8}},{id:'forester',rank:1,cost:{wood:10}},
+  {id:'church',rank:2,cost:{wood:20,stone:30}},{id:'d2',rank:2,cost:{wood:14}},{id:'granary',rank:2,cost:{wood:16,stone:8}},{id:'carpenter',rank:2,cost:{wood:16,stone:8}},{id:'mason',rank:2,cost:{wood:12,stone:16}},{id:'fisher',rank:2,cost:{wood:12}},{id:'hunter',rank:2,cost:{wood:12}},
+  {id:'watchtower',rank:3,cost:{wood:22,stone:18}},{id:'mine',rank:3,cost:{wood:20,stone:14}},{id:'mill',rank:3,cost:{wood:20,stone:20}},{id:'school',rank:3,cost:{wood:24,stone:16}},{id:'infirmary',rank:3,cost:{wood:22,stone:16}},{id:'smithy',rank:3,cost:{wood:20,stone:20}},{id:'cemetery',rank:3,cost:{wood:12,stone:16}},
+  {id:'bakery',rank:4,cost:{wood:20,stone:20}},{id:'d5',rank:4,cost:{wood:12}},{id:'sheepfold',rank:4,cost:{wood:16,stone:4}},{id:'inn',rank:4,cost:{wood:26,stone:18}},{id:'mercery',rank:4,cost:{wood:22,stone:16}},{id:'barracks',rank:4,cost:{wood:30,stone:28}},{id:'tavern',rank:4,cost:{wood:24,stone:16}},
+  {id:'weaver',rank:5,cost:{wood:20,stone:10,coins:30}},{id:'tailor',rank:5,cost:{wood:20,stone:10,coins:30}},{id:'hall',rank:5,cost:{wood:30,stone:30,coins:60}},{id:'plaza',rank:5,cost:{stone:30,coins:40}},
+  {id:'flowers',rank:6,cost:{wood:4,coins:10}},{id:'statue',rank:6,cost:{stone:16,coins:50}}
+];
+const PROJ_BY=Object.fromEntries(PROJ.map(p=>[p.id,p]));
+const owns=id=>!S.story||!PROJ_BY[id]||!!S.proj[id];
+const TOWER_R=24,TOWER_DPS=6,SIEGE_HOLD=90,SIDE_TXT={w:'ovest',n:'nord',e:'est',s:'sud'};
+const ENEMY={raider:{hp:24,dps:4,spd:0.9},royal:{hp:90,dps:6,spd:0.9},soldier:{hp:40,dps:7,spd:1.1}};
+const raid0=()=>({next:0,repelled:0,killed:0,lost:0,stolen:0,bands:{},seq:0});
+const war0=()=>({phase:'none',at:0,wave:0,hold:0,defeats:0,killed:0});
+const nd=(t,cur,n)=>({t,cur:Math.min(cur,n),n});
+const openRoutes=()=>S.routes.filter(r=>r.open).length;
+// requisiti per il titolo successivo: RANK_NEEDS[r+1] = ciò che il Re vuole vedere per concedere il titolo r+1
+const RANK_NEEDS=[null,
+  st=>[nd('Abitanti',st.pop,8),nd('Taglialegna',st.built.wood||0,1),nd('Cava di pietra',st.built.quarry||0,1),nd('Case',st.houses,3)],
+  st=>[nd('Abitanti',st.pop,16),nd('Pozzo',st.built.well||0,1),nd('Lotti di mercato',st.dc[3],4)],
+  st=>[nd('Abitanti',st.pop,28),nd('Chiesa',st.built.church||0,1),nd('Fattoria',st.farms,1)],
+  st=>[nd('Abitanti',st.pop,40),nd('Torre di guardia',st.built.watchtower||0,1),nd('Assalti respinti',S.raid.repelled,1)],
+  st=>[nd('Abitanti',st.pop,60),nd('Merceria',st.built.mercery||0,1),nd('Locanda',st.built.inn||0,1),nd('Caserma',st.built.barracks||0,1)],
+  st=>[nd('Abitanti',st.pop,85),nd('Sala delle feste',st.built.hall||0,1),nd('Piazza',st.built.plaza||0,1),nd('Rotte aperte',openRoutes(),2)]];
+const WAR_NEEDS=st=>[nd('Abitanti',st.pop,110),nd('Case signorili',st.levels[4]+st.levels[5],3),nd('Rotte aperte',openRoutes(),3)];
+const needsMet=a=>a.every(x=>x.cur>=x.n);
+function regnoTick(){
+  if(!S.story)return;
+  S.rk=(S.rk|0)+1;
+  if(S.rk%4===0){
+    if(S.rank<6){
+      if(needsMet(RANK_NEEDS[S.rank+1](stats()))){S.rank++;S.msgs.push({k:'rank',r:S.rank});if(S.rank===3)S.raid.next=Math.round(DAY*1.5);}
+    }else if(S.rank===6&&S.war.phase==='none'&&needsMet(WAR_NEEDS(stats()))){
+      S.war.phase='warn';S.war.at=S.t+3*DAY;S.msgs.push({k:'war'});
+    }
+  }
+  raidTick();warTick();
+}
+// progetti del Re
+function projectState(id){
+  const p=PROJ_BY[id];if(!p)return {known:false};
+  const owned=!!S.proj[id]||!S.story,locked=S.rank<p.rank,miss=[];
+  for(const r of ['wood','stone','iron'])if(p.cost[r]&&uncommitted(r)<p.cost[r])miss.push(r);
+  if(p.cost.coins&&S.coins<p.cost.coins)miss.push('coins');
+  return {known:true,owned,locked,afford:!miss.length,miss,rank:p.rank,cost:p.cost};
+}
+function buyProject(id){
+  const p=PROJ_BY[id];if(!p)return {ok:false,msg:'Progetto sconosciuto.'};
+  const ps=projectState(id);
+  if(ps.owned)return {ok:false,msg:'Questo progetto è già tuo.'};
+  if(ps.locked)return {ok:false,msg:'Il Re concede questo progetto solo al titolo di '+RANK_NAMES[p.rank]+'.'};
+  if(!ps.afford){const nm={wood:'legno',stone:'pietra',iron:'ferro',coins:'denari'};return {ok:false,msg:'Non basta: servono '+ps.miss.map(r=>p.cost[r]+' di '+nm[r]).join(' e ')+' (parte del materiale è già destinata ai cantieri).'};}
+  for(const r of ['wood','stone','iron'])if(p.cost[r])S.stock[r]-=p.cost[r];
+  if(p.cost.coins)S.coins-=p.cost.coins;
+  S.proj[id]=true;
+  return {ok:true,msg:'Progetto acquistato: ora puoi costruirlo.'};
+}
+const msgCount=()=>S.msgs.length,peekMsg=()=>S.msgs[0]||null,takeMsg=()=>S.msgs.shift()||null;
+function regnoInfo(st0){
+  const st=st0||stats(),nx=S.rank<6?RANK_NEEDS[S.rank+1](st):(S.rank===6&&S.war.phase==='none')?WAR_NEEDS(st):null;
+  return {story:S.story,rank:S.rank,name:RANK_NAMES[S.rank],nextName:S.rank<6?RANK_NAMES[S.rank+1]:S.rank===6?RANK_NAMES[7]:null,needs:nx,warNeeds:S.rank===6,war:S.war,raid:S.raid,raiders:enemiesOf('raid').length,royals:enemiesOf('royal').length};
+}
+// truppe: predoni (side 'raid'), esercito del Re ('royal') e soldati della caserma ('mine') vivono in `guests` con mil:true, così si salvano e si disegnano come i viandanti
+function enemiesOf(side){const r=[];for(const g of guests)if(g.mil&&g.side===side)r.push(g);return r;}
+function newMil(side,kind,cell,path,target){
+  const E=ENEMY[kind];
+  return {id:nextId++,guest:true,mil:true,side,kind,hp:E.hp,mhp:E.hp,spd:E.spd,target,x:cx2w(cell%N),z:cy2w((cell/N)|0),cell,exit:cell,path,state:'mGo',timer:0,hold:0,moving:false,inside:false,fa:0,carry:null,res:false,horse:false,caravan:false,band:0,loot:0,home:0,tgt:0};
+}
+function pickTarget(){
+  const c=[];for(const b of buildings.values())if(b.state==='done'&&(b.type==='store'||b.type==='granary'||b.type==='mercery'))c.push(b);
+  return c.length?c[(Math.random()*c.length)|0]:null;
+}
+function pickCenter(){let c=null;for(const b of buildings.values())if(b.type==='store'&&b.state==='done'){if(b.center)return b;c=b;}return c;}
+function raidTick(){
+  const R=S.raid;
+  if(S.rank<3||S.war.phase==='warn'||S.war.phase==='fight')return;
+  if(enemiesOf('raid').length)return;
+  if(!R.seq&&!R.next)R.next=Math.round(DAY*1.5);
+  R.next=Math.max(0,R.next-1);
+  if(R.next>0||S.ph==='night')return;
+  if(!spawnRaid())R.next=15;
+}
+function spawnRaid(){
+  const t=pickTarget();if(!t)return false;
+  const side=['w','n','e','s'][(Math.random()*4)|0],n=Math.max(2,Math.min(6,S.rank)),R=S.raid,bid=++R.seq;let made=0;
+  for(let k=0;k<n;k++){
+    const c=edgeCell(side);if(c<0)continue;
+    const path=astar(c,t.cell,t.id);if(!path)continue;
+    const g=newMil('raid','raider',c,path,t.id);g.band=bid;guests.push(g);hooks.villager(g);made++;
+  }
+  if(!made)return false;
+  R.bands[bid]={n:made,k:0,l:0};
+  R.next=Math.round(DAY*(1.6+Math.random()*1.4));
+  hooks.toast('Predoni! Arrivano da '+SIDE_TXT[side]+' verso '+BT[t.type].name.toLowerCase()+'. Le torri di guardia e la caserma difendono il borgo.');
+  return true;
+}
+function milGone(g,why){
+  if(g.side==='raid'){
+    const R=S.raid,bd=R.bands[g.band];
+    if(why==='dead'){R.killed++;if(bd)bd.k++;}else{R.lost++;if(bd)bd.l++;}
+    if(bd&&bd.k+bd.l>=bd.n){
+      delete R.bands[g.band];
+      if(bd.k>=Math.ceil(bd.n/2)){R.repelled++;hooks.toast('Assalto respinto: i predoni sono stati cacciati!');}
+      else hooks.toast('I predoni sono fuggiti col bottino. Servono più torri di guardia e una caserma.');
+    }
+  }else if(g.side==='royal'&&why==='dead')S.war.killed++;
+  endGuest(g);
+}
+function milLeave(g){
+  const p=astar(g.cell,g.exit,0);
+  if(!p){milGone(g,'fled');return;}
+  g.path=p;g.state='mFlee';g.spd=(g.spd||1)*1.05;
+}
+function loot(g){
+  const k=Math.max(1,S.rank),take={wood:8+2*k,stone:5+k};let got=0;
+  for(const r of ['wood','stone']){const q=Math.max(0,Math.min(S.stock[r],take[r]));S.stock[r]-=q;got+=q;}
+  const cq=Math.min(S.coins,4*k);S.coins-=cq;got+=cq;
+  g.loot=got;S.raid.stolen+=got;
+}
+function nearestEnemy(g){
+  let best=null,bd=1e9;
+  for(const e of guests){if(!e.mil||e.side==='mine'||e.hp<=0)continue;const d=Math.hypot(e.x-g.x,e.z-g.z);if(d<bd){bd=d;best=e;}}
+  return best;
+}
+function goHomeMil(g){
+  const b=buildings.get(g.home);if(!b){milGone(g,'home');return;}
+  const p=astar(g.cell,b.entrance>=0?b.entrance:b.cell,0);if(!p){milGone(g,'home');return;}
+  g.path=p;g.state='mHome';
+}
+function updMil(g,dt){
+  if(g.hp<=0){milGone(g,'dead');return;}
+  if(g.hold>0){g.hold-=dt;g.moving=false;return;}
+  switch(g.state){
+    case 'mGo':{
+      let t=buildings.get(g.target);
+      if(!t){const nt=g.side==='royal'?pickCenter():pickTarget();if(!nt){milLeave(g);break;}g.target=nt.id;const p=astar(g.cell,nt.cell,nt.id);if(p)g.path=p;else milLeave(g);break;}
+      if(moveV(g,dt)){
+        if(g.side==='raid'){loot(g);milLeave(g);}
+        else{g.state='mSiege';g.moving=false;}
+      }
+      break;}
+    case 'mSiege':g.moving=false;break;
+    case 'mFlee':if(moveV(g,dt))milGone(g,'fled');break;
+    case 'mHunt':{
+      g.timer-=dt;
+      let e=g.tgt?guests.find(x=>x.id===g.tgt&&x.hp>0):null;
+      if(!e||g.timer<=0){
+        e=nearestEnemy(g);g.tgt=e?e.id:0;g.timer=1.4;
+        if(!e){goHomeMil(g);break;}
+        const p=astar(g.cell,e.cell,0);if(p)g.path=p;
+      }
+      if(e&&Math.hypot(e.x-g.x,e.z-g.z)>1.5)moveV(g,dt);else g.moving=false;
+      break;}
+    case 'mHome':{if(!buildings.get(g.home)){milGone(g,'home');break;}if(moveV(g,dt))milGone(g,'home');break;}
+  }
+}
+function spawnSoldier(b){
+  const c=b.entrance>=0?b.entrance:b.cell,g=newMil('mine','soldier',c,[],0);
+  g.home=b.id;g.state='mHunt';g.timer=0;guests.push(g);hooks.villager(g);
+}
+// combattimento: le torri tirano sul nemico più vicino entro TOWER_R celle; i soldati vengono alle mani con chi hanno a 1,7 passi; la caserma manda fino a 3 soldati (uno ogni 5 s) solo quando ci sono nemici
+function milTick(dt){
+  let any=false;for(const g of guests)if(g.mil){any=true;break;}
+  if(!any)return;
+  const en=[],sol=[];
+  for(const g of guests){if(!g.mil||g.hp<=0)continue;(g.side==='mine'?sol:en).push(g);}
+  if(en.length)for(const b of buildings.values()){
+    if(b.state!=='done')continue;
+    if(b.type==='watchtower'){
+      b.shotT=(b.shotT||0)-dt;
+      const bx=(b.x+b.w/2)*CS-W/2,bz=(b.y+b.h/2)*CS-W/2;let best=null,bd=TOWER_R*CS;
+      for(const e of en){const d=Math.hypot(e.x-bx,e.z-bz);if(d<bd){bd=d;best=e;}}
+      if(best){best.hp-=TOWER_DPS*dt;if(b.shotT<=0){b.shotT=0.7;hooks.shot(bx,bz,best.x,best.z);}}
+    }else if(b.type==='barracks'){
+      b.rcd=(b.rcd||0)-dt;
+      if(b.rcd>0)continue;
+      let alive=0;for(const s of sol)if(s.home===b.id)alive++;
+      if(alive<3){spawnSoldier(b);b.rcd=5;}
+    }
+  }
+  for(const s of sol){
+    let best=null,bd=1.7;for(const e of en){const d=Math.hypot(e.x-s.x,e.z-s.z);if(d<bd){bd=d;best=e;}}
+    if(best){best.hp-=ENEMY.soldier.dps*dt;s.hp-=ENEMY[best.kind].dps*dt;best.hold=Math.max(best.hold,0.25);s.hold=Math.max(s.hold,0.25);}
+  }
+}
+// guerra del Re: tre giorni dopo la dichiarazione arriva l'esercito; se tiene il centro per SIEGE_HOLD punti d'assedio il borgo perde parte delle scorte e il Re ritorna dopo due giorni
+function spawnArmy(){
+  const t=pickCenter();if(!t)return false;
+  const side=['w','n','e','s'][(Math.random()*4)|0],n=10+2*S.war.wave;let made=0;
+  for(let k=0;k<n;k++){
+    const c=edgeCell(side);if(c<0)continue;
+    const path=astar(c,t.cell,t.id);if(!path)continue;
+    const g=newMil('royal','royal',c,path,t.id);guests.push(g);hooks.villager(g);made++;
+  }
+  if(!made)return false;
+  hooks.toast('L\'esercito del Re è alle porte, da '+SIDE_TXT[side]+': difendi il centro del borgo!');
+  return true;
+}
+function warTick(){
+  const Wr=S.war;
+  if(Wr.phase==='warn'&&S.t>=Wr.at){if(spawnArmy()){Wr.phase='fight';Wr.hold=0;}else Wr.at=S.t+20;}
+  if(Wr.phase!=='fight')return;
+  const roy=enemiesOf('royal');
+  let sieging=0;for(const g of roy)if(g.state==='mSiege')sieging++;
+  if(sieging)Wr.hold+=Math.min(sieging,8)*0.5;else Wr.hold=Math.max(0,Wr.hold-1);
+  if(!roy.length){Wr.phase='done';S.rank=7;S.msgs.push({k:'victory'});return;}
+  if(Wr.hold>=SIEGE_HOLD){
+    Wr.defeats++;Wr.wave++;Wr.phase='warn';Wr.at=S.t+2*DAY;Wr.hold=0;
+    for(const r of ['wood','stone','iron','planks','tools'])S.stock[r]=Math.floor((S.stock[r]||0)*0.6);
+    S.coins=Math.floor(S.coins*0.5);
+    for(const g of roy)milLeave(g);
+    S.msgs.push({k:'defeat'});
+  }
+}
+// salvataggi precedenti alla v48: niente titolo né messi; si parte dal titolo che il borgo merita già, con tutti i progetti relativi e quelli degli edifici già costruiti
+function regnoNormalize(){
+  const legacy=S.story===undefined;
+  if(legacy){S.story=true;S.rank=0;S.proj={};}
+  S.story=!!S.story;S.rank=Number.isFinite(S.rank)?Math.max(0,Math.min(7,S.rank|0)):0;
+  S.proj=(S.proj&&typeof S.proj==='object')?S.proj:{};
+  S.msgs=Array.isArray(S.msgs)?S.msgs:[];
+  S.raid=Object.assign(raid0(),S.raid||{});S.raid.bands=Object.assign({},S.raid.bands);
+  S.war=Object.assign(war0(),S.war||{});S.rk=S.rk|0;
+  if(legacy){
+    while(S.rank<6&&needsMet(RANK_NEEDS[S.rank+1](stats())))S.rank++;
+    for(const p of PROJ)if(p.rank<=S.rank)S.proj[p.id]=true;
+    const have={};for(const b of buildings.values())have[b.type]=1;
+    for(const p of PROJ)if(have[p.id])S.proj[p.id]=true;
+    S.raid.next=S.rank>=3?DAY*3:0;
+  }
+}
 function finish(b){
   b.state='done';b.prog=1;acc.attr=99;stCache=null;
   if(b.type==='house')for(const v of villagers)if(!v.home&&b.members.length<capOf(b)&&!v.job){v.home=b.id;b.members.push(v.id);}
@@ -2379,6 +2622,7 @@ function tick1(){
   marketTick();
   if(countDone('inn')&&Math.random()<0.06)spawnGuest();
   tradeTick();
+  regnoTick();
   acc.farm+=1;if(acc.farm>=5){acc.farm=0;farmTick();sheepTick();}
   S.grow+=TK;
   let openSlots=0;for(const b of buildings.values())if(b.state==='done')openSlots+=b.want-b.workers.length;
@@ -2425,6 +2669,7 @@ function step(dt){
   }
   for(const v of villagers)updV(v,dt);
   for(const g of guests.slice())updG(g,dt);
+  milTick(dt);
   acc.a05+=dt;if(acc.a05>=0.5){acc.a05-=0.5;decay();}
   acc.a1+=dt;if(acc.a1>=1){acc.a1-=1;acc.attr+=1;tick1();}
 }
@@ -2548,13 +2793,13 @@ function importState(d){
   guests.length=0;for(const g of gl)guests.push(g);
   nextId=d.nextId;stCache=null;connCache.clear();connStamp=-1;occStamp++;
   festSeq=0;for(const b of buildings.values())if(b.fest&&b.fest.seq>festSeq)festSeq=b.fest.seq;for(const v of villagers)if(v.festSeq>festSeq)festSeq=v.festSeq;
-  computeAttr();
+  computeAttr();regnoNormalize();
   for(const b of buildings.values())hooks.building(b);
   for(const v of villagers)hooks.villager(v);
   for(const g of guests)hooks.villager(g);
   hooks.trees();hooks.rocks();hooks.saps();hooks.ground();
 }
-return {lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
+return {owns,PROJ,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
   TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
