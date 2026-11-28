@@ -1268,6 +1268,7 @@ function refreshSel(){
     list=w.map(v=>`<div>Erborista: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>Cura i malati delle case entro 45 celle: guariscono più in fretta e rischiano meno di morire. Frena anche il contagio.</div>'+(w.length===0?'<div>Senza erborista l\'ospizio non cura.</div>':'');}
   else if(b.type==='cemetery'){info=`Sepolti: ${S.buried} · defunti senza sepoltura: ${S.unburied||0}`;list='<div>I defunti ricevono sepoltura qui: senza un cimitero i morti rendono la zona meno piacevole.</div>';}
   if(b.state==='done'&&Sim.maintainable(b)){const cv=Math.round(Sim.condOf(b));info+=` · condizione ${cv}/100 (${Sim.condLabel(b)})`+(cv<Sim.REPAIR_BELOW?(S.stock.tools>0?' · in attesa di riparazione':' · servono attrezzi nel Magazzino'):'');}
+  if(b.state==='done'&&!b.owner&&Sim.WAGE_JOB[b.type])info+=` · stipendio ${Sim.wageJob(b.type)} arg/giorno${Sim.EDU_JOBS.has(b.type)?' (istruiti; senza scuola 2)':''}`;
   $('selName').textContent=name;$('selInfo').textContent=info;if(selCacheList!==list){selCacheList=list;$('selList').innerHTML=list;}
   updStoreCfg((b.type==='granary'||(b.type==='store'&&!b.center))&&b.state==='done'?b:null);
   $('selJobs').hidden=!(b.state==='done'&&t.slots>0&&!(b.type==='sheepfold'&&b.owner));
@@ -1378,6 +1379,7 @@ function renderTrade(force){
   const st=Sim.tradeStatus(),O=S.tradeOpt,live=Sim.guests().filter(g=>g.caravan);
   const hasHub=[...Sim.buildings().values()].some(b=>b.type==='mercery'&&b.state==='done');
   let h=`<div class="trTop"><div class="trPurse">Denari in cassa: <b>${Sim.money(S.coins)}</b></div><div class="trOpt"><button class="btn${O.sell?'':' off'}" type="button" data-topt="sell">Vendi eccedenze: ${O.sell?'sì':'no'}</button><button class="btn${O.buy?'':' off'}" type="button" data-topt="buy">Compra il necessario: ${O.buy?'sì':'no'}</button></div></div>`;
+  {const ts=Sim.taxStats();h+=`<p class="trRule">${ts.payer==='king'?'Gli stipendi li paga il Re finché il paese non diventa una Città; poi li paga la cassa del paese.':'Gli stipendi li paga la cassa del paese.'} Stipendi di ieri: ${Sim.money(ts.bill)}${ts.owed?` · arretrati dovuti alle famiglie: ${Sim.money(ts.owed)}`:''} · tasse di una settimana: ${Sim.money(ts.weekly)}.</p>`;}
   h+=`<p class="trRule">${tradeRule()}</p>`;
   if(!st.ok)h+=`<div class="trWarn">${esc(st.why)}</div>`;
   h+=Sim.ROUTE_IDS.map(id=>{
@@ -1827,6 +1829,7 @@ function renderCard(){
   h+='<h4>Mestiere</h4>';
   if(dead)h+=`<p>${r.trade?Sim.TRADENAME[r.trade]:'Nessun mestiere'}${r.inh?' <span class="tag">ereditato</span>':''}</p><p>${r.cause?({age:'Morto di vecchiaia.',cold:'Morto di freddo.',hunger:'Morto di fame.',ill:'Morto di malattia.',raid:'Caduto difendendo il borgo dai briganti.',left:'Ha lasciato il paese perché infelice.'})[r.cause]||'':''}</p>`;
   else{h+=`<p>${child?(age<6?'Gioca in giardino':'Gioca e studia'):esc(Sim.roleText(v))}${v.trade&&!child?` · mestiere: ${Sim.TRADENAME[v.trade]}`:''}${v.inh?' <span class="tag">ereditato</span>':''}</p>`;}
+  if(!dead&&v.job){const jb=Sim.buildings().get(v.job);if(jb&&!jb.owner&&!v.child)h+=`<p>Stipendio: ${Sim.wageOf(v,jb)} d'argento al giorno${Sim.EDU_JOBS.has(jb.type)?(v.schooled?' (lavoro da istruiti)':' (lavoro da istruiti, ma non sa leggere e scrivere: stipendio da artigiano)'):''} · guadagnato in tutto: ${Sim.money(v.pay|0)}</p>`;}
   if(!dead&&v.job){const cd=Math.round(Sim.commuteOf(v));h+=`<p>Casa-lavoro: ${cd} celle${cd>Sim.COMMUTE_OK?' <span class="tag bad">troppo lontano: scontento</span>':''}</p>`;}
   if(!dead)h+=villagerNeedsHtml(v);
   h+=skillHtml(dead?r.sk:v.sk);

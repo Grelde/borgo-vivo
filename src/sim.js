@@ -1544,7 +1544,7 @@ function assignJobs(){
     while(b.workers.length<wn&&(isStore||free.length>reserve)){
       const cand=free.filter(v=>(v.state==='idle'||v.state==='sleep'||v.state==='eat'||v.state==='wait')&&!v.carry);if(!cand.length)break;
       // chi ha già il mestiere (o lo ha ereditato dalla famiglia) ha la precedenza
-      let best=null,bd=1e9;for(const v of cand){const d=(v.x-cx2w(b.cell%N))**2+(v.z-cy2w((b.cell/N)|0))**2-(v.trade===b.type?1500:0)-skLevel(v,b.type)*1500+(v.trade&&v.trade!==b.type?skLevel(v,v.trade)*1200:0);if(d<bd){bd=d;best=v;}}
+      let best=null,bd=1e9;for(const v of cand){const d=(v.x-cx2w(b.cell%N))**2+(v.z-cy2w((b.cell/N)|0))**2-(v.trade===b.type?1500:0)-(EDU_JOBS.has(b.type)?(v.schooled?2000:-2000):0)-skLevel(v,b.type)*1500+(v.trade&&v.trade!==b.type?skLevel(v,v.trade)*1200:0);if(d<bd){bd=d;best=v;}}
       setJob(best,b);b.workers.push(best.id);free=free.filter(v=>v!==best);
     }
   }
@@ -2929,8 +2929,18 @@ function attractTick(capD){
 // Le case che l'esattore non riesce a visitare non pagano. Senza ufficio aperto non c'è tassazione e le case salgono di livello come prima.
 // Chi non lavora per il Re può vendere alla Merceria ciò che produce (attrezzi, pane, tessuto, abiti): la Merceria lo rifiuta se ne ha già in abbondanza.
 const WAGE_SEC=DAY*0.2,TAX_MARGIN=1.5,TAX_THRIFT=0.2;
+// v65: stipendio al giorno secondo il mestiere. Lavori manuali 1 d'argento (WAGE), artigiani e servizi 2, lavori che richiedono istruzione 3:
+// chi non sa leggere e scrivere (non ha fatto la scuola) in un lavoro da istruiti prende lo stipendio da artigiano. Finché il paese non è una Città paga il Re;
+// dal titolo di Città (CITY_RANK) pagano gli stipendi le casse del paese; se non bastano il resto diventa un arretrato della famiglia (b.owed, al massimo WAGE_OWE_CAP).
+const WAGE_JOB={wood:1,quarry:1,mine:1,forester:1,farm:1,sheepfold:1,fisher:1,hunter:1,store:1,mill:1,charcoal:1,retting:1,
+  carpenter:2,mason:2,smithy:2,bakery:2,weaver:2,tailor:2,ropewalk:2,dyehouse:2,smelter:2,inn:2,tavern:2,hall:2,barracks:2,
+  school:3,infirmary:3,mercery:3,taxoffice:3};
+const EDU_JOBS=new Set(['school','infirmary','mercery','taxoffice']),WAGE_UNLETTERED=2,CITY_RANK=6,WAGE_OWE_CAP=21;
+const wageJob=type=>WAGE_JOB[type]||WAGE;
+const wageOf=(v,jb)=>{const w=wageJob(jb.type);return EDU_JOBS.has(jb.type)&&!v.schooled?Math.min(w,WAGE_UNLETTERED):w;};
+const wagePayer=()=>S.story&&S.rank>=CITY_RANK?'town':'king';
 const MSELL={tools:3,bread:1,cloth:2,clothes:5},MSELL_KEEP={tools:2,bread:3,cloth:2,clothes:1},MSELL_PROD={tools:'smithy',bread:'bakery',cloth:'weaver',clothes:'tailor'},MSELL_LIM=[12,30],MSELL_LOT=4;
-function mkFin(){return {wages:0,tax:0,due:0,short:0,visits:0,bought:0,refused:0,sold:0};}
+function mkFin(){return {wages:0,king:0,town:0,unpaid:0,bill:0,tax:0,due:0,short:0,visits:0,bought:0,refused:0,sold:0};}
 const taxOf=lv=>Math.pow(2,Math.max(1,lv|0)-1);
 const money=n=>{n=Math.max(0,Math.floor(n)|0);const g=Math.floor(n/SILVER_GOLD),a=n%SILVER_GOLD;return g?g+' oro'+(a?' '+a+' arg':''):a+' arg';};
 const taxOpen=o=>o.type==='taxoffice'&&o.state==='done'&&o.workers.length>0;
@@ -2942,14 +2952,34 @@ function wageTick(v){
   v.wsec=(v.wsec|0)+1;
 }
 function taxDayTick(){
-  if(!Number.isFinite(S.taxDay)||S.taxDay<0){S.taxDay=S.day;return;}
+  if(!Number.isFinite(S.taxDay)||S.taxDay<0){S.taxDay=S.day;S.payer=wagePayer();return;}
   const n=S.day-S.taxDay;if(n<=0)return;S.taxDay=S.day;
   if(!S.fin)S.fin=mkFin();
+  const town=wagePayer()==='town';
+  if(S.payer!==undefined&&S.payer!==wagePayer()&&town)tell('cityPays',"Siete diventati una Città: il Re non paga più gli stipendi, d'ora in poi li paga la cassa del paese con le tasse e il commercio. Se la cassa non basta, gli stipendi restano arretrati.");
+  S.payer=wagePayer();
+  const due=new Map();let bill=0;
   for(const v of villagers){
-    const w=(v.wsec|0)>=WAGE_SEC&&!v.child;v.wsec=0;
-    if(!w)continue;
-    const h=v.home&&buildings.get(v.home);if(!h||h.state!=='done')continue;
-    v.wd=(v.wd|0)+WAGE;h.cash=(h.cash|0)+WAGE;h.wk=(h.wk|0)+WAGE;S.fin.wages+=WAGE;
+    const worked=(v.wsec|0)>=WAGE_SEC&&!v.child;v.wsec=0;
+    if(!worked)continue;
+    const jb=v.job&&buildings.get(v.job),h=v.home&&buildings.get(v.home);
+    if(!jb||!h||h.state!=='done'||jb.owner)continue;
+    const w=wageOf(v,jb);v.wd=(v.wd|0)+1;v.pay=(v.pay|0)+w;
+    due.set(h.id,(due.get(h.id)|0)+w);bill+=w;
+  }
+  S.fin.bill=bill;
+  const credit=(h,x)=>{h.cash=(h.cash|0)+x;h.wk=(h.wk|0)+x;S.fin.wages+=x;};
+  if(!town){for(const [id,w] of due){credit(buildings.get(id),w);S.fin.king+=w;}}
+  else{
+    // prima gli arretrati, poi gli stipendi di oggi, sempre nello stesso ordine; paga la cassa del paese
+    let short=0;
+    for(const h of buildings.values()){const o=h.owed|0;if(h.type!=='house'||o<=0)continue;const x=Math.min(o,Math.max(0,Math.floor(S.coins)));if(x>0){S.coins-=x;h.owed=o-x;credit(h,x);S.fin.town+=x;}}
+    for(const id of [...due.keys()].sort((a,b)=>a-b)){
+      const h=buildings.get(id),w=due.get(id),x=Math.min(w,Math.max(0,Math.floor(S.coins)));
+      if(x>0){S.coins-=x;credit(h,x);S.fin.town+=x;}
+      if(x<w){h.owed=Math.min(WAGE_OWE_CAP,(h.owed|0)+(w-x));S.fin.unpaid+=w-x;short+=w-x;}
+    }
+    if(short>0)tell('noWages','La cassa del paese non basta a pagare gli stipendi: le famiglie restano in credito. Vendi le eccedenze ai mercanti o riscuoti più tasse.');
   }
   for(const b of buildings.values())if(b.type==='house'&&b.state==='done'){
     if(!Number.isFinite(b.taxT))b.taxT=TAX_WEEK;
@@ -3007,7 +3037,8 @@ function taxStats(){
     if(o.type==='taxoffice'&&o.state==='done')offices++;
     if(o.type==='house'&&o.state==='done'){houses++;weekly+=taxOf(o.level);if(taxDue(o))due++;}
   }
-  return Object.assign({active:taxActive(),offices,houses,due,weekly},S.fin||mkFin());
+  let owed=0;for(const o of buildings.values())if(o.type==='house')owed+=o.owed|0;
+  return Object.assign({active:taxActive(),offices,houses,due,weekly,payer:wagePayer(),owed},S.fin||mkFin());
 }
 // Merceria che compra dalle famiglie: rifiuta ciò che ha già in abbondanza (meno quando la città lo produce con le sue botteghe)
 const kingJob=v=>{const jb=v.job&&buildings.get(v.job);return !!jb&&jb.state==='done'&&!jb.owner;};
@@ -3271,7 +3302,7 @@ function importState(d){
 return {TL,FRATIO,raidPower,weaponsWanted,WEAPON_PER_POST,startHouseWork,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,NEEDS,NEED_LOW,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
-  TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,TAX_WEEK,TAX_POUCH,WAGE,WAGE_SEC,SILVER_GOLD,TAX_MARGIN,MSELL,MSELL_KEEP,MSELL_LIM,taxOf,money,taxActive,taxStats,taxDue,taxRefuses,merceryTakes,merceryBuy,merceryBuyer,jobless,kingJob,cityMakes,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
+  TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,WAGE_JOB,EDU_JOBS,CITY_RANK,WAGE_OWE_CAP,wageJob,wageOf,wagePayer,TAX_WEEK,TAX_POUCH,WAGE,WAGE_SEC,SILVER_GOLD,TAX_MARGIN,MSELL,MSELL_KEEP,MSELL_LIM,taxOf,money,taxActive,taxStats,taxDue,taxRefuses,merceryTakes,merceryBuy,merceryBuyer,jobless,kingJob,cityMakes,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
   setFarmCrop,fibreCrop,sinkOf,CHAR_CAP,BAR_CAP,retInfo,RET_CAP,DIFFS,diffOf,maintStats,condOf,condLabel,maintainable,REPAIR_BELOW,WORN_AT,
   STORE_KEYS,GRAN_KEYS,GRAN_TOTAL,CENTER_CAP,setPolicy,storeInfo,stockRoom,capRes,reconcileStock,extraTotal,festTakeFood,
   _t:{jobNeed,jobSurplus,rebalanceJobs,JOBRES,JOB_MARGIN,JOB_DWELL,tradeTick,doTrade,chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
