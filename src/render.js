@@ -178,7 +178,7 @@ function drawGround(){
     if(!field[i])continue;const x0=(i%N)*PX,y0=((i/N)|0)*PX;
     const fb=Sim.buildings().get(field[i]),fk=fb&&fb.crop;
     g.fillStyle='rgba(122,88,48,0.92)';g.fillRect(x0,y0,PX+.5,PX+.5);
-    g.fillStyle=((i/N|0)%2)?'rgba(84,60,32,.55)':fk==='flax'?'rgba(110,140,196,.55)':fk==='hemp'?'rgba(96,150,70,.55)':'rgba(206,178,86,.4)';g.fillRect(x0,y0+PX*.2,PX+.5,PX*.35);
+    g.fillStyle=((i/N|0)%2)?'rgba(84,60,32,.55)':fk==='flax'?'rgba(110,140,196,.55)':fk==='hemp'?'rgba(96,150,70,.55)':fk==='dye'?'rgba(150,70,110,.55)':'rgba(206,178,86,.4)';g.fillRect(x0,y0+PX*.2,PX+.5,PX*.35);
   }
   if(zonesOn)drawZones();
   g.fillStyle='rgba(88,66,40,0.5)';
@@ -741,6 +741,14 @@ const BUILD={
     for(let k=0;k<3;k++)cyl(g,.22,.22,.14,10,MAT.cream,-.2+k*.4,.15,1.3,Math.PI/2,0);
     bx(g,.5,.35,.4,MAT.timber,2.6,.2,1.1);cyl(g,.12,.12,.4,8,MAT.hay,2.6,.5,1.1);
     return g;},
+  dyehouse(b){const g=new THREE.Group();
+    bx(g,2.2,1.2,1.8,MAT.plaster,-.7,.6,-.9);for(const x of[-1.5,-.7,.1])bx(g,.07,1.2,1.84,MAT.timber,x,.6,-.9);
+    gab(g,2.4,1.9,.75,MAT.tile,1.2,-.7,-.9);bx(g,.55,.85,.06,MAT.door,-1.0,.42,.02);chim(g,-.2,1.6,-1.3,.7);
+    // tre tini di tintura e tessuti stesi ad asciugare
+    for(const [x,c] of[[.7,MAT.red],[1.4,MAT.blue],[2.1,MAT.leaf]]){cyl(g,.32,.3,.5,10,MAT.logD,x,.25,.9);cyl(g,.26,.26,.04,10,c,x,.5,.9);}
+    for(const sx of[-1.9,-.3])bx(g,.07,1.3,.07,MAT.timber,sx,.65,1.0);bx(g,1.8,.05,.05,MAT.timber,-1.1,1.3,1.0);
+    for(const [x,c] of[[-1.7,MAT.red],[-1.3,MAT.blue],[-.9,MAT.red],[-.5,MAT.blue]])bx(g,.3,.7,.03,c,x,.9,1.0);
+    return g;},
   tailor(b){const g=new THREE.Group();
     bx(g,2.6,1.35,2.0,MAT.plaster,-.2,.68,-.6);bx(g,2.7,.1,2.1,MAT.timber,-.2,1.35,-.6);gab(g,2.8,2.2,.8,MAT.tile,1.4,-.2,-.6);
     bx(g,.6,.95,.06,MAT.door,-.6,.48,.42);bx(g,.5,.5,.06,MAT.glass,.5,.85,.42);
@@ -917,7 +925,7 @@ function loadKind(v,wh){
   if(c==='planks')return s==='toSite'?'plank':'box';
   if(c==='stone')return s==='toWork'?'rock':CART_AT.includes(s)?(wh?'cartStone':'rock'):'box';
   if(c==='iron')return wh&&CARTR.includes(s)?'cartOre':'box';
-  if(c==='flax'||c==='hemp')return 'plank';
+  if(c==='flax'||c==='hemp'||c==='dye')return 'plank';
   return 'box';
 }
 // quanti pezzi si vedono nel carretto: quanto raccolto (1-4); per un cantiere o un trasferimento, un carico pieno
@@ -1043,6 +1051,7 @@ const TOOLS=[
   {id:'weaver',label:'Telaio del tessitore',key:'',hint:'Trasforma la lana degli ovili in tessuto (2 per lana ogni 9 s) o la fibra di lino del maceratoio (3 per fibra). Serve un ovile con i pastori, oppure lino e maceratoio.'},
   {id:'retting',label:'Maceratoio',key:'',hint:'Sulla riva di un lago o di un fiume. Macera gli steli di lino e canapa portati dalle fattorie (1 fibra per stelo ogni 8 s). La coltura si sceglie nel pannello della fattoria.'},
   {id:'ropewalk',label:'Cordaio',key:'',hint:'Torce la fibra di canapa del maceratoio in corde (3 per fibra ogni 9 s). Le corde si vendono ai mercanti e rinforzano le riparazioni degli edifici.'},
+  {id:'dyehouse',label:'Tintoria',key:'',hint:'Sulla riva di un lago o di un fiume. Tinge il tessuto del telaio con le piante tintorie delle fattorie (1 pezza per pianta ogni 10 s). Il sarto ricava 3 abiti da una pezza tinta, invece di 2.'},
   {id:'tailor',label:'Sartoria',key:'',hint:'Cuce abiti (2 per tessuto ogni 10 s) con il tessuto del telaio e li porta alle case dal livello 3: +3 di felicità. Serve un telaio.'},
   {id:'fisher',label:'Capanna del pescatore',key:'',hint:'Sulla riva di un lago o di un fiume. Pesce per le famiglie (2 ogni 7 s per pescatore); con il ghiaccio non si pesca.'},
   {id:'hunter',label:'Capanna del cacciatore',key:'',hint:'Vicino a un bosco fitto. Porta carne alle famiglie (2 ogni 8 s per cacciatore); d\'inverno la selvaggina è scarsa.'},
@@ -1071,7 +1080,7 @@ const CATS=[
   {id:'tools',label:'Strumenti',ids:['select','pan','demolish']},
   {id:'zone',label:'Zone e strade',ids:['d1','d2','d3','d4','d5','undistrict','road']},
   {id:'prod',label:'Produzione',ids:['wood','quarry','mine','forester','granary','mill']},
-  {id:'shop',label:'Botteghe',ids:['carpenter','mason','smithy','bakery','sheepfold','retting','ropewalk','weaver','tailor','fisher','hunter','mercery']},
+  {id:'shop',label:'Botteghe',ids:['carpenter','mason','smithy','bakery','sheepfold','retting','ropewalk','dyehouse','weaver','tailor','fisher','hunter','mercery']},
   {id:'serv',label:'Servizi',ids:['store','well','school','infirmary','church','inn','tavern','hall']},
   {id:'deco',label:'Decorazioni',ids:['plaza','flowers','statue']},
   {id:'def',label:'Difesa',ids:['watchtower','barracks']}];
@@ -1121,9 +1130,9 @@ function refreshSel(){
   }
   else if(b.type==='stall'){const o=Sim.buildings().get(b.owner);info=b.open?'Banco aperto: si accettano baratti.':'Banco chiuso.';
     if(o)list=`<div>Merce: ortaggi ${o.goods.veg} · uova ${o.goods.eggs} · pesce ${o.goods.fish} · carne ${o.goods.meat} · pane ${o.goods.bread} · legna ${o.goods.firewood} · attrezzi ${o.goods.tools}</div>`;}
-  else if(b.type==='farm'){const w=Sim.villagers().filter(v=>v.job===b.id);const fc=b.crop||'grain',CN={grain:'grano',flax:'lino',hemp:'canapa'},ri=Sim.retInfo();info=`Campi: ${b.fields.length} · lavorano ${w.length} · coltura: ${CN[fc]}`;
-    list='<div class="sh">Coltura dei campi</div><div>'+['grain','flax','hemp'].map(k=>`<button class="btn sm${k===fc?' on':''}" type="button" data-crop="${k}">${CN[k][0].toUpperCase()+CN[k].slice(1)}</button>`).join(' ')+'</div>'+
-      w.map((v,i)=>`<div>Contadino ${i+1}: ${esc(Sim.roleText(v))}</div>`).join('')+(fc==='grain'?"<div>Il grano raccolto va alla famiglia che l'ha fondata.</div>":`<div>Gli steli di ${CN[fc]} vanno al maceratoio: la famiglia non riceve grano da questa fattoria.</div>`+(ri.any?'':'<div>Senza un maceratoio i contadini raccolgono grano.</div>'));}
+  else if(b.type==='farm'){const w=Sim.villagers().filter(v=>v.job===b.id);const fc=b.crop||'grain',CN={grain:'grano',flax:'lino',hemp:'canapa',dye:'tintorie'},ri=Sim.retInfo(fc==='dye'?'dyehouse':'retting');info=`Campi: ${b.fields.length} · lavorano ${w.length} · coltura: ${CN[fc]}`;
+    list='<div class="sh">Coltura dei campi</div><div>'+['grain','flax','hemp','dye'].map(k=>`<button class="btn sm${k===fc?' on':''}" type="button" data-crop="${k}">${CN[k][0].toUpperCase()+CN[k].slice(1)}</button>`).join(' ')+'</div>'+
+      w.map((v,i)=>`<div>Contadino ${i+1}: ${esc(Sim.roleText(v))}</div>`).join('')+(fc==='grain'?"<div>Il grano raccolto va alla famiglia che l'ha fondata.</div>":(fc==='dye'?'<div>Le piante tintorie vanno alla tintoria: la famiglia non riceve grano da questa fattoria.</div>':`<div>Gli steli di ${CN[fc]} vanno al maceratoio: la famiglia non riceve grano da questa fattoria.</div>`)+(ri.any?'':`<div>Senza ${fc==='dye'?'una tintoria':'un maceratoio'} i contadini raccolgono grano.</div>`));}
   else if(b.type==='store'){
     name=b.center?'Centro cittadino':'Magazzino';
     const w=Sim.villagers().filter(v=>v.job===b.id);
@@ -1150,6 +1159,7 @@ function refreshSel(){
       bakery:`Un panettiere trasforma 1 farina in 3 pagnotte ogni ${spec.t} s e le porta alle famiglie. Farina nei mulini: ${S.stock.flour}.`,
       weaver:`Un tessitore trasforma 1 lana in 2 pezze di tessuto ogni ${spec.t} s, o 1 fibra di lino in 3 pezze. La lana viene dagli ovili vicini, la fibra dal maceratoio. Le pezze vanno ai sarti e alle case con il telaio.`,
       retting:`Un maceratore trasforma 1 stelo di lino o canapa in 1 fibra ogni ${spec.t} s. Steli in attesa: lino ${(b.inp||{}).flax|0}, canapa ${(b.inp||{}).hemp|0} (max ${Sim.RET_CAP}) · fibra pronta: lino ${b.out.flaxf|0}, canapa ${b.out.hempf|0}. Il lino va ai telai, la canapa ai cordai. Gli steli li portano i contadini delle fattorie che coltivano lino o canapa.`,
+      dyehouse:`Un tintore tinge 1 pezza di tessuto con 1 pianta tintoria ogni ${spec.t} s. Piante in attesa: ${(b.inp||{}).dye|0} (max ${Sim.RET_CAP}) · pezze tinte pronte: ${b.out.dyed|0}. Il tessuto lo prende dal telaio vicino; il sarto con una pezza tinta cuce 3 abiti invece di 2. Le piante le portano i contadini delle fattorie con la coltura tintorie.`,
       ropewalk:`Un cordaio trasforma 1 fibra di canapa in 3 corde ogni ${spec.t} s. Corde nel magazzino: ${S.stock.rope|0}. Le corde si vendono ai mercanti e rinforzano le riparazioni (+50%).`,
       tailor:`Un sarto trasforma 1 pezza di tessuto in 2 abiti ogni ${spec.t} s; le case dal livello 3 che li ricevono hanno +3 di felicità. Il tessuto viene dai telai.`,
       fisher:`Un pescatore porta 2 pesci ogni ${spec.t} s. Con il ghiaccio non si pesca.`,

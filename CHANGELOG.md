@@ -1,5 +1,12 @@
 # Changelog
 
+## v51 – 2026-11-28
+Funzione nuova: tintoria (completa il punto 2 delle filiere: lino, canapa, corde, tessuti).
+- **Coltura «tintorie»** (robbia e guado) fra le scelte della fattoria, accanto a grano, lino e canapa; i campi diventano rosati. I contadini portano le piante alla tintoria (senza tintoria raccolgono grano).
+- **Tintoria** (sulla riva, 2 posti, 2 assi): 1 pianta + 1 pezza di tessuto del telaio (o della merceria) → 1 pezza tinta ogni 10 s. Scorta massima di piante 24.
+- **Sarto:** con una pezza tinta cuce **3 abiti** invece di 2 (le pezze tinte hanno la precedenza).
+- Salvataggi vecchi compatibili. Test: `tests/tintoria.js`.
+
 ## v50 – 2026-11-28
 Funzione nuova: filiera del lino e della canapa (coltura nella fattoria, maceratoio, cordaio, corde).
 - **Coltura per fattoria:** nel pannello della fattoria si sceglie Grano, Lino o Canapa (`b.crop`, salvata). Una fattoria a lino o canapa non dà grano alla famiglia; senza un maceratoio i contadini raccolgono comunque grano. I campi cambiano colore (blu lino, verde canapa).
