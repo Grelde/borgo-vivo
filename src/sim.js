@@ -642,12 +642,17 @@ function nearestOf(type,cell,maxd){
 const nearestStore=cell=>nearestOf('store',cell,600);
 // magazziniere: porta dal magazzino ai cantieri
 // v46: chi porta un carico lo prende al magazzino e lo porta a UN cantiere preciso. own=true: lo porta il costruttore di quel cantiere
+// v47: a mano si porta 1 pezzo per viaggio, col carretto 3. Il carretto ce l'hanno solo gli abitanti che lavorano in un Magazzino o nel centro
+// (stessa regola della grafica: isWhWorker in render.js). Mai più di quanto serve al cantiere o di quanto c'è in magazzino.
+const CART_LOAD=3,HAND_LOAD=1;
+function haulCap(v){const jb=v.job&&buildings.get(v.job);return jb&&jb.type==='store'?CART_LOAD:HAND_LOAD;}
 function haulTo(v,s,own){
-  const t=costRes(s);let r=null;
-  for(const k of ['wood','stone','planks'])if((t[k]||0)-s.got[k]-s.fly[k]>0&&S.stock[k]>0){r=k;break;}
+  const t=costRes(s);let r=null,need=0;
+  for(const k of ['wood','stone','planks']){const nd=(t[k]||0)-s.got[k]-s.fly[k];if(nd>0&&S.stock[k]>0){r=k;need=nd;break;}}
   if(!r)return false;
   const st=nearestStore(v.cell);if(!st||!route(v,st.cell,st.id))return false;
-  S.stock[r]--;s.fly[r]++;v.task={res:r,site:s.id,own:!!own};v.state='toStore';return true;
+  const n=Math.max(1,Math.min(haulCap(v),need,Math.floor(S.stock[r])));
+  S.stock[r]-=n;s.fly[r]+=n;v.task={res:r,site:s.id,own:!!own,n};v.state='toStore';return true;
 }
 // gli altri (non costruttori) portano il materiale prima ai cantieri che non hanno ancora un costruttore, poi agli altri
 function findHaul(v){
@@ -1296,15 +1301,16 @@ function onArrive(v){
       v.cargo=null;v.carry=null;v.state='idle';break;}
     case 'toStore':{
       const task=v.task,s=task&&buildings.get(task.site);
-      if(!s||s.state!=='site'){if(task)S.stock[task.res]++;v.task=null;v.state='idle';break;}
-      v.carry=task.res;
+      if(!s||s.state!=='site'){if(task)S.stock[task.res]+=task.n||1;v.task=null;v.state='idle';break;}
+      v.carry=task.res;v.cq=task.n||1;
       if(route(v,s.cell,s.id))v.state='toSite';
-      else{S.stock[task.res]++;s.fly[task.res]--;v.carry=null;v.task=null;v.state='idle';v.cool=2;}
+      else{S.stock[task.res]+=task.n||1;s.fly[task.res]=Math.max(0,s.fly[task.res]-(task.n||1));v.carry=null;v.cq=0;v.task=null;v.state='idle';v.cool=2;}
       break;}
     case 'toSite':{
       const task=v.task,s=task&&buildings.get(task.site);
-      if(s&&s.state==='site'){s.got[task.res]++;s.fly[task.res]--;}else if(task)S.stock[task.res]++;
-      v.carry=null;v.task=null;
+      const n=(task&&task.n)||1;
+      if(s&&s.state==='site'){s.got[task.res]+=n;s.fly[task.res]=Math.max(0,s.fly[task.res]-n);}else if(task)S.stock[task.res]+=n;
+      v.carry=null;v.cq=0;v.task=null;
       // il costruttore che ha portato il carico al suo cantiere si rimette a costruire
       if(task&&task.own&&s&&s.state==='site'&&S.ph==='work'&&!(S.f>=DUSK&&v.home)){v.target=s.id;v.bw=0;v.state='build';}else v.state='idle';
       break;}
@@ -1340,8 +1346,8 @@ function abortTask(v){
     case 'toHomeT':{const c=v.cargo;if(c&&h){h.goods[c.t]=Math.min(12,h.goods[c.t]+c.q);S.barters++;}break;}
     case 'toCollect':{const c=v.cargo;if(c){const p=buildings.get(c.from);if(p)p.buf+=c.q;S.inflight[c.res]-=c.q;}break;}
     case 'toStoreC':{const c=v.cargo;if(c){S.stock[c.res]+=Math.min(c.q,stockRoom(c.res));S.inflight[c.res]-=c.q;}break;}
-    case 'toStore':{const t=v.task;if(t){const st=buildings.get(t.site);S.stock[t.res]++;if(st&&st.fly[t.res]>0)st.fly[t.res]--;}break;}
-    case 'toSite':{const t=v.task,st=t&&buildings.get(t.site);if(st&&st.state==='site'){st.got[t.res]++;st.fly[t.res]--;}else if(t)S.stock[t.res]++;break;}
+    case 'toStore':{const t=v.task;if(t){const n=t.n||1,st=buildings.get(t.site);S.stock[t.res]+=n;if(st)st.fly[t.res]=Math.max(0,st.fly[t.res]-n);}break;}
+    case 'toSite':{const t=v.task,n=(t&&t.n)||1,st=t&&buildings.get(t.site);if(st&&st.state==='site'){st.got[t.res]+=n;st.fly[t.res]=Math.max(0,st.fly[t.res]-n);}else if(t)S.stock[t.res]+=n;break;}
     case 'toHomeErr':{if(h&&v.err){const key=v.err.kind==='merc'?v.err.g:ERRKEY[v.err.kind],cp=key==='firewood'?fwCap(h):12;h.goods[key]=Math.min(cp,h.goods[key]+(v.cq||1));}break;}
     case 'toHomeF':{if(h)h.goods.grain=Math.min(12,h.goods.grain+(v.cq||1));break;}
     case 'toGranary':S.stock.grain+=Math.min(v.cq||1,stockRoom('grain'));break;
@@ -2717,8 +2723,8 @@ function roleText(v){
     case 'toRepair':case 'repair':return 'Ripara un edificio con gli attrezzi';
     case 'toRetting':return v.cargo&&v.cargo.k==='dye'?'Porta le piante tintorie alla tintoria':'Porta gli steli al maceratoio';
     case 'toCollect':case 'toStoreC':return 'Porta i materiali al magazzino';
-    case 'toStore':return v.task?'Va al magazzino a prendere '+RESNAME[v.task.res]+(v.task.own?' per il suo cantiere':' per un cantiere'):'Va al magazzino a prendere i materiali';
-    case 'toSite':return v.task?'Porta '+RESNAME[v.task.res]+(v.task.own?' al suo cantiere':' al cantiere'):'Porta i materiali al cantiere';
+    case 'toStore':return v.task?'Va al magazzino a prendere '+RESNAME[v.task.res]+(v.task.n>1?' (col carretto, '+v.task.n+' pezzi)':' (a mano, 1 pezzo)')+(v.task.own?' per il suo cantiere':' per un cantiere'):'Va al magazzino a prendere i materiali';
+    case 'toSite':return v.task?'Porta '+RESNAME[v.task.res]+(v.task.n>1?' ('+v.task.n+' pezzi, col carretto)':' (1 pezzo, a mano)')+(v.task.own?' al suo cantiere':' al cantiere'):'Porta i materiali al cantiere';
     case 'toBuild':return 'Va al cantiere';
     case 'build':{const tb=buildings.get(v.target);return tb&&tb.state==='site'&&siteIdle(tb)?'Aspetta i materiali al cantiere':'Costruisce';}
     case 'toStall':case 'keep':return 'Mercante al banco';

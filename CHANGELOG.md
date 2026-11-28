@@ -1,5 +1,12 @@
 # Changelog
 
+## v54 – 2026-11-28
+Funzione nuova: capacità di trasporto per viaggio ai cantieri. A mano si porta **1 pezzo**, col carretto **3 pezzi**.
+- **Regola:** il carretto è dei magazzinieri (lavorano in un magazzino o nel centro del paese): ogni viaggio al cantiere porta fino a 3 pezzi (legno, pietra o assi), ma mai più di quelli che servono al cantiere o che ci sono in magazzino. Tutti gli altri (aiutanti, costruttori, adulti senza lavoro) portano 1 pezzo per viaggio. I materiali in volo e le scorte si aggiornano della quantità reale (`task.n`), anche se il viaggio viene annullato.
+- **Grafica:** il magazziniere spinge il carretto con i pezzi realmente caricati (1-3 tronchi, pietre o assi nel pianale, nuovo `cartPlanks`); gli altri hanno un solo tronco sulla spalla, un'asse sola a mano o un sasso in braccio. Il testo del ruolo dice "(col carretto, N pezzi)" o "(a mano, 1 pezzo)".
+- **Effetto sul gioco:** i cantieri ricevono i materiali più in fretta quando c'è un magazziniere; senza, ogni viaggio porta un pezzo solo.
+- Test: `tests/cantieri.js` (viaggi entro la capacità, conti in volo/scorte mai negativi, priorità contando i pezzi) e `tests/carichi.js` (modelli e quantità del carretto, 1 pezzo a mano) aggiornati. Non verificato in un browser con WebGL (solo smoke test di render).
+
 ## v53 – 2026-11-28
 Funzione nuova: pergamena dei cittadini dopo il messo, e consigli solo su ciò che serve davvero.
 - **Pergamena dei cittadini:** a ogni titolo (da Casale a Città) il messo del Re parla per primo; chiusa la sua pergamena ne arriva una seconda della tua gente, con ciò che *loro* ritengono necessario. Al titolo di Casale dicono di non voler più andare con i secchi fino al fiume (o al lago, secondo la mappa) e di volere un pozzo per l'acqua fresca, e un mercato dove le famiglie barattino gli orti e le uova. Poi il pulsante «Apri i progetti» porta all'albero, prima di qualsiasi acquisto. Con i consigli spenti arriva solo la pergamena del Re, con il pulsante «Vedi i progetti».

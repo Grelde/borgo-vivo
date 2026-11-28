@@ -907,29 +907,31 @@ const LG={
   wheel:(()=>{const g=new THREE.CylinderGeometry(.19,.19,.05,10);g.rotateZ(Math.PI/2);return g;})(),
   handle:new THREE.BoxGeometry(.04,.04,.55),
   stone:new THREE.DodecahedronGeometry(.13,0),
+  board:new THREE.BoxGeometry(.5,.045,.62),
   clog:(()=>{const g=new THREE.CylinderGeometry(.07,.07,.55,6);g.rotateZ(Math.PI/2);return g;})()
 };
 const isWhWorker=v=>{const jb=v.job&&Sim.buildings().get(v.job);return !!jb&&jb.type==='store';};
 const CART_AT=['toSite','toStoreC','toWhT','toCenterT'],CARTR=['toStoreC','toWhT','toCenterT'];
+// v47: col carretto si portano 3 pezzi (si vedono tutti quelli portati), a mano 1 (un'asse, un tronco, un sasso)
 // v39: i carretti sono solo dei magazzinieri (wh = l'abitante lavora in un Magazzino o nel centro); gli altri portano assi e tronchi sulla spalla, sassi in braccio, il resto a blocchetto
 function loadKind(v,wh){
   const c=v.carry,s=v.state;
   if(!c)return null;
   if(c==='wood'){
-    if(s==='toSite')return 'log';
+    if(s==='toSite')return wh?'cartWood':'log';
     if(s==='toStoreC')return wh&&(v.cq|0)>=3?'cartWood':'log';
     if(s==='toWhT'||s==='toCenterT')return wh?'cartWood':'log';
     if(s==='toWork')return 'log';
     return 'box';
   }
-  if(c==='planks')return s==='toSite'?'plank':'box';
+  if(c==='planks')return s==='toSite'?(wh?'cartPlanks':'plank'):'box';
   if(c==='stone')return s==='toWork'?'rock':CART_AT.includes(s)?(wh?'cartStone':'rock'):'box';
   if(c==='iron')return wh&&CARTR.includes(s)?'cartOre':'box';
   if(c==='flax'||c==='hemp'||c==='dye')return 'plank';
   return 'box';
 }
 // quanti pezzi si vedono nel carretto: quanto raccolto (1-4); per un cantiere o un trasferimento, un carico pieno
-const loadQty=v=>v.state==='toStoreC'?Math.max(1,Math.min(4,(v.cq|0)||1)):3;
+const loadQty=v=>v.state==='toStoreC'?Math.max(1,Math.min(4,(v.cq|0)||1)):v.state==='toSite'?Math.max(1,Math.min(3,(v.cq|0)||3)):3;
 function makeRig(gp){
   const root=new THREE.Group();
   const plank=new THREE.Group();
@@ -947,8 +949,9 @@ function makeRig(gp){
   const mk=(geo,mats,y)=>pos.map((p,i)=>{const o=new THREE.Mesh(geo,mats[i%mats.length]);o.position.set(p[0],y+(i%2)*.03,p[1]);o.rotation.y=i*1.3;o.visible=false;cart.add(o);return o;});
   const stones=mk(LG.stone,[MAT.stoneD,MAT.stone],.45),ores=mk(LG.stone,[MAT.iron,MAT.rust],.45);
   const clogs=[[0,.43,-.17],[0,.43,.17],[0,.56,0],[0,.56,.3]].map(p=>{const o=new THREE.Mesh(LG.clog,MAT.log);o.position.set(p[0],p[1],p[2]);o.visible=false;cart.add(o);return o;});
+  const boards=[0,1,2].map(i=>{const o=new THREE.Mesh(LG.board,MAT.plank);o.position.set(0,.4+i*.05,0);o.rotation.y=(i-1)*.12;o.visible=false;cart.add(o);return o;});
   root.add(cart);gp.add(root);
-  return {root,plank,log,rock,cart,wheels,stones,ores,clogs};
+  return {root,plank,log,rock,cart,wheels,stones,ores,clogs,boards};
 }
 function applyLoad(m,v,kind,qty){
   m.load.visible=kind==='box';
@@ -956,7 +959,10 @@ function applyLoad(m,v,kind,qty){
   if(!m.rig){if(!kind||kind==='box')return;m.rig=makeRig(m.gp);}
   const r=m.rig;
   r.plank.visible=kind==='plank';r.log.visible=kind==='log';r.rock.visible=kind==='rock';
-  r.cart.visible=kind==='cartStone'||kind==='cartWood'||kind==='cartOre';
+  // a mano un'asse sola (le assi del magazzino); gli altri carichi 'plank' (lino, canapa, tinture) restano un fascio
+  const one=kind==='plank'&&v.carry==='planks';r.plank.children.forEach((c,i)=>{c.visible=!one||i===1;});
+  r.cart.visible=kind==='cartStone'||kind==='cartWood'||kind==='cartOre'||kind==='cartPlanks';
+  r.boards.forEach((o,i)=>{o.visible=kind==='cartPlanks'&&i<qty;});
   r.stones.forEach((o,i)=>{o.visible=kind==='cartStone'&&i<qty;});
   r.ores.forEach((o,i)=>{o.visible=kind==='cartOre'&&i<qty;});
   r.clogs.forEach((o,i)=>{o.visible=kind==='cartWood'&&i<qty;});
@@ -2105,7 +2111,7 @@ function frame2(now){
     if(v.age!==undefined&&!v.guest){const k=0.8*(0.62+0.38*Math.min(1,v.age/14));if(m.k!==k){m.k=k;m.gp.scale.setScalar(k);}}
     if(v.mil&&m.hpb)m.hpb.scale.x=.55*Math.max(.03,v.hp/v.mhp);
     if(!v.guest){const ill=!!v.ill;if(m.ill!==ill){m.ill=ill;m.body.material=ill?MAT.sick:m.mat;}}
-    const lk=loadKind(v,isWhWorker(v)),lq=lk&&lk.startsWith('cart')?loadQty(v):0,lkey=lk?lk+':'+(lk==='box'?v.carry:lq):'';
+    const lk=loadKind(v,isWhWorker(v)),lq=lk&&lk.startsWith('cart')?loadQty(v):0,lkey=lk?lk+':'+(lk==='box'||lk==='plank'?v.carry:lq):'';
     if(lkey!==m.lk){m.lk=lkey;m.carry=v.carry||null;applyLoad(m,v,lk,lq);}
     if(m.rig&&m.rig.cart.visible&&v.moving){const a=dt*7.5;for(const w of m.rig.wheels)w.rotation.x+=a;}
   }

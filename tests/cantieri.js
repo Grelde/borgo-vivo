@@ -1,4 +1,4 @@
-// v46: regole dei cantieri. Il test è deterministico: Math.random viene sostituito da un generatore a seme fisso e la prova
+// v47: capacità per viaggio (1 a mano, 3 col carretto dei magazzinieri). v46: regole dei cantieri. Il test è deterministico: Math.random viene sostituito da un generatore a seme fisso e la prova
 // gira su più semi. Per ogni seme:
 // 1) finché mancano materiali un cantiere ha al massimo 1 costruttore; coi materiali completi fino a 3
 // 2) la costruzione non va mai più avanti dei materiali consegnati
@@ -28,7 +28,7 @@ function scenario(seed){
   S.stock.wood=Math.max(S.stock.wood,150);S.stock.stone=Math.max(S.stock.stone,120);// le case dei primi giorni possono aver consumato le scorte
   const mine=[['well',92,88],['plaza',100,96],['church',84,100],['school',96,102],['wood',70,80],['quarry',112,92]].map(([t,x,y])=>put(t,x,y,28)).filter(Boolean);
   const placed=mine.length;
-  const r={seed,placed,maxIncomplete:0,maxReady:0,capViol:0,ownTrips:0,twoSites:0,checks:0,viol:[],sawIncompleteBuilder:0,done:0};
+  const r={seed,placed,maxIncomplete:0,maxReady:0,capViol:0,ownTrips:0,twoSites:0,checks:0,viol:[],sawIncompleteBuilder:0,done:0,trips:0,maxN:0,capBad:0,cartMulti:0,negFly:0};
   const prev=new Map(),done=new Set();
   for(let i=0;i<Sim.DAY*10/0.2;i++){
     // stato prima del passo: per ogni cantiere i costruttori e il materiale ancora da portare, più le scorte
@@ -41,6 +41,7 @@ function scenario(seed){
       const nb=builders(b.id);
       if(ready(b))r.maxReady=Math.max(r.maxReady,nb);else{r.maxIncomplete=Math.max(r.maxIncomplete,nb);if(nb===1)r.sawIncompleteBuilder++;}
       if(b.prog>got(b)/need(b)+1e-6)r.capViol++;
+      for(const k of RES)if(b.fly[k]<0||S.stock[k]<-1e-9)r.negFly++;
     }
     // le decisioni di trasporto vengono prese nell'ordine degli abitanti: per ognuno si tiene conto dei carichi già presi e dei
     // costruttori già assegnati dagli abitanti che lo precedono nello stesso passo
@@ -49,7 +50,9 @@ function scenario(seed){
       const was=prev.get(v.id);prev.set(v.id,v.state);
       if((v.state==='build'||v.state==='toBuild')&&v.target&&was!=='build'&&was!=='toBuild')newB.set(v.target,(newB.get(v.target)||0)+1);
       if(!(v.state==='toStore'&&was!=='toStore'&&v.task))continue;
-      const t=v.task,site=t.site;
+      const t=v.task,site=t.site,n=t.n||1;
+      const jb=v.job&&Sim.buildings().get(v.job),cap=jb&&jb.type==='store'?3:1;
+      r.trips++;r.maxN=Math.max(r.maxN,n);if(cap===1&&n>1)r.capBad++;if(n<1||n>cap)r.capBad++;if(cap===3&&n>1)r.cartMulti++;
       if(t.own)r.ownTrips++;
       else{
         r.checks++;
@@ -59,7 +62,7 @@ function scenario(seed){
           if(other)r.viol.push({t:+S.t.toFixed(1),villager:v.id,scelto:site,senzaCostruttore:other,res:t.res});
         }
       }
-      const cl=claim.get(site)||{wood:0,stone:0,planks:0};cl[t.res]++;claim.set(site,cl);used[t.res]++;
+      const cl=claim.get(site)||{wood:0,stone:0,planks:0};cl[t.res]+=n;claim.set(site,cl);used[t.res]+=n;
     }
     for(const b of Sim.buildings().values())if(b.state==='done')done.add(b.id);
   }
@@ -74,6 +77,8 @@ for(const seed of [2,3,4]){
   if(r.viol.length)console.log('  dettaglio:',JSON.stringify(r.viol.slice(0,3)));
   ok(r.maxIncomplete<=1,`seme ${seed}: cantiere incompleto con più di 1 costruttore (${r.maxIncomplete})`);
   ok(r.maxReady<=3,`seme ${seed}: cantiere completo con più di 3 costruttori (${r.maxReady})`);
+  ok(r.capBad===0,`seme ${seed}: ${r.capBad} viaggi oltre la capacità (1 a mano, 3 col carretto)`);
+  ok(r.negFly===0,`seme ${seed}: conti dei materiali in volo/scorte negativi`);
   ok(r.capViol===0,`seme ${seed}: la costruzione ha superato i materiali consegnati ${r.capViol} volte`);
   ok(r.viol.length===0,`seme ${seed}: un non costruttore ha servito un cantiere con costruttore mentre ne aspettava uno senza`);
   ok(r.twoSites>0,`seme ${seed}: mai due cantieri contemporanei, prova non significativa`);

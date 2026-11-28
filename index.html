@@ -309,7 +309,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v53</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v54</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -1034,12 +1034,17 @@ function nearestOf(type,cell,maxd){
 const nearestStore=cell=>nearestOf('store',cell,600);
 // magazziniere: porta dal magazzino ai cantieri
 // v46: chi porta un carico lo prende al magazzino e lo porta a UN cantiere preciso. own=true: lo porta il costruttore di quel cantiere
+// v47: a mano si porta 1 pezzo per viaggio, col carretto 3. Il carretto ce l'hanno solo gli abitanti che lavorano in un Magazzino o nel centro
+// (stessa regola della grafica: isWhWorker in render.js). Mai più di quanto serve al cantiere o di quanto c'è in magazzino.
+const CART_LOAD=3,HAND_LOAD=1;
+function haulCap(v){const jb=v.job&&buildings.get(v.job);return jb&&jb.type==='store'?CART_LOAD:HAND_LOAD;}
 function haulTo(v,s,own){
-  const t=costRes(s);let r=null;
-  for(const k of ['wood','stone','planks'])if((t[k]||0)-s.got[k]-s.fly[k]>0&&S.stock[k]>0){r=k;break;}
+  const t=costRes(s);let r=null,need=0;
+  for(const k of ['wood','stone','planks']){const nd=(t[k]||0)-s.got[k]-s.fly[k];if(nd>0&&S.stock[k]>0){r=k;need=nd;break;}}
   if(!r)return false;
   const st=nearestStore(v.cell);if(!st||!route(v,st.cell,st.id))return false;
-  S.stock[r]--;s.fly[r]++;v.task={res:r,site:s.id,own:!!own};v.state='toStore';return true;
+  const n=Math.max(1,Math.min(haulCap(v),need,Math.floor(S.stock[r])));
+  S.stock[r]-=n;s.fly[r]+=n;v.task={res:r,site:s.id,own:!!own,n};v.state='toStore';return true;
 }
 // gli altri (non costruttori) portano il materiale prima ai cantieri che non hanno ancora un costruttore, poi agli altri
 function findHaul(v){
@@ -1688,15 +1693,16 @@ function onArrive(v){
       v.cargo=null;v.carry=null;v.state='idle';break;}
     case 'toStore':{
       const task=v.task,s=task&&buildings.get(task.site);
-      if(!s||s.state!=='site'){if(task)S.stock[task.res]++;v.task=null;v.state='idle';break;}
-      v.carry=task.res;
+      if(!s||s.state!=='site'){if(task)S.stock[task.res]+=task.n||1;v.task=null;v.state='idle';break;}
+      v.carry=task.res;v.cq=task.n||1;
       if(route(v,s.cell,s.id))v.state='toSite';
-      else{S.stock[task.res]++;s.fly[task.res]--;v.carry=null;v.task=null;v.state='idle';v.cool=2;}
+      else{S.stock[task.res]+=task.n||1;s.fly[task.res]=Math.max(0,s.fly[task.res]-(task.n||1));v.carry=null;v.cq=0;v.task=null;v.state='idle';v.cool=2;}
       break;}
     case 'toSite':{
       const task=v.task,s=task&&buildings.get(task.site);
-      if(s&&s.state==='site'){s.got[task.res]++;s.fly[task.res]--;}else if(task)S.stock[task.res]++;
-      v.carry=null;v.task=null;
+      const n=(task&&task.n)||1;
+      if(s&&s.state==='site'){s.got[task.res]+=n;s.fly[task.res]=Math.max(0,s.fly[task.res]-n);}else if(task)S.stock[task.res]+=n;
+      v.carry=null;v.cq=0;v.task=null;
       // il costruttore che ha portato il carico al suo cantiere si rimette a costruire
       if(task&&task.own&&s&&s.state==='site'&&S.ph==='work'&&!(S.f>=DUSK&&v.home)){v.target=s.id;v.bw=0;v.state='build';}else v.state='idle';
       break;}
@@ -1732,8 +1738,8 @@ function abortTask(v){
     case 'toHomeT':{const c=v.cargo;if(c&&h){h.goods[c.t]=Math.min(12,h.goods[c.t]+c.q);S.barters++;}break;}
     case 'toCollect':{const c=v.cargo;if(c){const p=buildings.get(c.from);if(p)p.buf+=c.q;S.inflight[c.res]-=c.q;}break;}
     case 'toStoreC':{const c=v.cargo;if(c){S.stock[c.res]+=Math.min(c.q,stockRoom(c.res));S.inflight[c.res]-=c.q;}break;}
-    case 'toStore':{const t=v.task;if(t){const st=buildings.get(t.site);S.stock[t.res]++;if(st&&st.fly[t.res]>0)st.fly[t.res]--;}break;}
-    case 'toSite':{const t=v.task,st=t&&buildings.get(t.site);if(st&&st.state==='site'){st.got[t.res]++;st.fly[t.res]--;}else if(t)S.stock[t.res]++;break;}
+    case 'toStore':{const t=v.task;if(t){const n=t.n||1,st=buildings.get(t.site);S.stock[t.res]+=n;if(st)st.fly[t.res]=Math.max(0,st.fly[t.res]-n);}break;}
+    case 'toSite':{const t=v.task,n=(t&&t.n)||1,st=t&&buildings.get(t.site);if(st&&st.state==='site'){st.got[t.res]+=n;st.fly[t.res]=Math.max(0,st.fly[t.res]-n);}else if(t)S.stock[t.res]+=n;break;}
     case 'toHomeErr':{if(h&&v.err){const key=v.err.kind==='merc'?v.err.g:ERRKEY[v.err.kind],cp=key==='firewood'?fwCap(h):12;h.goods[key]=Math.min(cp,h.goods[key]+(v.cq||1));}break;}
     case 'toHomeF':{if(h)h.goods.grain=Math.min(12,h.goods.grain+(v.cq||1));break;}
     case 'toGranary':S.stock.grain+=Math.min(v.cq||1,stockRoom('grain'));break;
@@ -3109,8 +3115,8 @@ function roleText(v){
     case 'toRepair':case 'repair':return 'Ripara un edificio con gli attrezzi';
     case 'toRetting':return v.cargo&&v.cargo.k==='dye'?'Porta le piante tintorie alla tintoria':'Porta gli steli al maceratoio';
     case 'toCollect':case 'toStoreC':return 'Porta i materiali al magazzino';
-    case 'toStore':return v.task?'Va al magazzino a prendere '+RESNAME[v.task.res]+(v.task.own?' per il suo cantiere':' per un cantiere'):'Va al magazzino a prendere i materiali';
-    case 'toSite':return v.task?'Porta '+RESNAME[v.task.res]+(v.task.own?' al suo cantiere':' al cantiere'):'Porta i materiali al cantiere';
+    case 'toStore':return v.task?'Va al magazzino a prendere '+RESNAME[v.task.res]+(v.task.n>1?' (col carretto, '+v.task.n+' pezzi)':' (a mano, 1 pezzo)')+(v.task.own?' per il suo cantiere':' per un cantiere'):'Va al magazzino a prendere i materiali';
+    case 'toSite':return v.task?'Porta '+RESNAME[v.task.res]+(v.task.n>1?' ('+v.task.n+' pezzi, col carretto)':' (1 pezzo, a mano)')+(v.task.own?' al suo cantiere':' al cantiere'):'Porta i materiali al cantiere';
     case 'toBuild':return 'Va al cantiere';
     case 'build':{const tb=buildings.get(v.target);return tb&&tb.state==='site'&&siteIdle(tb)?'Aspetta i materiali al cantiere':'Costruisce';}
     case 'toStall':case 'keep':return 'Mercante al banco';
@@ -4141,29 +4147,31 @@ const LG={
   wheel:(()=>{const g=new THREE.CylinderGeometry(.19,.19,.05,10);g.rotateZ(Math.PI/2);return g;})(),
   handle:new THREE.BoxGeometry(.04,.04,.55),
   stone:new THREE.DodecahedronGeometry(.13,0),
+  board:new THREE.BoxGeometry(.5,.045,.62),
   clog:(()=>{const g=new THREE.CylinderGeometry(.07,.07,.55,6);g.rotateZ(Math.PI/2);return g;})()
 };
 const isWhWorker=v=>{const jb=v.job&&Sim.buildings().get(v.job);return !!jb&&jb.type==='store';};
 const CART_AT=['toSite','toStoreC','toWhT','toCenterT'],CARTR=['toStoreC','toWhT','toCenterT'];
+// v47: col carretto si portano 3 pezzi (si vedono tutti quelli portati), a mano 1 (un'asse, un tronco, un sasso)
 // v39: i carretti sono solo dei magazzinieri (wh = l'abitante lavora in un Magazzino o nel centro); gli altri portano assi e tronchi sulla spalla, sassi in braccio, il resto a blocchetto
 function loadKind(v,wh){
   const c=v.carry,s=v.state;
   if(!c)return null;
   if(c==='wood'){
-    if(s==='toSite')return 'log';
+    if(s==='toSite')return wh?'cartWood':'log';
     if(s==='toStoreC')return wh&&(v.cq|0)>=3?'cartWood':'log';
     if(s==='toWhT'||s==='toCenterT')return wh?'cartWood':'log';
     if(s==='toWork')return 'log';
     return 'box';
   }
-  if(c==='planks')return s==='toSite'?'plank':'box';
+  if(c==='planks')return s==='toSite'?(wh?'cartPlanks':'plank'):'box';
   if(c==='stone')return s==='toWork'?'rock':CART_AT.includes(s)?(wh?'cartStone':'rock'):'box';
   if(c==='iron')return wh&&CARTR.includes(s)?'cartOre':'box';
   if(c==='flax'||c==='hemp'||c==='dye')return 'plank';
   return 'box';
 }
 // quanti pezzi si vedono nel carretto: quanto raccolto (1-4); per un cantiere o un trasferimento, un carico pieno
-const loadQty=v=>v.state==='toStoreC'?Math.max(1,Math.min(4,(v.cq|0)||1)):3;
+const loadQty=v=>v.state==='toStoreC'?Math.max(1,Math.min(4,(v.cq|0)||1)):v.state==='toSite'?Math.max(1,Math.min(3,(v.cq|0)||3)):3;
 function makeRig(gp){
   const root=new THREE.Group();
   const plank=new THREE.Group();
@@ -4181,8 +4189,9 @@ function makeRig(gp){
   const mk=(geo,mats,y)=>pos.map((p,i)=>{const o=new THREE.Mesh(geo,mats[i%mats.length]);o.position.set(p[0],y+(i%2)*.03,p[1]);o.rotation.y=i*1.3;o.visible=false;cart.add(o);return o;});
   const stones=mk(LG.stone,[MAT.stoneD,MAT.stone],.45),ores=mk(LG.stone,[MAT.iron,MAT.rust],.45);
   const clogs=[[0,.43,-.17],[0,.43,.17],[0,.56,0],[0,.56,.3]].map(p=>{const o=new THREE.Mesh(LG.clog,MAT.log);o.position.set(p[0],p[1],p[2]);o.visible=false;cart.add(o);return o;});
+  const boards=[0,1,2].map(i=>{const o=new THREE.Mesh(LG.board,MAT.plank);o.position.set(0,.4+i*.05,0);o.rotation.y=(i-1)*.12;o.visible=false;cart.add(o);return o;});
   root.add(cart);gp.add(root);
-  return {root,plank,log,rock,cart,wheels,stones,ores,clogs};
+  return {root,plank,log,rock,cart,wheels,stones,ores,clogs,boards};
 }
 function applyLoad(m,v,kind,qty){
   m.load.visible=kind==='box';
@@ -4190,7 +4199,10 @@ function applyLoad(m,v,kind,qty){
   if(!m.rig){if(!kind||kind==='box')return;m.rig=makeRig(m.gp);}
   const r=m.rig;
   r.plank.visible=kind==='plank';r.log.visible=kind==='log';r.rock.visible=kind==='rock';
-  r.cart.visible=kind==='cartStone'||kind==='cartWood'||kind==='cartOre';
+  // a mano un'asse sola (le assi del magazzino); gli altri carichi 'plank' (lino, canapa, tinture) restano un fascio
+  const one=kind==='plank'&&v.carry==='planks';r.plank.children.forEach((c,i)=>{c.visible=!one||i===1;});
+  r.cart.visible=kind==='cartStone'||kind==='cartWood'||kind==='cartOre'||kind==='cartPlanks';
+  r.boards.forEach((o,i)=>{o.visible=kind==='cartPlanks'&&i<qty;});
   r.stones.forEach((o,i)=>{o.visible=kind==='cartStone'&&i<qty;});
   r.ores.forEach((o,i)=>{o.visible=kind==='cartOre'&&i<qty;});
   r.clogs.forEach((o,i)=>{o.visible=kind==='cartWood'&&i<qty;});
@@ -5339,7 +5351,7 @@ function frame2(now){
     if(v.age!==undefined&&!v.guest){const k=0.8*(0.62+0.38*Math.min(1,v.age/14));if(m.k!==k){m.k=k;m.gp.scale.setScalar(k);}}
     if(v.mil&&m.hpb)m.hpb.scale.x=.55*Math.max(.03,v.hp/v.mhp);
     if(!v.guest){const ill=!!v.ill;if(m.ill!==ill){m.ill=ill;m.body.material=ill?MAT.sick:m.mat;}}
-    const lk=loadKind(v,isWhWorker(v)),lq=lk&&lk.startsWith('cart')?loadQty(v):0,lkey=lk?lk+':'+(lk==='box'?v.carry:lq):'';
+    const lk=loadKind(v,isWhWorker(v)),lq=lk&&lk.startsWith('cart')?loadQty(v):0,lkey=lk?lk+':'+(lk==='box'||lk==='plank'?v.carry:lq):'';
     if(lkey!==m.lk){m.lk=lkey;m.carry=v.carry||null;applyLoad(m,v,lk,lq);}
     if(m.rig&&m.rig.cart.visible&&v.moving){const a=dt*7.5;for(const w of m.rig.wheels)w.rotation.x+=a;}
   }

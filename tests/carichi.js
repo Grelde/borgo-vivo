@@ -11,8 +11,10 @@ const {loadKind,loadQty}=new Function(src.slice(a,b)+';return {loadKind,loadQty}
 let fail=0;const ok=(c,m)=>{if(!c){fail++;console.log('FALLITO:',m);}};
 const T=(carry,state,cq,wh)=>loadKind({carry,state,cq},wh);
 // tabella dei carichi (v39: i carretti sono solo dei magazzinieri, wh = true)
-ok(T('wood','toSite')==='log','legno al cantiere = tronco sulla spalla');
-ok(T('planks','toSite')==='plank','assi al cantiere = fascio di assi');
+ok(T('wood','toSite',1,false)==='log','altri: legno al cantiere = un tronco sulla spalla');
+ok(T('planks','toSite',1,false)==='plank','altri: assi al cantiere = un\'asse a mano');
+ok(T('wood','toSite',3,true)==='cartWood','magazziniere: legno al cantiere = carretto di tronchi');
+ok(T('planks','toSite',3,true)==='cartPlanks','magazziniere: assi al cantiere = carretto di assi');
 ok(T('stone','toSite',0,true)==='cartStone','magazziniere: pietra al cantiere = carretto di pietre');
 ok(T('stone','toSite',0,false)==='rock','altri: pietra al cantiere = sasso in braccio, mai carretto');
 ok(T('stone','toStoreC',3,true)==='cartStone','magazziniere: pietra raccolta alla cava = carretto di pietre');
@@ -28,24 +30,28 @@ ok(T('stone','toWork')==='rock','il cavatore porta un sasso in braccio');
 ok(T('iron','toWork')==='box'&&T('veg','toHomeF')==='box'&&T('water','toHomeLife')==='box','gli altri carichi restano il blocchetto di prima');
 ok(T('wood','toHomeErr')==='box','la legna da ardere portata a casa resta un fascio');
 ok(T(null,'toSite')===null,'senza carico non si vede nulla');
-ok(loadQty({state:'toStoreC',cq:9})===4&&loadQty({state:'toStoreC',cq:0})===1&&loadQty({state:'toSite',cq:9})===3,'quantità nel carretto');
+ok(loadQty({state:'toStoreC',cq:9})===4&&loadQty({state:'toStoreC',cq:0})===1&&loadQty({state:'toSite',cq:9})===3&&loadQty({state:'toSite',cq:2})===2&&loadQty({state:'toSite',cq:1})===1,'quantità nel carretto (v47: pezzi realmente portati)');
 
 // partita vera: stesso carico per chi lavora al magazzino e per gli altri costruttori
 Sim.init(11,'river');S.stock.wood=400;S.stock.stone=250;
 Sim.paintDistrict(78,78,111,108,1);Sim.paintDistrict(114,84,135,114,2);
 const put=(type,cx,cy,r)=>{for(let d=0;d<=r;d++)for(let dy=-d;dy<=d;dy++)for(let dx=-d;dx<=d;dx++)if(Math.max(Math.abs(dx),Math.abs(dy))===d){const q=Sim.place(type,cx+dx,cy+dy,0);if(q.ok)return true;}return false;};
-const seen={toStore:{store:0,other:0},toSite:{store:0,other:0}},kinds={store:{},other:{}};let walkToStore=0,roleTxt=null;
+const maxQ={store:0,other:0};const seen={toStore:{store:0,other:0},toSite:{store:0,other:0}},kinds={store:{},other:{}};let walkToStore=0,roleTxt=null;
 const isStoreWorker=v=>{const bb=v.job&&Sim.buildings().get(v.job);return !!bb&&bb.type==='store';};
 const sample=()=>{for(const v of Sim.villagers()){
   const who=isStoreWorker(v)?'store':'other';
   if(v.state==='toStore'){seen.toStore[who]++;walkToStore++;if(!roleTxt)roleTxt=Sim.roleText(v);ok(!v.carry,'verso il magazzino si va a mani vuote');}
-  if(v.state==='toSite'){seen.toSite[who]++;const k=loadKind(v,who==='store');kinds[who][k]=(kinds[who][k]||0)+1;ok(who==='store'?(k==='plank'||k==='log'||k==='cartStone'):(k==='plank'||k==='log'||k==='rock'),'carico al cantiere ('+who+'): '+k);}
+  if(v.state==='toSite'){seen.toSite[who]++;const k=loadKind(v,who==='store');kinds[who][k]=(kinds[who][k]||0)+1;ok(who==='store'?(k==='cartWood'||k==='cartPlanks'||k==='cartStone'):(k==='plank'||k==='log'||k==='rock'),'carico al cantiere ('+who+'): '+k);
+  ok(who==='store'?(v.cq>=1&&v.cq<=3):v.cq===1,'pezzi portati ('+who+'): '+v.cq);maxQ[who]=Math.max(maxQ[who],v.cq|0);}
 }};
 for(const [t,x,y] of [['wood',70,80],['quarry',130,90],['well',96,90],['plaza',100,96],['church',104,110],['school',96,100]])put(t,x,y,30);
 for(let i=0;i<Sim.DAY*6/0.2;i++){Sim.step(0.2);sample();if(i%20===0){S.stock.wood=Math.max(S.stock.wood,150);S.stock.stone=Math.max(S.stock.stone,100);}}
 console.log('verso il magazzino a mani vuote (campioni): magazzinieri',seen.toStore.store,'altri',seen.toStore.other);
 console.log('verso il cantiere col carico (campioni): magazzinieri',seen.toSite.store,JSON.stringify(kinds.store),'| altri',seen.toSite.other,JSON.stringify(kinds.other));
+console.log('pezzi massimi per viaggio: magazzinieri',maxQ.store,'altri',maxQ.other);
 console.log('testo del ruolo verso il magazzino:',roleTxt);
+ok(maxQ.store>1,'il magazziniere non ha mai portato più di un pezzo col carretto');
+ok(maxQ.other===1,'chi porta a mano deve portare un solo pezzo');
 ok(walkToStore>0,'nessuno è andato al magazzino a prendere i materiali');
 ok(seen.toSite.store+seen.toSite.other>0,'nessuno ha portato materiali a un cantiere');
 ok(!roleTxt||/magazzino/.test(roleTxt),'testo del ruolo verso il magazzino');
