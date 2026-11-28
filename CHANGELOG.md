@@ -1,5 +1,19 @@
 # Changelog
 
+## v72 – 2026-11-28
+Funzione nuova: conserve e bevande (sale, macellaio, affumicatoio, caseificio, birrificio, cantina). Punto 5 delle filiere.
+- **Salina** (sulla riva, 2 posti, vasche rivestite di mattoni): +3 sale ogni 8 s, scorta massima 40. Il sale serve a macellaio, affumicatoio e caseificio; senza salina lo vendono Rocca Alta e Porto Fiorito (si compra sotto 6).
+- **Bottega del macellaio:** 2 carni + 1 sale → 4 conserve. **Affumicatoio** (comignolo di mattoni): 2 pesci + 1 sale + 1 legno → 4 conserve. Lavorano solo con l'**eccedenza** nei Granai (carne e pesce oltre 6 pezzi di riserva fresca) e l'affumicatoio solo con almeno 20 legni, così case e cantieri non restano a secco.
+- **Caseificio:** serve un ovile con i pastori entro 135 celle. Ora gli ovili danno anche **latte** (1 per ogni uscita al pascolo, massimo 12): 2 latte + 1 sale → 2 formaggi.
+- **Birrificio:** 2 grani + 1 legno → 3 birre, solo con grano oltre 10 nei Granai (la riserva del mulino resta) e almeno 20 legni. **Cantina:** nuova coltura **vigna** nel pannello della fattoria; l'uva va alla cantina (come le piante tintorie alla tintoria): 3 uve → 2 vini. La cantina costa anche mattoni e calce (volta).
+- **Cosa fanno le merci nuove:** conserve e formaggio sfamano le case senza cibo fresco (consumo astratto dalle scorte dei Granai, uno per volta); contano nel Cibo del contatore e nella festa di paese. La taverna con un addetto serve un boccale al giorno, prima vino poi birra: chi vive vicino è più contento (+2 oltre ai +4 della taverna). Tutto si vende in città (conserve a Rocca Alta, Porto Fiorito e Campomaggio; formaggio a Valmora e Porto Fiorito; vino a Rocca Alta, Porto Fiorito e Campomaggio; birra a Valmora, Rocca Alta e Campomaggio).
+- **Magazzini:** sale nel Magazzino e nel centro; conserve, formaggio, birra e vino nel Granaio e nel centro; massimali configurabili.
+- **Livelli nell'albero dei blueprint** (ramo «Campi e cibo»; regola: ogni novità ha un titolo e dipende solo dal proprio ramo, a titolo uguale o inferiore): pescatore (2) → salina (3) → macellaio (4, anche dopo cacciatore) e affumicatoio (4, anche dopo pescatore); ovile (4) → caseificio (5); mulino (3) → birrificio (5) → cantina (6). Le dipendenze da altri rami sono costi di cantiere: mattoni (salina, affumicatoio, cantina) e calce (cantina) dalla filiera del muratore, assi dal falegname (macellaio, caseificio, birrificio, cantina). Senza fornace, calcinaio o falegnameria si pagano in pietra e legno.
+- Paghe: salina 1; macellaio, affumicatoio, caseificio, birrificio, cantina 2 (aggiunti anche cava d'argilla 1, calcinaio 1, fornace 2, prima sulla paga di base).
+- Test: nuovo `tests/conserve.js`; `tests/storage.js` aggiornato.
+- Da fare: distribuzione fisica delle conserve (oggi consumo astratto dalle scorte), botti dal falegname, uva e vino legati alla fertilità del suolo (v69), conservazione che dura anche d'inverno.
+- Non verificato in un browser WebGL: i sei modelli 3D, i pannelli, il pulsante Vigna nella fattoria.
+
 ## v71 – 2026-11-28
 Funzione nuova: pesca di famiglia — ogni casa vicina a un lago o a un fiume pesca in autonomia, con metà della resa del pescatore.
 - **Chi pesca:** tutte le case con abbastanza acqua attorno (`fishOK`: almeno 27 celle d'acqua entro 18 celle) mandano un abitante a pescare da solo, quando in casa ci sono meno di 8 pesci e non c'è ghiaccio. Prima pescava solo circa metà di queste case; ora tutte (le nuove case vicine all'acqua nascono con `side:'fish'`, e anche le case già esistenti o salvate pescano, qualunque fosse il loro `side`). Chi ha vicino anche un bosco tranquillo alterna pesca e caccia.

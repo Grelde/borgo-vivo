@@ -178,7 +178,7 @@ function drawGround(){
     if(!field[i])continue;const x0=(i%N)*PX,y0=((i/N)|0)*PX;
     const fb=Sim.buildings().get(field[i]),fk=fb&&fb.crop;
     g.fillStyle='rgba(122,88,48,0.92)';g.fillRect(x0,y0,PX+.5,PX+.5);
-    g.fillStyle=((i/N|0)%2)?'rgba(84,60,32,.55)':fk==='flax'?'rgba(110,140,196,.55)':fk==='hemp'?'rgba(96,150,70,.55)':fk==='dye'?'rgba(150,70,110,.55)':'rgba(206,178,86,.4)';g.fillRect(x0,y0+PX*.2,PX+.5,PX*.35);
+    g.fillStyle=((i/N|0)%2)?'rgba(84,60,32,.55)':fk==='flax'?'rgba(110,140,196,.55)':fk==='hemp'?'rgba(96,150,70,.55)':fk==='dye'?'rgba(150,70,110,.55)':fk==='vine'?'rgba(110,60,120,.55)':'rgba(206,178,86,.4)';g.fillRect(x0,y0+PX*.2,PX+.5,PX*.35);
   }
   if(zonesOn)drawZones();
   g.fillStyle='rgba(88,66,40,0.5)';
@@ -824,6 +824,44 @@ const BUILD={
     for(let k=0;k<3;k++)bx(g,.5,.14,.2,MAT.iron,-1.2+k*.55,.1,1.3);
     for(const sx of[.9,1.3])bx(g,.4,.3,.4,MAT.rust,sx,.15,1.2);
     return g;},
+  saltworks(b){const g=new THREE.Group();
+    bx(g,1.8,1.0,1.5,MAT.logD,-1.2,.5,-.9);for(const y of[.2,.5,.8])bx(g,1.86,.05,1.56,MAT.timber,-1.2,y,-.9);
+    gab(g,2.0,1.6,.65,MAT.thatch,1.0,-1.2,-.9);bx(g,.5,.8,.06,MAT.door,-1.2,.4,-.12);
+    // vasche basse di evaporazione con il sale in mucchietti
+    for(const [x,z] of[[.8,.5],[2.0,.5],[.8,1.5],[2.0,1.5]]){bx(g,1.0,.1,.9,MAT.brick,x,.05,z);bx(g,.88,.05,.78,MAT.water,x,.11,z);}
+    for(const [x,z] of[[1.3,-.5],[2.2,-.4]])cone(g,.38,.55,8,MAT.flour,x,.28,z);
+    return g;},
+  butcher(b){const g=new THREE.Group();
+    bx(g,2.4,1.1,1.9,MAT.plaster,-.4,.55,-.9);bx(g,2.5,.1,2.0,MAT.timber,-.4,1.1,-.9);gab(g,2.7,1.8,.75,MAT.tile,1.1,-.4,-.9);bx(g,.5,.8,.06,MAT.door,-.9,.4,.07);
+    // tettoia con la trave e i prosciutti appesi, ceppo del macellaio
+    bx(g,1.6,.08,.1,MAT.timber,1.6,1.5,.8);for(const x of[1.0,1.4,1.8,2.2])sph(g,.2,MAT.meatM,x,1.2,.8,.8,1.3,.8);
+    for(const x of[.8,2.4])bx(g,.1,1.6,.1,MAT.timber,x,.8,.8);bx(g,.5,.4,.5,MAT.log,2.4,.2,1.5);
+    return g;},
+  smokehouse(b){const g=new THREE.Group();
+    bx(g,1.9,1.5,1.7,MAT.logD,-.6,.75,-.8);for(const y of[.3,.7,1.1])bx(g,1.96,.05,1.76,MAT.timber,-.6,y,-.8);
+    gab(g,2.1,1.9,.7,MAT.thatch,1.5,-.6,-.8);bx(g,.5,.9,.06,MAT.door,-.6,.45,.07);
+    // comignolo alto che fuma e pesci appesi ad affumicare
+    chim(g,-.1,2.0,-.9,.9);bx(g,1.2,.08,.1,MAT.timber,1.6,1.3,.9);for(const x of[1.2,1.6,2.0])sph(g,.14,MAT.fishM,x,1.05,.9,.6,2.2,.6);
+    bx(g,.8,.4,.6,MAT.log,2.1,.2,1.5);
+    return g;},
+  dairy(b){const g=new THREE.Group();
+    bx(g,2.2,1.0,1.8,MAT.cream,-.6,.5,-.9);bx(g,2.3,.1,1.9,MAT.timber,-.6,1.0,-.9);gab(g,2.5,1.7,.7,MAT.thatch,1.1,-.6,-.9);bx(g,.5,.8,.06,MAT.door,-.9,.4,.02);
+    // ruote di formaggio su un banco e secchi del latte
+    bx(g,1.8,.4,.8,MAT.log,1.8,.2,.9);for(const [x,y] of[[1.3,.5],[1.8,.5],[2.3,.5],[1.55,.72],[2.05,.72]])cyl(g,.26,.26,.2,10,MAT.hay,x,y,.9);
+    for(const x of[.6,.95])cyl(g,.16,.2,.34,8,MAT.timber,x,.17,1.5);
+    return g;},
+  brewery(b){const g=new THREE.Group();
+    bx(g,2.6,1.3,2.0,MAT.plaster,-.5,.65,-.9);bx(g,2.7,.1,2.1,MAT.timber,-.5,1.3,-.9);gab(g,2.9,2.0,.8,MAT.tile,1.1,-.5,-.9);bx(g,.5,.8,.06,MAT.door,-1.0,.4,.12);
+    // grandi botti e caldaia con il comignolo
+    chim(g,.4,2.2,-1.0,.9);cyl(g,.45,.45,.8,10,MAT.timber,2.2,.4,.8);cyl(g,.45,.45,.8,10,MAT.timber,2.2,.4,-.7,0,0);cyl(g,.4,.4,.7,10,MAT.timber,1.4,.35,1.4);
+    for(const y of[.2,.6])cyl(g,.47,.47,.04,10,MAT.iron,2.2,y,.8);
+    return g;},
+  winery(b){const g=new THREE.Group();
+    bx(g,2.4,1.2,1.9,MAT.stone,-.6,.6,-.9);bx(g,2.5,.1,2.0,MAT.timber,-.6,1.2,-.9);gab(g,2.7,1.8,.75,MAT.tile,1.1,-.6,-.9);bx(g,.6,.9,.06,MAT.door,-.8,.45,.07);
+    // filari di vite davanti e botti all'ingresso
+    for(const z of[.9,1.7]){for(let x=.4;x<=2.8;x+=.55){bx(g,.08,.7,.08,MAT.timber,x,.35,z);}bx(g,2.6,.35,.18,MAT.leaf2,1.6,.55,z);}
+    cyl(g,.35,.35,.6,10,MAT.timber,-1.0,.3,.9,0,Math.PI/2);cyl(g,.35,.35,.6,10,MAT.timber,-1.0,.3,1.5,0,Math.PI/2);
+    return g;},
   dyehouse(b){const g=new THREE.Group();
     bx(g,2.2,1.2,1.8,MAT.plaster,-.7,.6,-.9);for(const x of[-1.5,-.7,.1])bx(g,.07,1.2,1.84,MAT.timber,x,.6,-.9);
     gab(g,2.4,1.9,.75,MAT.tile,1.2,-.7,-.9);bx(g,.55,.85,.06,MAT.door,-1.0,.42,.02);chim(g,-.2,1.6,-1.3,.7);
@@ -1025,7 +1063,7 @@ function loadKind(v,wh){
   if(c==='planks')return s==='toSite'?(wh?'cartPlanks':'plank'):'box';
   if(c==='stone')return s==='toWork'?'rock':CART_AT.includes(s)?(wh?'cartStone':'rock'):'box';
   if(c==='iron')return wh&&CARTR.includes(s)?'cartOre':'box';
-  if(c==='flax'||c==='hemp'||c==='dye')return 'plank';
+  if(c==='flax'||c==='hemp'||c==='dye'||c==='vine')return 'plank';
   return 'box';
 }
 // quanti pezzi si vedono nel carretto: quanto raccolto (1-4); per un cantiere o un trasferimento, un carico pieno
@@ -1165,6 +1203,12 @@ const TOOLS=[
   {id:'charcoal',label:'Carbonaia',key:'',hint:'Vicino a un bosco fitto. Trasforma il legno del magazzino in carbone (2 ogni 3 legni, ogni 10 s). Lavora quando il legno è abbondante (30 o più) o quando la fonderia ha bisogno di carbone.'},
   {id:'smelter',label:'Fonderia',key:'',hint:'Fonde 2 ferro della miniera con 1 carbone in 2 barre di ferro (ogni 11 s). Il fabbro ricava 5 attrezzi da una barra invece di 3 da un ferro. Le barre si vendono a caro prezzo ai mercanti.'},
   {id:'ropewalk',label:'Cordaio',key:'',hint:'Torce la fibra di canapa del maceratoio in corde (3 per fibra ogni 9 s). Le corde si vendono ai mercanti e rinforzano le riparazioni degli edifici.'},
+  {id:'saltworks',label:'Salina',key:'',hint:"Sulla riva di un lago o di un fiume. Vasche di evaporazione: +3 sale ogni 8 s per addetto. Il sale serve a macellaio, affumicatoio e caseificio. Le vasche sono rivestite di mattoni."},
+  {id:'butcher',label:'Bottega del macellaio',key:'',hint:"Con la carne in eccedenza nei Granai (oltre alla riserva fresca) e il sale fa 4 conserve da 2 carni. Le conserve sfamano le case quando manca il cibo fresco."},
+  {id:'smokehouse',label:'Affumicatoio',key:'',hint:"Con il pesce in eccedenza, sale e legna in abbondanza fa 4 conserve da 2 pesci. Il fumo richiede un comignolo di mattoni."},
+  {id:'dairy',label:'Caseificio',key:'',hint:"Serve un ovile con i pastori vicino: il latte e il sale diventano formaggio. Il formaggio sfama le case come le conserve."},
+  {id:'brewery',label:'Birrificio',key:'',hint:"Con il grano in eccedenza (oltre la riserva del mulino) e legna fa 3 birre da 2 grani. La taverna serve un boccale al giorno e rende più contento il vicinato."},
+  {id:'winery',label:'Cantina',key:'',hint:"Spremi l'uva delle fattorie con la coltura vigna: 3 uve diventano 2 vini. Il vino rende la taverna ancora più allegra e si vende bene in città. Volta di mattoni e calce."},
   {id:'dyehouse',label:'Tintoria',key:'',hint:'Sulla riva di un lago o di un fiume. Tinge il tessuto del telaio con le piante tintorie delle fattorie (1 pezza per pianta ogni 10 s). Il sarto ricava 3 abiti da una pezza tinta, invece di 2.'},
   {id:'tailor',label:'Sartoria',key:'',hint:'Cuce abiti (2 per tessuto ogni 10 s) con il tessuto del telaio e li porta alle case dal livello 3: +3 di felicità. Serve un telaio.'},
   {id:'fisher',label:'Capanna del pescatore',key:'',hint:'Sulla riva di un lago o di un fiume. Pesce per le famiglie (2 ogni 7 s per pescatore); con il ghiaccio non si pesca.'},
@@ -1196,7 +1240,7 @@ const CATS=[
   {id:'tools',label:'Strumenti',ids:['select','pan','demolish']},
   {id:'zone',label:'Zone e strade',ids:['d1','d2','d3','d4','d5','d6','undistrict','road']},
   {id:'prod',label:'Produzione',ids:['wood','quarry','mine','forester','granary','mill']},
-  {id:'shop',label:'Botteghe',ids:['carpenter','mason','claypit','brickworks','limekiln','smithy','bakery','sheepfold','charcoal','smelter','retting','ropewalk','dyehouse','weaver','tailor','fisher','hunter','mercery']},
+  {id:'shop',label:'Botteghe',ids:['carpenter','mason','claypit','brickworks','limekiln','saltworks','butcher','smokehouse','dairy','brewery','winery','smithy','bakery','sheepfold','charcoal','smelter','retting','ropewalk','dyehouse','weaver','tailor','fisher','hunter','mercery']},
   {id:'serv',label:'Servizi',ids:['store','well','school','infirmary','surgeon','church','inn','tavern','hall','taxoffice']},
   {id:'deco',label:'Decorazioni',ids:['plaza','flowers','statue']},
   {id:'def',label:'Difesa',ids:['watchtower','barracks']}];
@@ -1248,9 +1292,9 @@ function refreshSel(){
   }
   else if(b.type==='stall'){const o=Sim.buildings().get(b.owner);info=b.open?'Banco aperto: si accettano baratti.':'Banco chiuso.';
     if(o)list=`<div>Merce: ortaggi ${o.goods.veg} · uova ${o.goods.eggs} · pesce ${o.goods.fish} · carne ${o.goods.meat} · pane ${o.goods.bread} · legna ${o.goods.firewood} · attrezzi ${o.goods.tools}</div>`;}
-  else if(b.type==='farm'){const w=Sim.villagers().filter(v=>v.job===b.id);const fc=b.crop||'grain',CN={grain:'grano',flax:'lino',hemp:'canapa',dye:'tintorie'},ri=Sim.retInfo(fc==='dye'?'dyehouse':'retting');info=`Campi: ${b.fields.length} · lavorano ${w.length} · coltura: ${CN[fc]}`;
-    list='<div class="sh">Coltura dei campi</div><div>'+['grain','flax','hemp','dye'].map(k=>`<button class="btn sm${k===fc?' on':''}" type="button" data-crop="${k}">${CN[k][0].toUpperCase()+CN[k].slice(1)}</button>`).join(' ')+'</div>'+
-      w.map((v,i)=>`<div>Contadino ${i+1}: ${esc(Sim.roleText(v))}</div>`).join('')+(fc==='grain'?"<div>Il grano raccolto va alla famiglia che l'ha fondata.</div>":(fc==='dye'?'<div>Le piante tintorie vanno alla tintoria: la famiglia non riceve grano da questa fattoria.</div>':`<div>Gli steli di ${CN[fc]} vanno al maceratoio: la famiglia non riceve grano da questa fattoria.</div>`)+(ri.any?'':`<div>Senza ${fc==='dye'?'una tintoria':'un maceratoio'} i contadini raccolgono grano.</div>`));}
+  else if(b.type==='farm'){const w=Sim.villagers().filter(v=>v.job===b.id);const fc=b.crop||'grain',CN={grain:'grano',flax:'lino',hemp:'canapa',dye:'tintorie',vine:'vigna'},ri=Sim.retInfo(fc==='vine'?'winery':fc==='dye'?'dyehouse':'retting');info=`Campi: ${b.fields.length} · lavorano ${w.length} · coltura: ${CN[fc]}`;
+    list='<div class="sh">Coltura dei campi</div><div>'+['grain','flax','hemp','dye','vine'].map(k=>`<button class="btn sm${k===fc?' on':''}" type="button" data-crop="${k}">${CN[k][0].toUpperCase()+CN[k].slice(1)}</button>`).join(' ')+'</div>'+
+      w.map((v,i)=>`<div>Contadino ${i+1}: ${esc(Sim.roleText(v))}</div>`).join('')+(fc==='grain'?"<div>Il grano raccolto va alla famiglia che l'ha fondata.</div>":(fc==='vine'?"<div>L'uva va alla cantina: la famiglia non riceve grano da questa fattoria.</div>":fc==='dye'?'<div>Le piante tintorie vanno alla tintoria: la famiglia non riceve grano da questa fattoria.</div>':`<div>Gli steli di ${CN[fc]} vanno al maceratoio: la famiglia non riceve grano da questa fattoria.</div>`)+(ri.any?'':`<div>Senza ${fc==='vine'?'una cantina':fc==='dye'?'una tintoria':'un maceratoio'} i contadini raccolgono grano.</div>`));}
   else if(b.type==='store'){
     name=b.center?'Centro cittadino':'Magazzino';
     const w=Sim.villagers().filter(v=>v.job===b.id);
@@ -1282,6 +1326,12 @@ function refreshSel(){
       limekiln:`Un calcinaio cuoce 3 pietre e 1 carbone (o 3 legni) in 2 calce ogni ${spec.t} s, quando la pietra è almeno 25 o un cantiere chiede calce. Calce ${S.stock.lime|0}/${Sim.LIME_CAP}. La calce è materiale di cantiere di fonderia, mulino, chiesa e caserma.`,
       charcoal:`Un carbonaio trasforma 3 legni del magazzino in 2 carboni ogni ${spec.t} s. Legno ${S.stock.wood} · carbone ${S.stock.charcoal|0}/${Sim.CHAR_CAP}. Con meno di 30 legni lavora solo se una fonderia ha bisogno di carbone, così i cantieri non restano senza legno.`,
       smelter:`Un fonditore fonde 2 ferro e 1 carbone in 2 barre ogni ${spec.t} s. Ferro ${S.stock.iron} · carbone ${S.stock.charcoal|0} · barre ${S.stock.bars|0}/${Sim.BAR_CAP}. Il fabbro usa le barre per fare 5 attrezzi ciascuna; senza barre torna al ferro grezzo (3 attrezzi).`,
+      saltworks:`Un salinaro ricava 3 sali ogni ${spec.t} s dalle vasche. Sale nei magazzini: ${S.stock.salt|0}/${Sim.SALT_CAP}. Serve a macellaio, affumicatoio e caseificio; senza salina lo si compra in città.`,
+      butcher:`Un macellaio fa 4 conserve con 2 carni e 1 sale ogni ${spec.t} s, ma solo con almeno ${Sim.MEAT_KEEP+2} carni nei Granai (la riserva fresca resta alle case). Carne ${S.stock.meat|0} · sale ${S.stock.salt|0} · conserve ${S.stock.cured|0}/${Sim.CURED_CAP}.`,
+      smokehouse:`Un affumicatore fa 4 conserve con 2 pesci, 1 sale e 1 legno ogni ${spec.t} s, con almeno ${Sim.FISH_KEEP+2} pesci nei Granai e 20 legni. Pesce ${S.stock.fish|0} · sale ${S.stock.salt|0} · conserve ${S.stock.cured|0}/${Sim.CURED_CAP}.`,
+      dairy:`Un casaro fa 2 formaggi con 2 latte e 1 sale ogni ${spec.t} s. Il latte lo danno gli ovili vicini (entro ${Sim.BAND} celle). Sale ${S.stock.salt|0} · formaggi ${S.stock.cheese|0}/${Sim.CHEESE_CAP}.`,
+      brewery:`Un birraio fa 3 birre con 2 grani e 1 legno ogni ${spec.t} s, con almeno ${Sim.GRAIN_KEEP+2} grani nei Granai e 20 legni. Grano ${S.stock.grain|0} · birra ${S.stock.beer|0}/${Sim.BEER_CAP}. La taverna ne serve una al giorno.`,
+      winery:`Un vinaio spreme 3 uve in 2 vini ogni ${spec.t} s. Uva in attesa: ${(b.inp||{}).vine|0} (max ${Sim.RET_CAP}) · vino ${S.stock.wine|0}/${Sim.WINE_CAP}. Scegli la coltura vigna in una fattoria; la taverna serve il vino prima della birra.`,
       dyehouse:`Un tintore tinge 1 pezza di tessuto con 1 pianta tintoria ogni ${spec.t} s. Piante in attesa: ${(b.inp||{}).dye|0} (max ${Sim.RET_CAP}) · pezze tinte pronte: ${b.out.dyed|0}. Il tessuto lo prende dal telaio vicino; il sarto con una pezza tinta cuce 3 abiti invece di 2. Le piante le portano i contadini delle fattorie con la coltura tintorie.`,
       ropewalk:`Un cordaio trasforma 1 fibra di canapa in 3 corde ogni ${spec.t} s. Corde nel magazzino: ${S.stock.rope|0}. Le corde si vendono ai mercanti e rinforzano le riparazioni (+50%).`,
       tailor:`Un sarto trasforma 1 pezza di tessuto in 2 abiti ogni ${spec.t} s; le case dal livello 3 che li ricevono hanno +3 di felicità. Il tessuto viene dai telai.`,
@@ -1351,7 +1401,7 @@ function refreshSel(){
 }
 function selB(){return sel&&Sim.buildings().get(sel);}
 // v36: pannello di accettazione e massimali di Magazzino e Granaio (le righe si creano una volta per edificio, poi si aggiornano solo i numeri)
-const STKNAME={weapons:'Armi',wood:'Legno',stone:'Pietra',iron:'Ferro',planks:'Assi',tools:'Attrezzi',cloth:'Tessuto',clothes:'Abiti',rope:'Corde',charcoal:'Carbone',bars:'Barre di ferro',clay:'Argilla',bricks:'Mattoni',lime:'Calce',grain:'Grano',flour:'Farina',bread:'Pane',fish:'Pesce',meat:'Carne'};
+const STKNAME={weapons:'Armi',wood:'Legno',stone:'Pietra',iron:'Ferro',planks:'Assi',tools:'Attrezzi',cloth:'Tessuto',clothes:'Abiti',rope:'Corde',charcoal:'Carbone',bars:'Barre di ferro',clay:'Argilla',bricks:'Mattoni',lime:'Calce',salt:'Sale',cured:'Conserve',cheese:'Formaggio',beer:'Birra',wine:'Vino',grain:'Grano',flour:'Farina',bread:'Pane',fish:'Pesce',meat:'Carne'};
 let stkCfgFor=null;
 function updStoreCfg(b){
   const box=$('selStore');
