@@ -1,5 +1,17 @@
 # Changelog
 
+## v62 – 2026-11-28
+Cambio di regole: il lavoro resta fisso e si cambia solo per eccedenza di merce.
+- **Lavoro stabile:** chi lavora in un edificio produttivo (taglialegna, guardaboschi, cava, miniera, falegnameria, fucina, forno, telaio, sartoria, pescatore, cacciatore, cordaio, carbonaia, fonderia) tiene il suo posto e il suo mestiere; nessuno cambia lavoro per capriccio.
+- **Eccedenza:** quando la scorta della merce che l'edificio produce supera **il fabbisogno + 50%**, gli addetti di quell'edificio vanno a lavorare altrove (se non c'è un posto libero restano senza posto e aiutano gli altri) e **tornano al loro edificio appena la scorta scende sotto la soglia**. Fabbisogno = riserva del paese (`T_KEEP`, la stessa che il commercio non vende) + ciò che manca ai cantieri aperti + ciò che chiedono le case (attrezzi, pane, pesce, carne, tessuto, abiti). Funzioni: `jobNeed`, `jobSurplus`, `rebalanceJobs` in `sim.js`; mestieri e merci in `JOBRES`.
+- **In prestito:** chi lascia l'edificio in eccedenza ha `v.loan` (il mestiere di base) e **non cambia mestiere** né bravura: nella scheda compare «(in prestito)» e, se non ha un posto, «Senza posto: troppa merce (Taglialegna)». Non conta fra i disoccupati dell'attrattiva. Al ritorno ritrovano il loro mestiere; i più vicini all'edificio hanno la precedenza.
+- **Casi limite:** i malati non vengono richiamati finché non guariscono; chi è in prestito ma nel suo mestiere non ha più posti (edificio al completo, posti tolti dal giocatore) smette di essere «in prestito» e il lavoro che ha adesso diventa il suo mestiere. Carbonaia e fonderia (v54) seguono la stessa regola: riserva di carbone 6, di barre `T_KEEP`.
+- **Pausa minima:** un edificio può passare da lavoro a eccedenza (e viceversa) al massimo ogni 2 giorni (`JOB_DWELL`), per evitare che le persone cambino posto a ogni istante attorno alla soglia.
+- Un edificio in eccedenza non conta come posto libero (immigrazione, `dutyPass`, posti del pannello Abitanti) e il suo pannello spiega perché non ha addetti.
+- Salvataggi: nessun cambio di formato (`SAVE_FMT` resta 1); `b.sur`, `b.surT` e `v.loan` viaggiano nello stato e, se mancano, valgono «nessuna eccedenza» e «nessun prestito».
+- Test: nuovo `tests/lavoro-stabile.js` (soglia esatta, stabilità sotto soglia, uscita e ritorno degli stessi abitanti con mestiere invariato, pausa minima, cava, salvataggio a metà prestito).
+- Non verificato in un browser WebGL: testi dei pannelli in eccedenza. Da giocare: se la riserva `T_KEEP` come base del fabbisogno è quella giusta (con solo il centro, 80 unità per materiale, il legno non supera mai 90: lì conta ancora lo stop a scorte piene).
+
 ## v61 – 2026-11-28
 Cambio di regole: nel conto delle risorse disponibili entra solo ciò che è stoccato in Granai, Magazzini e Centro cittadino.
 - **Scorte = solo stoccato:** `S.stock` (i contatori di legno, pietra, ferro, assi, attrezzi, tessuto, abiti, corde, carbone, barre, grano, farina, pane, pesce, carne) è sempre ciò che sta davvero in un deposito che lo accetta. Ciò che non trova posto (merce spenta nel pannello, massimale abbassato, deposito demolito, rimborsi o doni oltre la capacità) passa in `S.extra`: **non conta e non si può usare**, ma non va perso e rientra nelle scorte appena torna posto (`reconcileStock`, a ogni passo).

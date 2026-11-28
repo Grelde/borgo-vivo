@@ -1211,14 +1211,14 @@ function refreshSel(){
       tavern:`Con almeno un taverniere, chi abita entro ${Sim.FUN.tavern.r} celle ha +${Sim.FUN.tavern.joy} di felicità.`,
       hall:`Con almeno un musicante, chi abita entro ${Sim.FUN.hall.r} celle ha +${Sim.FUN.hall.joy} di felicità.`}[b.type];
     info=`Al lavoro: ${w.length} su ${b.want}`+(g?` · pronti: ${GL[g]} ${b.out[g]}/${Sim.OUTCAP}`:'')+(b.type==='carpenter'?` · assi ${S.stock.planks}/${Sim.PLANK_CAP}`:'');
-    list=w.map((v,i)=>`<div>Addetto ${i+1}: ${esc(Sim.roleText(v))}</div>`).join('')+`<div>${DESC}</div>`+(g?`<div>Resa più alta della bottega di un giardino: la merce è portata alle famiglie che ne hanno più bisogno.</div>`:'')+(w.length===0?`<div>Nessun addetto: servono abitanti liberi.</div>`:'')+(b.why&&w.length?`<div>${esc(b.why)}</div>`:'');
+    list=w.map((v,i)=>`<div>Addetto ${i+1}: ${esc(Sim.roleText(v))}</div>`).join('')+`<div>${DESC}</div>`+(g?`<div>Resa più alta della bottega di un giardino: la merce è portata alle famiglie che ne hanno più bisogno.</div>`:'')+(b.sur?`<div>${esc(b.why)}: tornano al mestiere quando la scorta scende sotto il fabbisogno + 50%.</div>`:w.length===0?`<div>Nessun addetto: servono abitanti liberi.</div>`:'')+(b.why&&w.length?`<div>${esc(b.why)}</div>`:'');
   }
   else if(t.slots&&b.type!=='inn'&&b.type!=='school'&&b.type!=='infirmary'&&b.type!=='sheepfold'){
     const res=b.type==='wood'?'wood':b.type==='mine'?'iron':'stone';
     const prod=b.buf!==undefined;
     const full=prod&&(b.buf>=Sim.BUFCAP||(S.stock[res]>=Sim.capRes(res)*0.9&&b.buf>=2));
     info=prod?`Al lavoro: ${b.workers.length} su ${b.want} · scorta nell'edificio ${b.buf}/${Sim.BUFCAP}`:b.type==='forester'?`Al lavoro: ${b.workers.length} su ${b.want} · alberelli in crescita: ${Sim.stats().saps}`:`Al lavoro: ${b.workers.length} su ${b.want} · grano ${S.stock.grain}, farina ${S.stock.flour}`;
-    list=Sim.villagers().filter(v=>v.job===b.id).map((v,i)=>`<div>Addetto ${i+1}: ${esc(Sim.roleText(v))}</div>`).join('')+(full?'<div>Il villaggio ne ha già abbastanza: gli addetti aiutano gli altri.</div>':'')+(b.workers.length===0&&b.want>0?`<div>Nessun addetto: servono abitanti liberi (${Sim.villagers().length} in paese). Disegna un quartiere residenziale abbastanza grande, almeno 8×5 celle libere, perché nascano case e famiglie.</div>`:'')+(b.why&&!full?`<div>${esc(b.why)}</div>`:'');
+    list=Sim.villagers().filter(v=>v.job===b.id).map((v,i)=>`<div>Addetto ${i+1}: ${esc(Sim.roleText(v))}</div>`).join('')+(full?'<div>Il villaggio ne ha già abbastanza: gli addetti aiutano gli altri.</div>':'')+(b.sur?`<div>${esc(b.why)}: tornano al mestiere quando la scorta scende sotto il fabbisogno + 50%.</div>`:'')+(b.workers.length===0&&b.want>0&&!b.sur?`<div>Nessun addetto: servono abitanti liberi (${Sim.villagers().length} in paese). Disegna un quartiere residenziale abbastanza grande, almeno 8×5 celle libere, perché nascano case e famiglie.</div>`:'')+(b.why&&!full?`<div>${esc(b.why)}</div>`:'');
   }
   else if(b.type==='inn'){const w=Sim.villagers().filter(v=>v.job===b.id);info=`Dispensa ${b.pantry}/20 · ospiti ${b.guestsIn}/4 · cavalli in stalla ${b.horses}/3`;
     list=w.map(v=>`<div>Oste: ${esc(Sim.roleText(v))}</div>`).join('')+`<div>Pasti serviti: ${S.visits} · viandanti diventati abitanti: ${S.settled}</div><div>L'oste compra il cibo in eccedenza dalle famiglie.</div>`;}

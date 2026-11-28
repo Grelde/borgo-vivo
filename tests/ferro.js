@@ -20,7 +20,7 @@ console.log('1) senza fonderia la fucina lavora come prima');
 S.stock.iron=40;S.stock.bars=0;
 const sm=put('smithy',108,100);ok(!!sm,'fucina piazzata');
 run(10);
-const smd=done('smithy')[0];ok(!!smd&&smd.workers.length>=1,'fabbro al lavoro');
+const smd=done('smithy')[0];ok(!!smd&&(smd.workers.length>=1||smd.sur),'fabbro al lavoro (o in prestito per attrezzi in eccedenza, v62)');
 S.stock.iron=40;const m0=S.made.smithy|0,i0=S.stock.iron;run(4);
 ok((S.made.smithy|0)>m0&&S.stock.iron<i0,'la fucina usa il ferro grezzo: '+(i0-S.stock.iron)+' ferro, '+((S.made.smithy|0)-m0)+' cicli');
 console.log('2) carbonaia');
@@ -28,14 +28,14 @@ ok(Sim.place('charcoal',20,20,0).ok===false,'la carbonaia lontano dal bosco è r
 const ch=put('charcoal',70,78);ok(!!ch,'carbonaia piazzata vicino al bosco');
 S.stock.charcoal=0;
 run(12);
-ok(done('charcoal').length===1&&done('charcoal')[0].workers.length>=1,'carbonaio al lavoro');
+ok(done('charcoal').length===1&&(done('charcoal')[0].workers.length>=1||done('charcoal')[0].sur),'carbonaio al lavoro (o in prestito per carbone in eccedenza, v62)');
 run(8);
 ok(S.stock.charcoal>0&&(S.made.charcoal|0)>0,'carbone prodotto: '+S.stock.charcoal+' ('+(S.made.charcoal|0)+' cicli)');
 console.log('3) fonderia e barre');
 const sl=put('smelter',112,112);ok(!!sl,'fonderia piazzata');
 const keep=()=>{S.stock.iron=Math.max(S.stock.iron,40);};
 run(10);keep();
-ok(done('smelter').length===1&&done('smelter')[0].workers.length>=1,'fonditore al lavoro');
+ok(done('smelter').length===1&&(done('smelter')[0].workers.length>=1||done('smelter')[0].sur),'fonditore al lavoro (o in prestito per barre in eccedenza, v62)');
 for(let k=0;k<6;k++){keep();run(2);}
 ok((S.made.smelter|0)>0,'la fonderia ha fuso: '+(S.made.smelter|0)+' cicli');
 ok(S.stock.bars>0||(S.made.smithy|0)>m0,'barre di ferro: '+S.stock.bars);

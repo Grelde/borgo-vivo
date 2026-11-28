@@ -1445,14 +1445,75 @@ function updV(v,dt){
 // ---- economia, famiglie, mercato ----
 function setJob(v,b){
   v.job=b.id;
+  // v62: chi è in prestito (eccedenza della sua merce) conserva il mestiere di base
+  if(v.loan){if(v.loan===b.type)v.loan=null;else return;}
   if(v.trade!==b.type){v.trade=b.type;v.inh=false;logV(v,'Inizia a lavorare come '+TRADENAME[b.type]+'.');}
+}
+// ---- v62: il lavoro resta fisso; si cambia solo per eccedenza di merce ----
+// Chi lavora in un edificio produttivo tiene il suo mestiere. Se la scorta della merce che produce supera il fabbisogno + 50%,
+// gli addetti di quell'edificio vanno a lavorare altrove (in prestito: `v.loan` = mestiere di base, che non cambia) e tornano
+// al loro edificio appena la scorta scende sotto la soglia. Per non far cambiare lavoro a ogni istante, l'edificio può cambiare
+// stato (`b.sur`) al massimo ogni JOB_DWELL secondi. Vale per tutti i mestieri che producono una merce con scorta (non per
+// maestro, oste, muratore, magazziniere, contadini di famiglia e simili, che non hanno una scorta da pareggiare).
+const JOBRES={wood:'wood',forester:'wood',quarry:'stone',mine:'iron',carpenter:'planks',smithy:'tools',bakery:'bread',weaver:'cloth',tailor:'clothes',fisher:'fish',hunter:'meat',ropewalk:'rope',charcoal:'charcoal',smelter:'bars'};
+const JOB_MARGIN=1.5,JOB_DWELL=DAY*2;
+// fabbisogno = riserva del paese (T_KEEP, la stessa che il commercio non vende) + ciò che manca ai cantieri + ciò che chiedono le case
+function jobNeed(r){
+  let n=r==='charcoal'?6:(T_KEEP[r]||0);
+  for(const b of buildings.values())if(b.state==='site'){const c=costRes(b);n+=Math.max(0,(c[r]||0)-((b.got&&b.got[r])||0)-((b.fly&&b.fly[r])||0));}
+  return n+needAll(r);
+}
+const jobStock=r=>(S.stock[r]||0)+((TRADE_STOCK[r]||TRADE_FOOD[r])?0:shelfTotal(r));
+const jobSurplus=r=>jobStock(r)>jobNeed(r)*JOB_MARGIN;
+function rebalanceJobs(){
+  // prestito senza più edifici del mestiere di base: il lavoro attuale diventa il mestiere
+  for(const v of villagers)if(v.loan&&!countDone(v.loan)){v.loan=null;const jb=v.job&&buildings.get(v.job);if(jb&&v.trade!==jb.type){v.trade=jb.type;v.inh=false;}}
+  const sur={};
+  for(const b of buildings.values()){
+    const r=JOBRES[b.type];if(!r||b.state!=='done')continue;
+    if(S.t-(b.surT===undefined?-1e9:b.surT)<JOB_DWELL)continue;
+    if(sur[r]===undefined)sur[r]=jobSurplus(r);
+    if(sur[r]===!!b.sur)continue;
+    b.sur=sur[r];b.surT=S.t;
+    if(b.sur){
+      for(const id of b.workers.slice()){const v=vmap.get(id);if(v){v.loan=b.type;release(id);logV(v,'Troppa merce in paese: lavora altrove finché serve.');}}
+      b.workers=[];b.why='Scorte oltre il fabbisogno: gli addetti lavorano altrove';
+    }else b.why='';
+  }
+  // l'eccedenza è finita: chi era in prestito torna al suo edificio (il più vicino ottiene i primi posti)
+  for(const b of buildings.values()){
+    const r=JOBRES[b.type];if(!r||b.state!=='done'||b.sur)continue;
+    while(b.workers.length<b.want){
+      let best=null,bd=1e9;
+      for(const v of villagers){
+        if(v.loan!==b.type||v.child||v.ill)continue;
+        // chi è senza posto finisce ciò che sta facendo e poi va al lavoro; chi lavora altrove lascia solo a mani vuote
+        if(v.job&&v.carry)continue;
+        const d=(v.x-cx2w(b.cell%N))**2+(v.z-cy2w((b.cell/N)|0))**2;if(d<bd){bd=d;best=v;}
+      }
+      if(!best)break;
+      const old=best.job&&buildings.get(best.job);
+      if(old)old.workers=old.workers.filter(id=>id!==best.id);
+      if(best.job)release(best.id);
+      best.loan=null;best.job=b.id;b.workers.push(best.id);
+      logV(best,'Torna al suo mestiere: '+TRADENAME[b.type]+'.');
+    }
+  }
+  // chi è in prestito ma nel suo mestiere non c'è più posto (edificio al completo o posti tolti) non resta in prestito per sempre:
+  // il lavoro che ha adesso (o la disoccupazione) diventa la sua condizione normale
+  const stay={};
+  for(const b of buildings.values()){const r=JOBRES[b.type];if(r&&b.state==='done'&&(b.sur||b.workers.length<b.want))stay[b.type]=true;}
+  for(const v of villagers)if(v.loan&&!stay[v.loan]){
+    v.loan=null;const jb=v.job&&buildings.get(v.job);
+    if(jb&&v.trade!==jb.type){v.trade=jb.type;v.inh=false;logV(v,'Inizia a lavorare come '+TRADENAME[jb.type]+'.');}
+  }
 }
 function assignJobs(){
   const all=[...buildings.values()].filter(b=>b.state==='done'&&BT[b.type].slots>0);
   const order=all.filter(b=>b.type==='store').concat(all.filter(b=>b.type!=='store'));
   let free=villagers.filter(v=>!v.job&&!v.duty&&!v.child&&!v.ill);
   const reserve=0;
-  const wantOf=b=>(b.type==='store'&&b.center&&villagers.length<9)?Math.min(b.want,Math.max(1,Math.floor(villagers.length/3))):b.want;
+  const wantOf=b=>b.sur?0:(b.type==='store'&&b.center&&villagers.length<9)?Math.min(b.want,Math.max(1,Math.floor(villagers.length/3))):b.want;
   for(const b of order){const wn=wantOf(b);while(b.workers.length>wn){const id=b.workers.pop();release(id);}}
   // un addetto per edificio alla volta, cosi' con pochi abitanti nessun mestiere resta scoperto
   for(let pass=1;pass<=3;pass++)for(const b of order){
@@ -2230,7 +2291,7 @@ const dutyIdle=h=>{for(const id of h.members){const v=vmap.get(id);if(v&&!v.chil
 const marketMember=h=>freeMember(h)||dutyIdle(h);
 function dutyPass(){
   // se un mestiere produttivo (taglialegna, cava...) è senza addetti, ogni casa lascia almeno un adulto libero per il lavoro
-  let unmet=0;for(const b of buildings.values())if(b.state==='done'&&BT[b.type].slots>0&&b.type!=='store'&&b.want>=1&&b.workers.length<1)unmet++;
+  let unmet=0;for(const b of buildings.values())if(b.state==='done'&&BT[b.type].slots>0&&b.type!=='store'&&!b.sur&&b.want>=1&&b.workers.length<1)unmet++;
   for(const h of buildings.values()){
     if(h.type!=='house'||h.state!=='done')continue;
     const m=h.members.map(id=>vmap.get(id)).filter(v=>v&&!v.child&&!v.ill);
@@ -2778,7 +2839,7 @@ function finish(b){
 const ATT_U=10,ATT_K=0.3;
 function attractTick(capD){
   let n=0,js=0,un=0;
-  for(const v of villagers){n++;js+=v.joy;if(!v.child&&!v.ill&&!v.job&&!v.duty)un++;}
+  for(const v of villagers){n++;js+=v.joy;if(!v.child&&!v.ill&&!v.job&&!v.duty&&!v.loan)un++;}
   const joy=n?js/n:50,a=(joy/100)/(1+un/ATT_U);
   S.att={joy,unemp:un,a,bonus:Math.floor(a*ATT_K*capD)};
 }
@@ -2790,6 +2851,7 @@ function tick1(){
   diseaseTick();
   dutyPass();
   festTick();
+  rebalanceJobs();
   assignJobs();
   for(const b of buildings.values())if(b.type==='school')b.pupils=0;
   for(const v of villagers)if(v.sch&&(v.state==='learn'||v.state==='toSchool')){const sb=buildings.get(v.sch);if(sb)sb.pupils=(sb.pupils|0)+1;}
@@ -2821,12 +2883,12 @@ function tick1(){
   regnoTick();
   acc.farm+=1;if(acc.farm>=5){acc.farm=0;farmTick();sheepTick();tentTick();}
   S.grow+=TK;
-  let openSlots=0;for(const b of buildings.values())if(b.state==='done')openSlots+=b.want-b.workers.length;
+  let openSlots=0;for(const b of buildings.values())if(b.state==='done'&&!b.sur)openSlots+=b.want-b.workers.length;
   attractTick(capD);
   if(!S.edicts.noImmig&&!S.edicts.quarantine&&villagers.length<capD+S.att.bonus&&hungry*2<=nh&&S.grow>=(openSlots>0?9:16)){
     let pk=null,ps=-1e9;
     // chi arriva preferisce le case vicine ai posti di lavoro liberi e ai servizi
-    const openB=[...buildings.values()].filter(x=>x.state==='done'&&BT[x.type].slots>0&&x.workers.length<x.want);
+    const openB=[...buildings.values()].filter(x=>x.state==='done'&&BT[x.type].slots>0&&!x.sur&&x.workers.length<x.want);
     const imm=b=>{let d=80;for(const o of openB){const q=cellDist(b.cell,o.cell);if(q<d)d=q;}return -d*0.04+(b.flags.water?0.8:0)+(b.level>=2&&b.flags.church?0.6:0);};
     for(const b of buildings.values())if(b.type==='house'&&b.state==='done'&&roomFor(b)&&b.attr>-4.5){
       const sc=b.attr+(capOf(b)-b.members.length)*0.3+lone(b)+b.well*0.01+imm(b);if(sc>ps){ps=sc;pk=b;}
@@ -2909,7 +2971,8 @@ function roleText(v){
   }
   if(v.child)return v.age<6?'Gioca in giardino':'Gioca';
   const b=v.job&&buildings.get(v.job);
-  if(b){const R={school:'Maestro',inn:'Oste',sheepfold:'Pastore',wood:'Taglialegna',quarry:'Cavatore',mine:'Minatore',forester:'Guardaboschi',mill:'Mugnaio',farm:'Contadino',store:'Magazziniere',infirmary:'Erborista',carpenter:'Falegname',mason:'Muratore',smithy:'Fabbro',bakery:'Panettiere',weaver:'Tessitore',tailor:'Sarto',fisher:'Pescatore',hunter:'Cacciatore',tavern:'Taverniere',hall:'Musicante',mercery:'Merciaio',retting:'Maceratore',ropewalk:'Cordaio',dyehouse:'Tintore',charcoal:'Carbonaio',smelter:'Fonditore'};if(R[b.type])return R[b.type];}
+  if(b){const R={school:'Maestro',inn:'Oste',sheepfold:'Pastore',wood:'Taglialegna',quarry:'Cavatore',mine:'Minatore',forester:'Guardaboschi',mill:'Mugnaio',farm:'Contadino',store:'Magazziniere',infirmary:'Erborista',carpenter:'Falegname',mason:'Muratore',smithy:'Fabbro',bakery:'Panettiere',weaver:'Tessitore',tailor:'Sarto',fisher:'Pescatore',hunter:'Cacciatore',tavern:'Taverniere',hall:'Musicante',mercery:'Merciaio',retting:'Maceratore',ropewalk:'Cordaio',dyehouse:'Tintore',charcoal:'Carbonaio',smelter:'Fonditore'};if(R[b.type])return R[b.type]+(v.loan?' (in prestito)':'');}
+  if(v.loan)return 'Senza posto: troppa merce ('+TRADENAME[v.loan]+')';
   const h=v.home&&buildings.get(v.home);
   if(h){if(h.tailor)return 'Sarto';if(h.weave)return 'Tessitore';if(h.bake)return 'Panettiere';if(h.craft)return 'Artigiano';return h.crop==='veg'?"Cura l'orto":h.crop==='eggs'?'Alleva galline':h.crop==='wood'?'Raccoglie legna da ardere':'Alleva maiali e pecore';}
   return 'In cerca di una casa';
@@ -2924,7 +2987,7 @@ function stats(){
       else if(b.type==='sheepfold'){slots+=1;}
       else if(b.type==='farm'){farms++;slots+=2;}
       else if(b.type==='stall'){if(b.open)stalls++;}
-      else slots+=b.want;
+      else slots+=b.sur?0:b.want;
     }else sites++;
   }
   let masters=0,skSum=0,skN=0;for(const v of villagers){const l=jobSkill(v);if(v.job){skN++;skSum+=l;if(l>=SKMAX)masters++;}}
@@ -3012,7 +3075,7 @@ return {TL,startHouseWork,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,
   TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
   setFarmCrop,fibreCrop,sinkOf,CHAR_CAP,BAR_CAP,retInfo,RET_CAP,DIFFS,diffOf,maintStats,condOf,condLabel,maintainable,REPAIR_BELOW,WORN_AT,
   STORE_KEYS,GRAN_KEYS,GRAN_TOTAL,CENTER_CAP,setPolicy,storeInfo,stockRoom,capRes,reconcileStock,extraTotal,festTakeFood,
-  _t:{tradeTick,doTrade,chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
+  _t:{jobNeed,jobSurplus,rebalanceJobs,JOBRES,JOB_MARGIN,JOB_DWELL,tradeTick,doTrade,chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
   grids:{tree,rock,ore,water,sap,sapT,road,dist,occ,wear,plev,field,door,attr,cen},guests:()=>guests,buildings:()=>buildings,villagers:()=>villagers};
 })();
 if(typeof module!=='undefined')module.exports=Sim;
