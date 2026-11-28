@@ -1,6 +1,8 @@
 const Sim=(function(){
 'use strict';
-const SC=3,N=64*SC,W=128,CS=W/N;
+// v77: la mappa è di 128×128 tile (era 64×64). Nei test su Node (senza browser) resta di 64×64, così le coordinate fisse dei vecchi test valgono ancora:
+// con BV_MT=128 anche i test usano la mappa grande (tests/mappe.js, falde.js, mare.js e grande.js lo fanno). W cresce con la mappa: una cella misura sempre 2/3 di unità.
+const SC=3,MT=(typeof process!=='undefined'&&process.versions&&process.versions.node)?(+process.env.BV_MT||64):128,CT=MT/2,CEN=CT*SC,N=MT*SC,W=MT*2,CS=W/N;
 // Sentieri a livelli (v19): 0 erba, 1-3 terreno che si scolorisce, 4 sentiero vero. NEEDP[L] = passaggi necessari nella finestra del livello L per salire a L+1; DUR[L] = secondi di durata del livello L prima di scendere a L-1.
 const PATH=3,ROADT=20,WMAX=28,MAXP=4,NEEDP=[1,2,4,8],DUR=[0,20,40,80,240],PCOST=[1,0.92,0.8,0.62,0.5],PSPD=[1,1.04,1.1,1.2,1.25];
 // v26: il giorno dura DAY secondi (era 100). TK riporta ai ritmi 'per giorno' di prima i fenomeni calcolati a ogni secondo (produzione, malattie, rischi, immigrazione).
@@ -106,7 +108,7 @@ const FAMS=['Rocca','Valdoro','Fontana','Marini','Boschetti','Guarnieri','Cavall
 const pick=a=>a[(Math.random()*a.length)|0];
 const reg=new Map(); // registro anagrafico: vivi e defunti
 let ignoreFrozen=false,occStamp=0;
-const wb=i=>water[i]===1&&(ignoreFrozen||!S.frozen);
+const wb=i=>water[i]===3||(water[i]===1&&(ignoreFrozen||!S.frozen)); // v77: il mare (3) non gela e non si attraversa
 const DX=[1,-1,0,0,1,1,-1,-1],DY=[0,0,1,-1,1,-1,1,-1];
 const rs=new Uint32Array(N*N),rq=new Int32Array(N*N);let rstamp=0;
 const ROTD=[[0,1],[-1,0],[0,-1],[1,0]];
@@ -249,7 +251,7 @@ function genTerrain(mode,sd,att){
   seed=(sd+Math.imul(att,7919))|0;
   const R=mulberry((Math.imul(sd|0,2654435761)^Math.imul(att+1,40503))>>>0);
   const rr=(a,b)=>a+(b-a)*R(),ri=(a,b)=>Math.floor(rr(a,b+1)),cl=(v,a,b)=>Math.max(a,Math.min(b,v));
-  const M=N/SC,CX=32,CY=32;
+  const M=N/SC,CX=CT,CY=CT,K=M/64,K2=Math.round(K*K);
   for(const a of [tree,rock,ore,water])a.fill(0);
   // boschi e rocce di fondo: soglia e scala del rumore cambiano da mappa a mappa (valli più fitte o più aperte)
   const tth=rr(0.585,0.655),rth=rr(0.70,0.76),fq=rr(0.10,0.15);
@@ -262,9 +264,9 @@ function genTerrain(mode,sd,att){
   }
   // macchie: posti diversi a ogni mappa, ma sempre almeno una a portata di mano
   const spot=(dmin,dmax,mg)=>{for(let k=0;k<40;k++){const a=R()*6.2832,d=rr(dmin,dmax),x=CX+Math.cos(a)*d,y=CY+Math.sin(a)*d;if(x>mg&&y>mg&&x<M-mg&&y<M-mg)return [x|0,y|0];}return [(CX+(R()<0.5?-1:1)*dmin)|0,CY];};
-  const nT=ri(4,6);for(let k=0;k<nT;k++){const [x,y]=k<2?spot(12,20,3):spot(14,30,3);blob(tree,x,y,rr(3.4,6),1);}
-  const nR=ri(2,3);for(let k=0;k<nR;k++){const [x,y]=k<1?spot(10,18,3):spot(14,28,3);blob(rock,x,y,rr(2.6,3.8),10);}
-  const nO=ri(2,3);for(let k=0;k<nO;k++){const [x,y]=k<1?spot(20,28,4):spot(22,32,4);blob(ore,x,y,rr(2.8,3.4),10);}
+  const nT=ri(4,6)*K2;for(let k=0;k<nT;k++){const [x,y]=k<2?spot(12,20,3):spot(14,30*K,3);blob(tree,x,y,rr(3.4,6),1);}
+  const nR=ri(2,3)*K2;for(let k=0;k<nR;k++){const [x,y]=k<1?spot(10,18,3):spot(14,28*K,3);blob(rock,x,y,rr(2.6,3.8),10);}
+  const nO=ri(2,3)*K2;for(let k=0;k<nO;k++){const [x,y]=k<1?spot(20,28,4):spot(22,32*K,4);blob(ore,x,y,rr(2.8,3.4),10);}
   if(mode==='lake'){
     const a=R()*6.2832,d=rr(19,28),lx=cl(CX+Math.cos(a)*d,10,M-10),ly=cl(CY+Math.sin(a)*d,10,M-10);
     const rx=rr(6.5,11),ry=rr(5.2,8),th=R()*Math.PI,ct=Math.cos(th),st=Math.sin(th),amp=rr(0.45,0.8),nf=rr(0.22,0.34);
@@ -280,7 +282,7 @@ function genTerrain(mode,sd,att){
     const phi=R()*6.2832,dx=Math.cos(phi),dy=Math.sin(phi),nx=-dy,ny=dx,off=rr(12,21)*(R()<0.5?-1:1),bx=CX+nx*off,by=CY+ny*off;
     const A1=rr(2.5,6),A2=rr(0.8,2.2),f1=rr(0.7,1.4),f2=rr(2,3.4),p1=R()*6.2832,p2=R()*6.2832;
     const pts=[];
-    for(let s=-80;s<=80;s+=0.25){
+    for(let s=-80*K;s<=80*K;s+=0.25){
       const px=bx+dx*s,py=by+dy*s;if(px<-3||py<-3||px>M+3||py>M+3)continue;
       const lat=A1*Math.sin(s*0.09*f1+p1)+A2*Math.sin(s*0.21*f2+p2)+(vnoise(s*0.08+300,off)-0.5)*3;
       pts.push([px+nx*lat,py+ny*lat,1.6+1.4*vnoise(s*0.12+500,3)]);
@@ -288,6 +290,16 @@ function genTerrain(mode,sd,att){
     const disc=(qx,qy,hw,val,onlyWater)=>{const r=hw*SC,cx=qx*SC,cy=qy*SC;for(let y=Math.max(0,Math.floor(cy-r));y<=Math.min(N-1,Math.ceil(cy+r));y++)for(let x=Math.max(0,Math.floor(cx-r));x<=Math.min(N-1,Math.ceil(cx+r));x++){if((x-cx)**2+(y-cy)**2>r*r)continue;const i=y*N+x;if(onlyWater){if(water[i])water[i]=val;}else water[i]=val;}};
     for(const p of pts)disc(p[0],p[1],p[2],1,false);
     if(pts.length>20)for(const fr of [rr(0.15,0.4),rr(0.6,0.85)]){const p=pts[Math.floor(pts.length*fr)];disc(p[0],p[1],p[2]+0.7,2,true);}
+  }
+  // v77: il mare occupa un lato della mappa (lato, distanza e costa dal seme: baie e promontori) e vale 3 in `water`; fiume o lago restano
+  S.sea=S.sea?1:0;S.seaSide=-1;
+  if(S.sea){
+    const side=Math.floor(R()*4),c0=CT*rr(0.52,0.66),o1=R()*200,ph=R()*6.2832,ph2=R()*6.2832;S.seaSide=side;
+    for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+      const xc=(x+0.5)/SC,yc=(y+0.5)/SC,u=side===0?xc-CX:side===1?yc-CY:side===2?CX-xc:CY-yc,p=side%2===0?yc:xc;
+      const b=c0+5*(vnoise(p*0.045+o1,3)-0.5)*2+2.2*Math.sin(p*0.12+ph)+3.2*(vnoise(p*0.13+o1+40,8)-0.5)*2+1.4*Math.sin(p*0.31+ph2);
+      if(u>b)water[y*N+x]=3;
+    }
   }
   for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;if(Math.hypot(x/SC-CX,y/SC-CY)<8){tree[i]=0;rock[i]=0;ore[i]=0;}if(water[i]){tree[i]=0;rock[i]=0;ore[i]=0;}}
   // v63: flusso casuale a parte, così la forma di acqua, boschi e rocce per un dato seme resta quella di prima
@@ -303,12 +315,12 @@ function enrichDeposits(){
     if(ore[i]){const n=vnoise(x*0.09+351,y*0.09+97)*0.5+vnoise(x*0.3+45,y*0.3+11)*0.35+vnoise(x*0.8+20,y*0.8+73)*0.15;ore[i]=Math.max(3,Math.min(24,Math.round(10*(1+2.9*(n-0.5)))));}
   }
 }
-// Falde: 3-5 corpi d'acqua sotterranei a forma di lente (larghi 3-5 tile, lunghi 40-80, che si assottigliano alle estremità). La prima passa sempre esattamente sotto il Centro Cittadino (tile 32,32).
+// Falde: 3-5 corpi d'acqua sotterranei a forma di lente (larghi 3-5 tile, lunghi 40-80, che si assottigliano alle estremità). La prima passa sempre esattamente sotto il Centro Cittadino (al centro della mappa).
 function genAquifers(R2){
   aq.fill(0);aqV.fill(0);
-  const rr=(a,b)=>a+(b-a)*R2(),ri=(a,b)=>Math.floor(rr(a,b+1)),CX=32,CY=32,nv=ri(3,5);
+  const rr=(a,b)=>a+(b-a)*R2(),ri=(a,b)=>Math.floor(rr(a,b+1)),CX=CT,CY=CT,K=MT/64,nv=ri(3,5)*Math.round(K*K);
   for(let v=0;v<nv;v++){
-    let bx=CX,by=CY;if(v>0){const a=R2()*6.2832,d=rr(9,26);bx=CX+Math.cos(a)*d;by=CY+Math.sin(a)*d;}
+    let bx=CX,by=CY;if(v>0){const a=R2()*6.2832,d=v<5?rr(9,26):rr(24,52*K);bx=CX+Math.cos(a)*d;by=CY+Math.sin(a)*d;}
     const phi=R2()*Math.PI,dx=Math.cos(phi),dy=Math.sin(phi),nx=-dy,ny=dx;
     const A1=rr(1.8,4.5),A2=rr(0.6,1.6),f1=rr(0.6,1.2),f2=rr(1.8,3),p1=R2()*6.2832,p2=R2()*6.2832,off=R2()*100;
     const wb=rr(1.5,2.3),wv=rr(0.3,0.7),Lh=v===0?rr(30,42):rr(20,38);
@@ -329,15 +341,15 @@ function genAquifers(R2){
 function terrainOK(mode){
   let aqn=0,cenOK=true;
   for(let i=0;i<N*N;i++)if(aq[i])aqn++;
-  for(let y=93;y<100;y++)for(let x=93;x<99;x++)if(!aq[y*N+x])cenOK=false;
-  if(!cenOK||aqn<3000||aqn>11500)return false;
+  for(let y=CEN-3;y<CEN+4;y++)for(let x=CEN-3;x<CEN+3;x++)if(!aq[y*N+x])cenOK=false;
+  if(!cenOK||aqn<3000*Math.round((MT/64)**2)||aqn>11500*Math.round((MT/64)**2))return false;
   let wc=0,mw=1e9,t26=0,t18=0,r26=0,r18=0,oT=0,o32=0;
-  for(let i=0;i<N*N;i++){const x=(i%N)/SC,y=((i/N)|0)/SC,d=Math.hypot(x-32,y-32);
-    if(water[i]){wc++;if(d<mw)mw=d;}
+  for(let i=0;i<N*N;i++){const x=(i%N)/SC,y=((i/N)|0)/SC,d=Math.hypot(x-CT,y-CT);
+    if(water[i]){if(water[i]<3)wc++;if(d<mw)mw=d;}
     if(tree[i]){if(d<26)t26++;if(d<18)t18++;}
     if(rock[i]){if(d<26)r26++;if(d<18)r18++;}
     if(ore[i]){oT++;if(d<32)o32++;}}
-  return mw>=(mode==='lake'?11:9)&&wc>=1500&&wc<=3600&&t26>=330&&t18>=100&&r26>=200&&r18>=60&&oT>=30&&o32>=12;
+  return mw>=(mode==='lake'?11:9)&&wc>=1500&&wc<=(mode==='river'?3600*MT/64:3600)&&t26>=330&&t18>=100&&r26>=200&&r18>=60&&oT>=30&&o32>=12;
 }
 
 // ---------- v64: ambiente — fertilità del suolo, corrente del fiume, vento ----------
@@ -400,7 +412,7 @@ function computeEnv(nat){
   // la forza cresce dove il letto è stretto e verso il centro del canale, cala sui guadi (acqua bassa)
   flowS.fill(0);flowX.fill(0);flowY.fill(0);flowAvg=0;
   if(!river)return;
-  const ws=[];for(let i=0;i<N*N;i++)if(water[i])ws.push(i);
+  const ws=[];for(let i=0;i<N*N;i++)if(water[i]&&water[i]<3)ws.push(i);   // v77: il mare (3) non ha corrente di fiume
   if(ws.length<30)return;
   let mx=0,my=0;for(const i of ws){mx+=i%N;my+=(i/N)|0;}mx/=ws.length;my/=ws.length;
   let sxx=0,syy=0,sxy=0;for(const i of ws){const dx=(i%N)-mx,dy=((i/N)|0)-my;sxx+=dx*dx;syy+=dy*dy;sxy+=dx*dy;}
@@ -457,7 +469,7 @@ function windAt(cx,cy,w){
 }
 
 function init(sd,mode,diff,opt){
-  seed=sd||7;S.mode=mode==='river'?'river':'lake';S.diff=DIFFS[diff]?diff:'normale';S.repairs=0;S.ruined=0;
+  seed=sd||7;S.mode=mode==='river'?'river':'lake';S.sea=(opt&&opt.sea)?1:0;S.diff=DIFFS[diff]?diff:'normale';S.repairs=0;S.ruined=0;
   for(const a of [tree,rock,ore,water,sap,road,dist,door,cen])a.fill(0);
   gate.fill(0);gatedSet.clear();
   occ.fill(0);field.fill(0);lastStep.fill(0);wear.fill(0);plev.fill(0);phit.fill(0);pexp.fill(0);attr.fill(0);sapT.fill(0);
@@ -470,12 +482,12 @@ function init(sd,mode,diff,opt){
   S.seed=base;S.mapTries=att;S.mapOK=okT;
   // v63: nelle partite nuove il pozzo si scava solo su una falda scoperta; all'inizio è nota la parte della falda che passa sotto il Centro Cittadino
   S.aqRule=!!(opt&&opt.aquifers);S.dowsed=0;aqK.fill(0);
-  for(let i=0;i<N*N;i++)if(aq[i]&&aqV[i]===1&&Math.hypot(i%N-96,((i/N)|0)-96)<=AQ_REVEAL_R)aqK[i]=1;
+  for(let i=0;i<N*N;i++)if(aq[i]&&aqV[i]===1&&Math.hypot(i%N-CEN,((i/N)|0)-CEN)<=AQ_REVEAL_R)aqK[i]=1;
   for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;jit[i]=hash(x,y+500)*0.15;}
   windP=null;computeEnv();
   updClock();
-  addBuilding('store',31*SC,31*SC,true,{center:true});
-  for(let k=0;k<3;k++){const v=addVillager(cx2w(31*SC+1+k*2),cy2w(31*SC+9),22+k*4);arrivalLit(v,true);logV(v,'Partito da Rocca Nera con la carovana: uno dei primi abitanti del borgo.');}
+  addBuilding('store',(CT-1)*SC,(CT-1)*SC,true,{center:true});
+  for(let k=0;k<3;k++){const v=addVillager(cx2w((CT-1)*SC+1+k*2),cy2w((CT-1)*SC+9),22+k*4);arrivalLit(v,true);logV(v,'Partito da Rocca Nera con la carovana: uno dei primi abitanti del borgo.');}
   computeAttr();
   hooks.trees();hooks.rocks();hooks.saps();hooks.ground();
 }
@@ -745,7 +757,7 @@ function demolishAt(cx,cy){
 function paintDistrict(x0,y0,x1,y1,type){
   let n=0;
   for(let y=Math.max(0,Math.min(y0,y1));y<=Math.min(N-1,Math.max(y0,y1));y++)for(let x=Math.max(0,Math.min(x0,x1));x<=Math.min(N-1,Math.max(x0,x1));x++){
-    const i=y*N+x;if(water[i]===1)continue;if(dist[i]!==type){dist[i]=type;n++;}
+    const i=y*N+x;if(water[i]===1||water[i]===3)continue;if(dist[i]!==type){dist[i]=type;n++;}
   }
   if(n)hooks.ground();return n;
 }
@@ -778,7 +790,7 @@ function computeAttr(){
     if(b.type==='house'&&b.state==='done'&&b.pure){const gn=b.gcells.length+b.ext.length;add(b.gx+(b.gw-1)/2,b.gy+(b.gh-1)/2,0.3+0.05*(gn-9),6+(gn>>2));}
   }
   const unb=Math.min(1.5,S.unburied*0.15);if(unb>0)for(let i=0;i<N*N;i++)attr[i]-=unb;
-  const ts=buildSAT(i=>tree[i]?1:0),ws=buildSAT(i=>water[i]===1?1:0),R=10;
+  const ts=buildSAT(i=>tree[i]?1:0),ws=buildSAT(i=>water[i]===1||water[i]===3?1:0),R=10;
   for(let y=0;y<N;y++)for(let x=0;x<N;x++){
     const c=rect(ts,x-R,y-R,2*R+1,2*R+1),w=rect(ws,x-R,y-R,2*R+1,2*R+1);
     attr[y*N+x]+=Math.min(1.5,c*0.06)+Math.min(1.5,w*0.0056);
@@ -803,7 +815,7 @@ function astar(s,g,tocc){
       const ni=ny*N+nx;if(closed[ni]===stamp)continue;
       if(!canStep(cur,cx,cy,k,ni,nx,ny,sOcc,tocc))continue;
       let c=1;if(road[ni])c=0.3;else c=PCOST[plev[ni]];
-      if(tree[ni])c+=3;if(rock[ni]||ore[ni])c+=3;if(water[ni]===2)c+=1.2;else if(water[ni]===1)c+=0.8;c+=jit[ni];if(k>=4)c*=1.4142;
+      if(tree[ni])c+=3;if(rock[ni]||ore[ni])c+=3;if(water[ni]===2)c+=1.2;else if(water[ni]===1||water[ni]===3)c+=0.8;c+=jit[ni];if(k>=4)c*=1.4142;
       const ng=gS[cur]+c;
       if(seen[ni]!==stamp||ng<gS[ni]){seen[ni]=stamp;gS[ni]=ng;came[ni]=cur;const ddx=Math.abs(nx-gx),ddy=Math.abs(ny-gy);hpush(ng+(ddx>ddy?ddx+0.4142*ddy:ddy+0.4142*ddx)*0.5,ni);}
     }
@@ -844,7 +856,7 @@ function moveV(v,dt){
   if(!v.path.length){v.moving=false;return true;}
   v.inside=false;
   const ti=v.path[0],tx=cx2w(ti%N),tz=cy2w((ti/N)|0),ni=v.path[1];
-  let sp=3.0;if(road[ti])sp*=1.45;else if(tree[ti]||water[ti]===2)sp*=0.6;else if(water[ti]===1)sp*=0.85;else sp*=PSPD[plev[ti]];
+  let sp=3.0;if(road[ti])sp*=1.45;else if(tree[ti]||water[ti]===2)sp*=0.6;else if(water[ti]===1||water[ti]===3)sp*=0.85;else sp*=PSPD[plev[ti]];
   if(v.ill)sp*=0.7;
   if(v.spd)sp*=v.spd;
   const dx=tx-v.x,dz=tz-v.z,d=Math.hypot(dx,dz),step=sp*dt;v.moving=true;
@@ -2907,7 +2919,7 @@ function doTrade(g){
 // una cella percorribile sul bordo della mappa, nella fascia centrale del lato della città
 function edgeCell(id){
   for(let k=0;k<14;k++){
-    const t=((14+Math.random()*36)*SC)|0;let x,y;
+    const t=((CT-18+Math.random()*36)*SC)|0;let x,y;
     if(id==='w'){x=0;y=t;}else if(id==='e'){x=N-1;y=t;}else if(id==='n'){x=t;y=0;}else{x=t;y=N-1;}
     const c=y*N+x;if(!water[c]&&!occ[c]&&!tree[c]&&!rock[c])return c;
   }
@@ -3787,11 +3799,12 @@ function packGrid(a){const u=new Uint8Array(a.buffer,a.byteOffset,a.byteLength),
 function unpackGrid(a,str){const p=b64dec(str),u=new Uint8Array(a.buffer,a.byteOffset,a.byteLength);let o=0;for(let i=0;i+1<p.length;i+=2){const r=p[i];if(r===0||o+r>u.length)throw new Error('griglia rovinata');u.fill(p[i+1],o,o+r);o+=r;}if(o!==u.length)throw new Error('griglia rovinata');}
 function exportState(){
   const grids={};for(const k in SAVE_GRIDS)grids[k]=packGrid(SAVE_GRIDS[k]);for(const k in SOIL_GRIDS)grids[k]=packGrid(SOIL_GRIDS[k]);
-  return {fmt:SAVE_FMT,seed,nextId,S,acc,told,gated:[...gatedSet],reg:[...reg.entries()],resv:[...resv.entries()],plantResv:[...plantResv],guests,buildings:[...buildings.values()],villagers,grids};
+  return {fmt:SAVE_FMT,n:N,seed,nextId,S,acc,told,gated:[...gatedSet],reg:[...reg.entries()],resv:[...resv.entries()],plantResv:[...plantResv],guests,buildings:[...buildings.values()],villagers,grids};
 }
 function importState(d){
   const bad=m=>{throw new Error('Salvataggio non valido: '+m);};
   if(!d||typeof d!=='object')bad('dati assenti');
+  if((d.n||192)!==N)bad('è di una mappa di altre dimensioni ('+((d.n||192)/SC)+'×'+((d.n||192)/SC)+' tile contro '+MT+'×'+MT+'): dalla v77 la mappa è più grande e i vecchi salvataggi non si possono caricare');
   if(d.fmt!==SAVE_FMT)bad(d.fmt>SAVE_FMT?'creato da una versione più recente del gioco':'formato sconosciuto');
   for(const k of ['buildings','villagers','guests','gated','reg','resv','plantResv'])if(!Array.isArray(d[k]))bad('manca '+k);
   if(!d.S||typeof d.S!=='object'||!d.acc||!d.told||!d.grids||typeof d.grids!=='object')bad('struttura incompleta');
@@ -3849,7 +3862,7 @@ function importState(d){
   for(const g of guests)hooks.villager(g);
   hooks.trees();hooks.rocks();hooks.saps();hooks.ground();
 }
-return {dowse,soilOf,soilF,soilName,AQ_FIND_R,AQ_COST,TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWanted,WEAPON_PER_POST,startHouseWork,mergeTick,trySpawnDense,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,EDUREQ,EDU_BLD,IMM_LIT,HIRE_COST,canWorkAt,eduBld,hireEducated,hireNeeded,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
+return {MT,CT,CEN,dowse,soilOf,soilF,soilName,AQ_FIND_R,AQ_COST,TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWanted,WEAPON_PER_POST,startHouseWork,mergeTick,trySpawnDense,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,EDUREQ,EDU_BLD,IMM_LIT,HIRE_COST,canWorkAt,eduBld,hireEducated,hireNeeded,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,NEEDS,NEED_LOW,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
   TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,WAGE_JOB,EDU_JOBS,CITY_RANK,WAGE_OWE_CAP,wageJob,wageOf,wagePayer,TAX_TABLE,TAX_WEEK,TAX_POUCH,WAGE,WAGE_SEC,SILVER_GOLD,TAX_MARGIN,MSELL,MSELL_KEEP,MSELL_LIM,taxOf,money,taxActive,taxStats,taxDue,taxRefuses,merceryTakes,merceryBuy,merceryBuyer,jobless,kingJob,cityMakes,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,

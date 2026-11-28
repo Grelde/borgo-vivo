@@ -2,7 +2,7 @@
 const Sim=require('../src/sim.js');const {N,SC,grids:G,S}=Sim;const FE=Sim.env.fert;
 let fail=0,n=0;const ok=(c,m)=>{n++;if(!c){fail++;console.log('FALLITO:',m);}};
 const run=(sec,dt=0.2)=>{for(let i=0;i<sec/dt;i++)Sim.step(dt);};
-const C=96;
+const C=Sim.CEN;
 console.log('1) una falda passa sempre sotto il Centro Cittadino, in ogni mappa');
 const lv=[0,0,0,0];let aqSum=0,cnt=0;const lvOf=v=>v<25?0:v<45?1:v<70?2:3;
 for(const mode of ['lake','river'])for(let k=0;k<30;k++){

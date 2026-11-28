@@ -1,5 +1,14 @@
 # Changelog
 
+## v78 – 2026-11-28
+Cambio di regole: la mappa è doppia (128×128 tile) e si può giocare con il mare.
+- **Mappa doppia per lato:** da 64×64 a **128×128 tile** (384×384 celle, 4 volte la superficie). `W` cresce con la mappa (una cella misura sempre 2/3 di unità, quindi case, strade e abitanti non cambiano scala). Il Centro Cittadino sta sempre al centro (`CT`, `CEN`); boschi, rocce, ferro e falde si estendono su tutta la mappa (più macchie, più lontane, `K2` volte quelle di prima), la falda sotto il centro resta garantita. Gli arrivi dal bordo (v70) partono dalla fascia centrale del lato (`edgeCell`), quindi camminano più a lungo.
+- **Mare:** nuove partite «Mare e lago» e «Mare e fiume» (oltre a «Il lago» e «Il fiume»). Il mare occupa un lato della mappa (il seme decide il lato e la forma della costa, con baie e promontori) a 30-45 tile dal centro; resta sempre anche un lago o un fiume. L'acqua del mare vale **3** in `water`: più scura nella mappa, non gela d'inverno, non si attraversa (`wb`), non si costruisce, e non ha corrente di fiume (`computeEnv`). Il pescatore e le case che pescano usano la riva come per le altre acque. `terrainOK` controlla separatamente il mare e l'acqua dolce (`wc` conta solo l'acqua dolce).
+- **Rendering:** texture del terreno 3072 px (8 px a cella; 2048 su telefono), overlay 2048 px, zoom massimo 230 (era 150). Nessun altro cambiamento grafico.
+- **Salvataggi:** i salvataggi precedenti (mappa 64×64) **non si possono più caricare** (messaggio «mappa di altre dimensioni»): le griglie hanno un'altra misura e le coordinate non coincidono. Il file ora contiene `n` (celle per lato); `SAVE_FMT` resta 1. Lo stato `S.sea` e `S.seaSide` viaggiano nel salvataggio.
+- **Test su Node:** la simulazione usa una mappa di **64×64** tile quando gira sotto Node (così le coordinate fisse dei vecchi test valgono ancora) e di **128×128** nel browser. `BV_MT=128 node tests/xxx.js` forza la mappa grande. Nuovi `tests/mare.js` (mare su tutti i lati, costa, acque dolci, salvataggio, rifiuto dei vecchi file) e `tests/grande.js` (una partita sulla mappa grande e `mappe`/`falde` a 128 tile); `tests/mappe.js` e `tests/falde.js` valgono per entrambe le dimensioni.
+- Costo: a 128 tile ogni passo della simulazione costa circa 3 volte di più su Node (0,27 ms contro 0,09 ms per passo di 0,1 s all'inizio, da rimisurare con un borgo grande). **Non verificato in un browser:** aspetto del mare, texture 3072, prestazioni su telefono, menu con quattro pulsanti.
+
 ## v77 – 2026-11-28
 Cambio di regole: taratura delle tasse sugli stipendi.
 - **Tassa settimanale per livello** (`TAX_TABLE`): **1, 3, 5, 10, 20** monete d'argento (livelli 1-5), invece di 1, 2, 4, 8, 16: il raddoppio più 25% arrotondato. Il livello 1 resta a 1.

@@ -30,7 +30,7 @@ for(let i=0;i<SNOWN;i++){snowP[i*3]=(Math.random()-.5)*130;snowP[i*3+1]=Math.ran
 const snowG=new THREE.BufferGeometry();snowG.setAttribute('position',new THREE.BufferAttribute(snowP,3));
 const snow=new THREE.Points(snowG,new THREE.PointsMaterial({color:0xffffff,size:.45,transparent:true,opacity:.9}));snow.frustumCulled=false;snow.visible=false;scene.add(snow);
 // ---------- terreno ----------
-const TEX=2048,PX=TEX/N,TK2=TEX/1024;
+const TEX=N>200?(COARSE?2048:3072):2048,PX=TEX/N,TK2=TEX/1024;   // v77: mappa 128×128 tile: texture più grande (8 px a cella)
 const base=document.createElement('canvas');base.width=base.height=TEX;
 (function(){
   const g=base.getContext('2d');g.fillStyle='#6f8f45';g.fillRect(0,0,TEX,TEX);
@@ -182,7 +182,7 @@ function drawGround(){
   else if(SN===1){g.fillStyle='rgba(214,196,64,0.12)';g.fillRect(0,0,TEX,TEX);}
   else{g.fillStyle='rgba(120,220,120,0.10)';g.fillRect(0,0,TEX,TEX);}
   for(let i=0;i<N*N;i++){const w=water[i];if(!w)continue;const x0=(i%N)*PX,y0=((i/N)|0)*PX;
-    g.fillStyle=w===2?'rgba(120,150,150,0.95)':S.frozen?'rgb(190,218,234)':'rgb(52,96,128)';g.fillRect(x0-1,y0-1,PX+2,PX+2);
+    g.fillStyle=w===3?'rgb(34,78,122)':w===2?'rgba(120,150,150,0.95)':S.frozen?'rgb(190,218,234)':'rgb(52,96,128)';g.fillRect(x0-1,y0-1,PX+2,PX+2);   // v77: il mare (3) è più scuro e non gela
     continue;
     if(w===1&&S.frozen&&Sim.hash(i,43)<.4){g.strokeStyle='rgba(255,255,255,.75)';g.lineWidth=1.5;g.beginPath();g.moveTo(x0+2,y0+Sim.hash(i,44)*PX);g.lineTo(x0+PX-2,y0+Sim.hash(i,45)*PX);g.stroke();}
     else if(w===1&&Sim.hash(i,41)<.35){g.fillStyle='rgba(170,210,230,.35)';g.fillRect(x0+3,y0+PX*0.4,PX*0.6,2);}
@@ -1210,6 +1210,7 @@ function setGhost(x0,y0,w,h,ok,tall,color){
 }
 
 // ---------- telecamera ----------
+const ZMAX=Sim.MT>64?230:150;   // v77: su una mappa doppia si può allontanare di più
 const cam={x:0,z:0,yaw:Math.PI*0.25,pitch:0.85,dist:62,goal:62};
 function updateCam(dt){
   const sy=Math.sin(cam.yaw),cy=Math.cos(cam.yaw),sp=cam.dist*0.9*dt;
@@ -1630,7 +1631,7 @@ function gInfo(){const a=[...ptrs.values()],p=a[0],q=a[1];return {d:Math.hypot(q
 function startGest(){const g=gInfo();gest={d:g.d,ang:g.ang,mx:g.mx,my:g.my,goal:cam.goal,yaw:cam.yaw};}
 function moveGest(){
   if(!gest||ptrs.size<2)return;const g=gInfo();
-  cam.goal=Math.max(16,Math.min(150,gest.goal*gest.d/g.d));
+  cam.goal=Math.max(16,Math.min(ZMAX,gest.goal*gest.d/g.d));
   cam.yaw=gest.yaw+(g.ang-gest.ang);
   const dx=g.mx-gest.mx,dy=g.my-gest.my;gest.mx=g.mx;gest.my=g.my;
   const k=cam.dist*0.0019,sy=Math.sin(cam.yaw),cy=Math.cos(cam.yaw),kf=k/Math.max(.5,Math.sin(cam.pitch));
@@ -1698,7 +1699,7 @@ function endDrag(){
 }
 cv.addEventListener('pointerup',ptrUp);cv.addEventListener('pointercancel',ptrUp);
 cv.addEventListener('pointerleave',e=>{if(e.pointerType!=='touch')hover=null;});
-cv.addEventListener('wheel',e=>{e.preventDefault();cam.goal=Math.max(16,Math.min(150,cam.goal*Math.exp(e.deltaY*0.0012)));},{passive:false});
+cv.addEventListener('wheel',e=>{e.preventDefault();cam.goal=Math.max(16,Math.min(ZMAX,cam.goal*Math.exp(e.deltaY*0.0012)));},{passive:false});
 const TK={};TOOLS.forEach(t=>{if(t.key)TK[t.key]=t.id;});
 addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();
@@ -1723,13 +1724,13 @@ $('ovBtn').addEventListener('click',toggleOv);
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
 $('camL').addEventListener('click',()=>{cam.yaw+=0.4;});$('camR').addEventListener('click',()=>{cam.yaw-=0.4;});
-$('camIn').addEventListener('click',()=>{cam.goal=Math.max(16,cam.goal*0.8);});$('camOut').addEventListener('click',()=>{cam.goal=Math.min(150,cam.goal*1.25);});
+$('camIn').addEventListener('click',()=>{cam.goal=Math.max(16,cam.goal*0.8);});$('camOut').addEventListener('click',()=>{cam.goal=Math.min(ZMAX,cam.goal*1.25);});
 
 // ---------- v64: bussola e layer ambientali (fertilità, vento, corrente del fiume) ----------
 // Il nord è l'alto della mappa (riga 0 della griglia, -z nel mondo). Con la vista iniziale (yaw 45°) il nord sta in alto a destra.
 const TAU2=Math.PI*2;
 let layFert=false,layWind=false,layFlow=false,layOpen=false,compYaw=1e9,envKey='',fertDirty=true,dynT=0;
-const OVT=1024,OPX=OVT/N;
+const OVT=N>200?2048:1024,OPX=OVT/N;
 function mkOverlay(y,order){
   const c=document.createElement('canvas');c.width=c.height=OVT;const x=c.getContext('2d'),t=new THREE.CanvasTexture(c);
   const m=new THREE.Mesh(new THREE.PlaneGeometry(W,W),new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false}));
@@ -2432,7 +2433,7 @@ function showStory(){
     const showA=()=>{abs.forEach(([k,bt])=>bt.classList.toggle('on',k===adviceOn));ad.textContent=adviceOn?'I cittadini ti suggeriscono cosa fare a ogni passo, per tutta la partita.':'Nessun suggerimento: i cittadini parlano solo di guerra e predoni. Restano visibili i requisiti del Re.';};
     for(const [k,l] of [[true,'Consigli dei cittadini: sì'],[false,'No, decido io']]){const bt=document.createElement('button');bt.className='btn';bt.type='button';bt.textContent=l;bt.addEventListener('click',()=>{setAdvice(k);showA();});abs.push([k,bt]);aw.appendChild(bt);}
     aw.appendChild(ad);$('sBtns').appendChild(aw);showA();
-    for(const [m,l] of[['lake','Il lago'],['river','Il fiume']]){const b=document.createElement('button');b.className='btn';b.type='button';b.textContent=l;b.addEventListener('click',()=>begin(m));$('sBtns').appendChild(b);}
+    for(const [m,l,sea] of[['lake','Il lago',0],['river','Il fiume',0],['lake','Mare e lago',1],['river','Mare e fiume',1]]){const b=document.createElement('button');b.className='btn';b.type='button';b.textContent=l;b.addEventListener('click',()=>begin(m,sea));$('sBtns').appendChild(b);}
   }else{
     const mk=(txt,fn)=>{const b=document.createElement('button');b.className='btn';b.type='button';b.textContent=txt;b.addEventListener('click',fn);$('sBtns').appendChild(b);};
     mk(sIdx===0?'Inizia':'Avanti',()=>{Music.start();sIdx++;showStory();});
@@ -2443,13 +2444,13 @@ function showStory(){
     }
   }
 }
-function begin(mode){
+function begin(mode,sea){
   if(readSlot('auto')&&!askOk('Esiste già un salvataggio automatico: una nuova partita lo sostituirà entro un minuto (i posti 1-3 non cambiano). Iniziare comunque?'))return;
   Music.start();$('story').hidden=true;lastAuto=performance.now();
   // v42: ogni partita ha una mappa nuova; con ?seme=1234 nell'indirizzo si rivede una mappa già giocata
   let sd=0;try{if(typeof location!=='undefined'){const q=new URLSearchParams(location.search).get('seme');if(q&&/^\d{1,9}$/.test(q))sd=+q;}}catch(e){}
   if(!sd)sd=1+((Math.random()*999999999)|0);
-  Sim.init(sd,mode,curDiff,{story:true,aquifers:true});started=true;setTimeout(()=>toast('Valle n. '+sd+'. Per rivederla: aggiungi ?seme='+sd+' all\'indirizzo.'),1500);if(COARSE)setTimeout(()=>toast('Un dito: sposta la mappa. Due dita: pizzica per zoomare, ruota per girare. Scegli una categoria e uno strumento in basso.'),7000);
+  Sim.init(sd,mode,curDiff,{story:true,aquifers:true,sea:!!sea});started=true;setTimeout(()=>toast('Valle n. '+sd+'. Per rivederla: aggiungi ?seme='+sd+' all\'indirizzo'+(sea?' (e scegli di nuovo il mare)':'')+'.'),1500);if(COARSE)setTimeout(()=>toast('Un dito: sposta la mappa. Due dita: pizzica per zoomare, ruota per girare. Scegli una categoria e uno strumento in basso.'),7000);
   if(treesDirty)rebuildTrees();if(rocksDirty)rebuildRocks();if(sapsDirty)rebuildSaps();groundDirty=true;
   palKey='';refreshPalette();showLevel();openEnvoy(INTRO);
 }
