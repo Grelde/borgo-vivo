@@ -15,6 +15,14 @@ for(const mode of ['lake','river'])for(let k=0;k<20;k++){
   ok(ms>=0.35*CT,tag+'la costa non è addosso alla partenza (a '+ms.toFixed(1)+' tile)');
   ok(ms<=0.75*CT,tag+'la costa non è lontanissima (a '+ms.toFixed(1)+' tile)');
   ok(!G.water[CT*SC*N+CT*SC],tag+'il Centro Cittadino è sulla terraferma');
+  if(mode==='river'){ // v79: il fiume sfocia in mare e scorre verso il mare
+    let mouth=0;for(let i=0;i<N*N;i++){if(!G.water[i]||G.water[i]===3)continue;const x=i%N,y=(i/N)|0;
+      if((x>0&&G.water[i-1]===3)||(x<N-1&&G.water[i+1]===3)||(y>0&&G.water[i-N]===3)||(y<N-1&&G.water[i+N]===3))mouth++;}
+    ok(mouth>=3,tag+'il fiume sfocia in mare ('+mouth+' celle di foce)');
+    const sx=[1,0,-1,0][S.seaSide],sy=[0,1,0,-1][S.seaSide],F=Sim.env;let dot=0,nn=0;
+    for(let i=0;i<N*N;i+=5)if(F.flowS[i]>0){dot+=F.flowX[i]*sx+F.flowY[i]*sy;nn++;}
+    ok(nn>0&&dot/nn>0.3,tag+'la corrente va verso il mare ('+(nn?(dot/nn).toFixed(2):'n/d')+')');
+  }
   // l'area di partenza è libera
   let blocked=0;for(let y=0;y<N;y++)for(let x=0;x<N;x++){const i=y*N+x;if(Math.hypot(x/SC-CT,y/SC-CT)<8&&(G.water[i]||G.rock[i]||G.ore[i]||G.tree[i]))blocked++;}
   ok(blocked===0,tag+'area di partenza libera');

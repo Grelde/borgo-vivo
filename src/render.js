@@ -2341,6 +2341,11 @@ function readSlot(k){
 function newestSave(){let best=null;for(const k of SAVE_SLOTS){const w=readSlot(k);if(w&&(!best||w.at>best.at))best=w;}return best;}
 function applySave(w){
   if(!w||w.app!==SAVE_APP||!w.sim)throw new Error('Questo file non è un salvataggio di Borgo Vivo.');
+  // v79: il salvataggio ha la dimensione della mappa in cui è stato giocato; se è diversa dalla mappa attuale si può ricaricare il gioco con quella
+  const sn=(w.sim&&w.sim.n)||192;
+  if(sn!==Sim.N){const mt=sn/Sim.SC;
+    if(askOk('Questo salvataggio è di una mappa '+(mt<=64?'normale':'grande')+' ('+mt+'×'+mt+' tile), quella attuale è '+(Sim.MT<=64?'normale':'grande')+'. Ricaricare il gioco con la mappa '+(mt<=64?'normale':'grande')+'? Poi caricalo di nuovo.')){setMapSize(mt);return;}
+    throw new Error('Salvataggio di una mappa '+mt+'×'+mt+': scegli quella dimensione nel menu di nuova partita.');}
   Sim.importState(w.sim); // se il salvataggio è rovinato lancia un errore prima di toccare la partita in corso
   const u=w.ui||{};
   started=true;$('story').hidden=true;$('modal').hidden=true;
@@ -2416,6 +2421,9 @@ function autoSave(){if(started)writeSlot('auto',true);}
 addEventListener('pagehide',autoSave);
 if(document.addEventListener)document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')autoSave();});
 let sIdx=0,curDiff='normale';
+// v79: dimensione della mappa a scelta (grande 128×128, normale 64×64): le griglie hanno la misura fissa, quindi si salva la scelta e si ricarica la pagina
+function setMapSize(mt){try{localStorage.setItem('bv_mt',String(mt));sessionStorage.setItem('bv_menu','1');}catch(e){toast('Il browser non permette di salvare la scelta: la mappa non cambia.',true);return;}location.reload();}
+try{if(sessionStorage.getItem('bv_menu')==='1'){sessionStorage.removeItem('bv_menu');sIdx=Math.max(0,STORY.findIndex(x=>x.choice));}}catch(e){}
 function showStory(){
   const sc=STORY[sIdx];$('sTitle').textContent=sc.t;$('sText').textContent=sc.x;$('sBtns').innerHTML='';
   if(sc.choice){
@@ -2433,6 +2441,12 @@ function showStory(){
     const showA=()=>{abs.forEach(([k,bt])=>bt.classList.toggle('on',k===adviceOn));ad.textContent=adviceOn?'I cittadini ti suggeriscono cosa fare a ogni passo, per tutta la partita.':'Nessun suggerimento: i cittadini parlano solo di guerra e predoni. Restano visibili i requisiti del Re.';};
     for(const [k,l] of [[true,'Consigli dei cittadini: sì'],[false,'No, decido io']]){const bt=document.createElement('button');bt.className='btn';bt.type='button';bt.textContent=l;bt.addEventListener('click',()=>{setAdvice(k);showA();});abs.push([k,bt]);aw.appendChild(bt);}
     aw.appendChild(ad);$('sBtns').appendChild(aw);showA();
+    // v79: grandezza della mappa
+    const zw=document.createElement('div');zw.style.cssText='width:100%;margin-bottom:8px';
+    const zd=document.createElement('p');zd.style.cssText='margin:6px 0;font-size:14px';
+    zd.textContent=Sim.MT>64?'Mappa grande: 128×128 tile, molto spazio per crescere (più pesante per il telefono).':'Mappa normale: 64×64 tile, più raccolta e leggera.';
+    for(const [mt,l] of [[128,'Mappa grande'],[64,'Mappa normale']]){const bt=document.createElement('button');bt.className='btn'+(Sim.MT===mt?' on':'');bt.type='button';bt.textContent=l;bt.addEventListener('click',()=>{if(Sim.MT!==mt)setMapSize(mt);});zw.appendChild(bt);zw.appendChild(document.createTextNode(' '));}
+    zw.appendChild(zd);$('sBtns').appendChild(zw);
     for(const [m,l,sea] of[['lake','Il lago',0],['river','Il fiume',0],['lake','Mare e lago',1],['river','Mare e fiume',1]]){const b=document.createElement('button');b.className='btn';b.type='button';b.textContent=l;b.addEventListener('click',()=>begin(m,sea));$('sBtns').appendChild(b);}
   }else{
     const mk=(txt,fn)=>{const b=document.createElement('button');b.className='btn';b.type='button';b.textContent=txt;b.addEventListener('click',fn);$('sBtns').appendChild(b);};

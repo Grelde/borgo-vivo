@@ -1,5 +1,13 @@
 # Changelog
 
+## v79 – 2026-11-28
+Ritocco di regole: la grandezza della mappa si sceglie, e con il mare il fiume sfocia in mare.
+- **Mappa grande o normale:** nel menu di nuova partita due pulsanti, «Mappa grande» (128×128 tile, la v78) e «Mappa normale» (64×64, più raccolta e leggera per i telefoni). Le griglie hanno una misura fissa, quindi la scelta si salva (`bv_mt` in localStorage) e la pagina si **ricarica** tornando subito al menu (`setMapSize`, `sessionStorage` `bv_menu`). Il predefinito resta la mappa grande.
+- **Salvataggi di dimensione diversa:** caricando un salvataggio di una mappa di dimensione diversa da quella attuale il gioco propone di ricaricarsi con quella dimensione (poi si ricarica il file). **Così i vecchi salvataggi 64×64 tornano caricabili** scegliendo la mappa normale.
+- **Fiume in mare:** nelle mappe con mare e fiume il lato del mare si decide prima del fiume (`seaSide`): il fiume punta verso il mare (angolo casuale ±0,5 rad) e vi sfocia; la corrente (`computeEnv`) scorre verso il mare. Le mappe senza mare restano identiche.
+- Test: `tests/mare.js` controlla foce (celle di fiume a contatto con il mare) e verso della corrente.
+- Non verificato in un browser: ricarica della pagina dal menu, pulsanti e testi.
+
 ## v78 – 2026-11-28
 Cambio di regole: la mappa è doppia (128×128 tile) e si può giocare con il mare.
 - **Mappa doppia per lato:** da 64×64 a **128×128 tile** (384×384 celle, 4 volte la superficie). `W` cresce con la mappa (una cella misura sempre 2/3 di unità, quindi case, strade e abitanti non cambiano scala). Il Centro Cittadino sta sempre al centro (`CT`, `CEN`); boschi, rocce, ferro e falde si estendono su tutta la mappa (più macchie, più lontane, `K2` volte quelle di prima), la falda sotto il centro resta garantita. Gli arrivi dal bordo (v70) partono dalla fascia centrale del lato (`edgeCell`), quindi camminano più a lungo.

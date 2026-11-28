@@ -1,8 +1,8 @@
 const Sim=(function(){
 'use strict';
-// v77: la mappa è di 128×128 tile (era 64×64). Nei test su Node (senza browser) resta di 64×64, così le coordinate fisse dei vecchi test valgono ancora:
+// v77: la mappa è di 128×128 tile (era 64×64); dalla v79 il giocatore può scegliere la mappa normale (64×64) dal menu (`bv_mt` in localStorage, il gioco si ricarica). Nei test su Node (senza browser) resta di 64×64, così le coordinate fisse dei vecchi test valgono ancora:
 // con BV_MT=128 anche i test usano la mappa grande (tests/mappe.js, falde.js, mare.js e grande.js lo fanno). W cresce con la mappa: una cella misura sempre 2/3 di unità.
-const SC=3,MT=(typeof process!=='undefined'&&process.versions&&process.versions.node)?(+process.env.BV_MT||64):128,CT=MT/2,CEN=CT*SC,N=MT*SC,W=MT*2,CS=W/N;
+const SC=3,MT=(typeof process!=='undefined'&&process.versions&&process.versions.node)?(+process.env.BV_MT||64):(()=>{try{return localStorage.getItem('bv_mt')==='64'?64:128;}catch(e){return 128;}})(),CT=MT/2,CEN=CT*SC,N=MT*SC,W=MT*2,CS=W/N;
 // Sentieri a livelli (v19): 0 erba, 1-3 terreno che si scolorisce, 4 sentiero vero. NEEDP[L] = passaggi necessari nella finestra del livello L per salire a L+1; DUR[L] = secondi di durata del livello L prima di scendere a L-1.
 const PATH=3,ROADT=20,WMAX=28,MAXP=4,NEEDP=[1,2,4,8],DUR=[0,20,40,80,240],PCOST=[1,0.92,0.8,0.62,0.5],PSPD=[1,1.04,1.1,1.2,1.25];
 // v26: il giorno dura DAY secondi (era 100). TK riporta ai ritmi 'per giorno' di prima i fenomeni calcolati a ogni secondo (produzione, malattie, rischi, immigrazione).
@@ -252,6 +252,7 @@ function genTerrain(mode,sd,att){
   const R=mulberry((Math.imul(sd|0,2654435761)^Math.imul(att+1,40503))>>>0);
   const rr=(a,b)=>a+(b-a)*R(),ri=(a,b)=>Math.floor(rr(a,b+1)),cl=(v,a,b)=>Math.max(a,Math.min(b,v));
   const M=N/SC,CX=CT,CY=CT,K=M/64,K2=Math.round(K*K);
+  const seaSide=S.sea?Math.floor(R()*4):-1;   // v79: il lato del mare si sceglie prima, perché il fiume sfocia in mare
   for(const a of [tree,rock,ore,water])a.fill(0);
   // boschi e rocce di fondo: soglia e scala del rumore cambiano da mappa a mappa (valli più fitte o più aperte)
   const tth=rr(0.585,0.655),rth=rr(0.70,0.76),fq=rr(0.10,0.15);
@@ -279,7 +280,7 @@ function genTerrain(mode,sd,att){
     }
   }else{
     // fiume: una retta di direzione casuale che serpeggia (due onde + rumore), larghezza variabile, due guadi
-    const phi=R()*6.2832,dx=Math.cos(phi),dy=Math.sin(phi),nx=-dy,ny=dx,off=rr(12,21)*(R()<0.5?-1:1),bx=CX+nx*off,by=CY+ny*off;
+    const phi=seaSide>=0?seaSide*Math.PI/2+(R()-0.5)*1.0:R()*6.2832,dx=Math.cos(phi),dy=Math.sin(phi),nx=-dy,ny=dx,off=rr(12,21)*(R()<0.5?-1:1),bx=CX+nx*off,by=CY+ny*off;
     const A1=rr(2.5,6),A2=rr(0.8,2.2),f1=rr(0.7,1.4),f2=rr(2,3.4),p1=R()*6.2832,p2=R()*6.2832;
     const pts=[];
     for(let s=-80*K;s<=80*K;s+=0.25){
@@ -294,7 +295,7 @@ function genTerrain(mode,sd,att){
   // v77: il mare occupa un lato della mappa (lato, distanza e costa dal seme: baie e promontori) e vale 3 in `water`; fiume o lago restano
   S.sea=S.sea?1:0;S.seaSide=-1;
   if(S.sea){
-    const side=Math.floor(R()*4),c0=CT*rr(0.52,0.66),o1=R()*200,ph=R()*6.2832,ph2=R()*6.2832;S.seaSide=side;
+    const side=seaSide,c0=CT*rr(0.52,0.66),o1=R()*200,ph=R()*6.2832,ph2=R()*6.2832;S.seaSide=side;
     for(let y=0;y<N;y++)for(let x=0;x<N;x++){
       const xc=(x+0.5)/SC,yc=(y+0.5)/SC,u=side===0?xc-CX:side===1?yc-CY:side===2?CX-xc:CY-yc,p=side%2===0?yc:xc;
       const b=c0+5*(vnoise(p*0.045+o1,3)-0.5)*2+2.2*Math.sin(p*0.12+ph)+3.2*(vnoise(p*0.13+o1+40,8)-0.5)*2+1.4*Math.sin(p*0.31+ph2);
@@ -417,7 +418,8 @@ function computeEnv(nat){
   let mx=0,my=0;for(const i of ws){mx+=i%N;my+=(i/N)|0;}mx/=ws.length;my/=ws.length;
   let sxx=0,syy=0,sxy=0;for(const i of ws){const dx=(i%N)-mx,dy=((i/N)|0)-my;sxx+=dx*dx;syy+=dy*dy;sxy+=dx*dy;}
   const ang=0.5*Math.atan2(2*sxy,sxx-syy);let gx=Math.cos(ang),gy=Math.sin(ang);
-  if(hash(11,17)<0.5){gx=-gx;gy=-gy;}                // il seme decide da che parte scorre il fiume
+  if(S.sea&&S.seaSide>=0){const sx=[1,0,-1,0][S.seaSide],sy=[0,1,0,-1][S.seaSide];if(gx*sx+gy*sy<0){gx=-gx;gy=-gy;}}   // v79: con il mare il fiume scorre verso il mare
+  else if(hash(11,17)<0.5){gx=-gx;gy=-gy;}                // il seme decide da che parte scorre il fiume
   const dB=distField(i=>!water[i]),RW=14;
   let sum=0;
   for(const i of ws){
