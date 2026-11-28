@@ -1,5 +1,15 @@
 # Changelog
 
+## v88 – 2026-11-28
+Funzione nuova: il Granaio ha il granaiolo con la cariola; pescato e caccia restano nella capanna finché non li ritira lui.
+- **Granaio con 2 posti (granaiolo):** prima non aveva addetti. Il granaiolo va a piedi alle capanne del pescatore e del cacciatore, carica con la **cariola** fino a `BARROW_LOAD` = 6 pezzi per viaggio (a mano si porta 1, col carretto del magazziniere 3) e li porta al Granaio (`toHut` → `toStockG`).
+- **Capanne:** se c'è un Granaio con almeno un addetto, pescatore e cacciatore **non consegnano più** a case e magazzino: il prodotto resta nella capanna (massimo `HUTCAP` = 12) e, quando è piena, lavorano fermi e aiutano gli altri ("La capanna è piena: aspetta il granaiolo"). Senza un granaio con addetti vale la consegna diretta di prima.
+- **Vendita in Merceria:** il granaiolo, a turno con il ritiro, porta alla Merceria il cibo in **eccedenza** (pesce, carne, selvaggina: scorta oltre `max(8, fabbisogno delle case)`). La Merceria lo paga `MERC_PAY` = **0,75** del prezzo con cui lo rivende alla gente (`FOOD_P`: pesce 4, carne e selvaggina 8); il denaro va nella cassa della casa del granaiolo (pesce 3, carne e selvaggina 6 al pezzo).
+- **Acquisto della gente:** le famiglie con denari comprano pesce, carne o selvaggina dalla Merceria a prezzo pieno o, **solo l'eccedenza**, dal Granaio a `GRAN_PRICE` = **0,5** del prezzo di Merceria (pesce 2, carne e selvaggina 4); i denari vanno alla cassa del borgo. Anche la spesa "senza orto" al magazzino paga il cibo del Granaio; chi non ha denari e ha quasi finito il cibo (meno di 2) lo riceve comunque, per non lasciare nessuno senza.
+- La Merceria ha scaffali anche per `fish`, `meat`, `game` (le vecchie Merceria li creano al primo uso). Il resto delle merci (attrezzi, pane, stoffe) non cambia.
+- Test: nuovo `tests/granaiolo.js` (prezzi 0,75 e 0,5, ritiro con la cariola, capanna al massimo 12, vendita in Merceria, acquisti delle famiglie a pagamento).
+- Non verificato in un browser WebGL: non c'è un'animazione della cariola, il granaiolo cammina con il carico in mano come gli altri. Da fare: il prezzo di rivendita della Merceria vale solo per il cibo (gli altri prodotti restano gratuiti per le famiglie); altre capanne (macellaio, affumicatoio) non sono ancora ritirate dal granaiolo.
+
 ## v87.1 – 2026-11-28
 Ritocco alla regola degli editti (v87): anche il **blocco dell'immigrazione** è sempre disponibile fin dall'inizio, come il divieto di avanzamento delle case.
 - `e_noImmig` esce dall'albero: ora il ramo «Editti del Re» ha 4 progetti (obbligo di legna, incentivo nascite, istruzione obbligatoria, quarantena). Restano sempre disponibili (si emanano e si ritirano dal pannello 📜 senza comprare nulla) `noUpgrade` e `noImmig`.

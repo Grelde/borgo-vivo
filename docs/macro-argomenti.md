@@ -1,4 +1,4 @@
-# Borgo Vivo — macro argomenti (stato a v87)
+# Borgo Vivo — macro argomenti (stato a v88)
 
 Prototipo: city builder medievale, un solo file HTML (Three.js). Sorgente di riferimento: il repository GitHub `Grelde/borgo-vivo` (`src/`, build con `./build.sh`, gioco in `index.html`). I documenti `claude/borgo-vivo-v*.html` nel Progetto sono solo istantanee. La v21 unisce la linea "popolazione" (malattie, eredità, editti, scheda, legna per casa) con la linea "giardini puri" (35% di giardini che non diventano mai allevamento/bottega; solo le case col giardino della legna la raccolgono, le altre la comprano al mercato).
 
@@ -91,3 +91,5 @@ Da fare: dominio/indirizzo pubblico; controllare la scorta di legna (oggi ~50-12
 - v34: la grafica dei carichi (assi, tronco, carretto) non è stata provata in un browser WebGL: misure e posizioni sono stime.
 
 Selvaggina e scheda del Cibo (v84): `game` è un cibo a sé in `TYPES` (case: `goods.game`, `ate.game`), nel Granaio (`GRAN_KEYS`), nel commercio (`TRADE_FOOD`, `T_KEEP/T_TARGET`) e nelle uscite del cacciatore (`PROD.hunter='game'`, `b.out.game`, `JOBRES.hunter`, `ERRKEY.hunt`). Il macellaio consuma carne o selvaggina. La scheda «Cibo» (`popFood`, `FOOD_LIST` in `render.js`) si apre dal riquadro Cibo (`chipFood`) nel pannello `#pop` e mostra le scorte per tipo in Granai/Magazzini e case. Migrazione dei salvataggi in `importState`.
+
+Granaiolo e prezzi del cibo (v88): il Granaio ha 2 posti (`BT.granary.slots`); `startGranary` alterna il ritiro da capanne di pescatore/cacciatore (`toHut`, cariola `BARROW_LOAD`, capanna piena a `HUTCAP`) e la vendita dell'eccedenza (`foodSurplus`) alla Merceria (`MERC_PAY` 0,75 di `FOOD_P`). Le famiglie comprano dal Granaio a `GRAN_PRICE` 0,5 solo l'eccedenza (`foodBuy`, errand `fbuy`, spesa `food`). Test: `tests/granaiolo.js`.
