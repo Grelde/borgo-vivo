@@ -1,5 +1,12 @@
 # Changelog
 
+## v53 – 2026-11-28
+Funzione nuova: pergamena dei cittadini dopo il messo, e consigli solo su ciò che serve davvero.
+- **Pergamena dei cittadini:** a ogni titolo (da Casale a Città) il messo del Re parla per primo; chiusa la sua pergamena ne arriva una seconda della tua gente, con ciò che *loro* ritengono necessario. Al titolo di Casale dicono di non voler più andare con i secchi fino al fiume (o al lago, secondo la mappa) e di volere un pozzo per l'acqua fresca, e un mercato dove le famiglie barattino gli orti e le uova. Poi il pulsante «Apri i progetti» porta all'albero, prima di qualsiasi acquisto. Con i consigli spenti arriva solo la pergamena del Re, con il pulsante «Vedi i progetti».
+- **Consigli sfoltiti:** i cittadini non chiedono più tutto ciò che il titolo sblocca. Niente guardaboschi, magazzino, granaio, mulino, scuola, miniera nei consigli e nei suggerimenti a rotazione. Gli avvisi su fucina, ospizio e rotte compaiono solo se quel blueprint è già tuo.
+- Test: `tests/guida.js` ora 101 controlli (pergamene dei cittadini a ogni titolo, niente consigli su guardaboschi o magazzino).
+- Non verificato in un browser WebGL: aspetto della seconda pergamena e passaggio da una all'altra.
+
 ## v52 – 2026-11-28
 Funzione nuova: albero della conoscenza. Il pannello 🏛️ diventa l'albero dove si scelgono i blueprint degli edifici che il Re permette di sbloccare.
 - **Albero:** 7 rami (Vita e comunità; Legno, pietra e ferro; Campi e cibo; Tessile; Commercio e ospitalità; Difesa; Decoro e feste) per riga, 6 titoli del Re per colonna. Ogni blueprint è un blocco; le linee collegano un blueprint ai prerequisiti. Blocco verde = tuo, bordo dorato = acquistabile adesso, tratteggiato = bloccato dal titolo (🔒) o da un prerequisito (⛓ «Prima: …»). Linea verde piena = prerequisito già tuo.

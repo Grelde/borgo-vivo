@@ -309,7 +309,7 @@ body{--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--s
 <div id="app">
   <canvas id="cv" tabindex="0" aria-label="Mappa del borgo"></canvas>
   <div id="top">
-    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v52</small></div>
+    <div class="panel brand">Borgo Vivo <small id="ver" title="Versione del gioco">v53</small></div>
     <div class="panel stats">
       <span class="chip" title="Legno nei magazzini"><i class="sw w"></i>Legno <b id="rWood">0</b></span>
       <span class="chip" title="Pietra nei magazzini"><i class="sw s"></i>Pietra <b id="rStone">0</b></span>
@@ -4752,27 +4752,27 @@ function alertLine(inf){
 const ADVICE=[
   [(st)=>st.pop>=4&&st.hungry>=2,'Molte famiglie hanno fame. Servono ortaggi, uova, pesce o grano: i giardini delle case, una zona agricola o un pescatore aiutano.'],
   [(st)=>st.houses>=3&&st.fireNeed>0&&st.fire<st.fireNeed*0.4,'La legna da ardere scarseggia e le case al freddo si ammalano. Un giardino della legna, o il mercato, ne danno.'],
-  [(st)=>st.plague,'Epidemia! I malati restano a letto. Un ospizio con un erborista, un pozzo e legna in casa frenano il contagio.'],
-  [(st)=>st.sick>=3&&!(st.built.infirmary),'Ci sono troppi malati. '+'Un ospizio con un erborista li cura più in fretta.'],
+  [(st)=>st.plague,'Epidemia! I malati restano a letto. Un pozzo e legna in casa frenano il contagio'+(owns('infirmary')?', e un ospizio con un erborista cura i malati.':'.')],
+  [(st)=>owns('infirmary')&&st.sick>=3&&!(st.built.infirmary),'Ci sono troppi malati. Un ospizio con un erborista li cura più in fretta.'],
   [(st)=>st.unhappy>=3,'Alcuni sono scontenti. Apri il pannello della gente (clic su Abitanti, poi Felicità): dice cosa manca, tra cibo, casa, acqua e chiesa.'],
-  [(st)=>st.sites>0&&S.stock.wood<8,'Il legno è finito e i cantieri aspettano. Servono più taglialegna, oppure una zona forestale con un guardaboschi.'],
+  [(st)=>st.sites>0&&S.stock.wood<8,'Il legno è finito e i cantieri aspettano. Servono più taglialegna: costruiscine un altro vicino a un bosco.'],
   [(st)=>st.sites>0&&S.stock.stone<5,'La pietra è finita e i cantieri aspettano. Una seconda cava, vicino alle rocce, risolve.'],
   [(st)=>st.houses>0&&st.pop>=st.cap-1&&st.pop>=8,'Nelle case non c\'è più posto. Disegna altri lotti residenziali.'],
   [(st)=>st.pop>=8&&st.att.unemp>=3,'Troppi adulti senza lavoro. Servono nuove botteghe, cave o fattorie per dar loro un mestiere.'],
   [(st)=>st.pop>=8&&st.att.unemp===0&&st.slots-st.jobs>=5,'Molti posti di lavoro restano vuoti. Servono più famiglie: più case e più attrattiva (pozzo, mercato, chiesa).'],
-  [(st)=>{const m=Sim.maintStats();return m.worn>=2&&S.stock.tools<1&&!(st.built.smithy);},'Gli edifici si logorano. Senza attrezzi non si ripara nulla: serve un fabbro con la sua fucina.'],
-  [(st)=>{const m=Sim.maintStats();return m.worn>=2&&S.stock.tools<1;},'Gli edifici logori aspettano gli attrezzi: la fucina deve avere ferro (miniera) e lavoratori.'],
-  [(st)=>{const m=Sim.maintStats();return m.worn>=2&&S.stock.tools>=1;},'Gli edifici logori verranno riparati: servono muratori o gente libera che porti gli attrezzi.'],
-  [(st)=>S.stock.wood>=(st.capRes||80)*0.97&&st.pop>=8,'Il magazzino è pieno di legno. Un secondo magazzino, o botteghe che lo usino, evitano gli sprechi.'],
-  [(st)=>S.coins>=300&&Sim.S.routes.some(r=>!r.open)&&(st.built.mercery||0)>=1,'Abbiamo denari da parte: apri una nuova rotta commerciale (💰).']
+  [(st)=>{const m=Sim.maintStats();return owns('smithy')&&m.worn>=2&&S.stock.tools<1&&!(st.built.smithy);},'Gli edifici si logorano. Senza attrezzi non si ripara nulla: serve un fabbro con la sua fucina.'],
+  [(st)=>{const m=Sim.maintStats();return owns('smithy')&&m.worn>=2&&S.stock.tools<1;},'Gli edifici logori aspettano gli attrezzi: la fucina deve avere ferro e lavoratori.'],
+  [(st)=>{const m=Sim.maintStats();return owns('smithy')&&m.worn>=2&&S.stock.tools>=1;},'Gli edifici logori verranno riparati: servono muratori o gente libera che porti gli attrezzi.'],
+  [(st)=>S.stock.wood>=(st.capRes||80)*0.97&&st.pop>=8,'Il legno si accumula e rischia di andare sprecato: costruisci edifici che lo usino.'],
+  [(st)=>S.coins>=300&&Sim.S.routes.some(r=>!r.open)&&owns('mercery')&&(st.built.mercery||0)>=1,'Abbiamo denari da parte: apri una nuova rotta commerciale (💰).']
 ];
 // quando non c'è nulla di urgente e i passi del titolo sono fatti, a rotazione (cambia ogni due giorni)
 const TIPS=[
   ['Il lavoro non finisce: più famiglie arrivano se il paese è tranquillo e ha da mangiare.','Le strade nascono dai passi: costruisci i lavori vicino alle case e i sentieri si formeranno da soli.','Un taglialegna e una cava vicino alle case lavorano meglio, ma fanno rumore: la gente non ama abitarci accanto.'],
-  ['Un pozzo e un mercato tra le case rendono la zona più piacevole: le famiglie ci arrivano volentieri.','Un guardaboschi pianta nuovi alberi: il legno non è infinito.','Frate Anselmo dice che una chiesa non è lontana: gente che prega è gente che resta.'],
-  ['Ogni casa ha il suo giardino: qui nascono ortaggi, galline, legna da ardere. Lascia spazio tra i lotti.','Con una scuola, i bambini imparano a leggere e le case crescono più in fretta.','Un granaio conserva il cibo delle fattorie, un mulino lo trasforma in farina per il pane.'],
-  ['Le torri di guardia vicino ai magazzini fermano i predoni: ne servono almeno due vicine.','Una miniera di ferro, con una fucina, dà gli attrezzi: gli edifici logori ne hanno bisogno.','Un ospizio con un erborista salva molte vite d\'inverno.'],
-  ['La merceria porta le carovane: apri le rotte con le città vicine per vendere le eccedenze.','Una locanda attira viandanti, e qualcuno resta a vivere in paese.','Una caserma con soldati e tre torri attorno al centro: così si difende un borgo.'],
+  ['Un pozzo e un mercato tra le case rendono la zona più piacevole: le famiglie ci arrivano volentieri.','Taglia gli alberi vicino alle case ma non tutti: senza boschi il legno finisce.','Frate Anselmo dice che una chiesa non è lontana: gente che prega è gente che resta.'],
+  ['Ogni casa ha il suo giardino: qui nascono ortaggi, galline, legna da ardere. Lascia spazio tra i lotti.','Le fattorie nutrono il borgo: cresci insieme ai campi, non prima.','Gli abitanti nuovi arrivano dove c\'è da mangiare e un tetto sicuro.'],
+  ['Le torri di guardia vicino ai magazzini fermano i predoni: ne servono almeno due vicine.','Non lasciare le scorte lontane dalla torre: i predoni cercano ciò che è indifeso.','Legna da ardere in ogni casa: d\'inverno salva molte vite.'],
+  ['La merceria porta le carovane: apri le rotte con le città vicine per vendere le eccedenze.','Una locanda attira viandanti, e qualcuno resta a vivere in paese.','Soldati e torri attorno al centro: così si difende un borgo.'],
   ['La sala delle feste e la piazza rendono felici le case intorno: la gente festeggia nei giorni di mercato.','Telai e sartorie vestono la gente: chi è ben vestito è più contento.','Le rotte commerciali fruttano denari: spendili per i progetti del Re.'],
   ['Una città ricca attira l\'attenzione del Re. Torri e caserme intorno al centro non sono mai troppe.','Tieni scorte di legno, pietra e attrezzi: se il Re ci assedierà, serviranno per ricostruire.','Più case signorili, più rotte e più abitanti: il Re ci osserva e non è tranquillo.'],
   ['Il regno è tuo. Costruisci, abbellisci e fai crescere la tua capitale.','Le feste di paese, le piazze e le statue rendono memorabile una capitale.','I predoni arrivano ancora: tieni in ordine le difese.']
@@ -4831,22 +4831,39 @@ const MSGS={
   victory:{t:'Il Re sei tu',f:'Il popolo del borgo',btn:'Lunga vita al Re',x:['L\'esercito del Re è stato respinto e i suoi stendardi giacciono nel fango.','Il popolo ti acclama: il regno non ha più un sovrano, e la tua città è ora la CAPITALE DEL REGNO.','Dalla carovana di sette carri di Rocca Nera a questo trono: la storia di Borgo Vivo comincia adesso. Puoi continuare a costruire liberamente.']},
   defeat:{t:'Il borgo è stato saccheggiato',f:'Il messo del Re',btn:'Resistiamo',x:['L\'esercito del Re ha tenuto il centro del borgo e ha portato via parte delle scorte e dei denari.','Si è ritirato, ma tra due giorni tornerà. Rafforza le difese: più torri vicino al centro, più caserme.']}
 };
+const CITIZEN=[null,
+  {t:'Le parole della gente',x:[
+    'Il messo è ripartito e ora ti parliamo noi, la tua gente. Lo diciamo con rispetto: da quando siamo qui, ogni giorno ci tocca andare fino a {acqua} con i secchi, e l\'acqua arriva sporca, o ne arriva poca.',
+    'Un pozzo qui tra le case ci darebbe acqua fresca e pulita, e meno malanni. È la prima cosa che ti chiediamo.',
+    'Poi c\'è un\'altra cosa. Ora che siamo in tanti ognuno ha il suo orto, le sue uova, la sua legna, ma non possiamo scambiarli. Vorremmo un mercato dove le famiglie si incontrino a barattare.',
+    'Il Re ti ha dato i progetti: compra il pozzo e la zona di mercato, il resto può aspettare.']},
+  {t:'Le parole della gente',x:['Frate Anselmo dice che il villaggio ha bisogno di una chiesa, e noi con lui: la gente vuole un posto dove pregare e le case migliori non crescono senza.','E ci servono campi: più famiglie vogliono più cibo. Compra la chiesa e la zona agricola.']},
+  {t:'Le parole della gente',x:['Qualcuno ha visto fuochi nel bosco, di notte. Sono predoni: cercano le nostre scorte.','Ci serve almeno una torre di guardia vicino ai magazzini. Compra il progetto e costruiscila.']},
+  {t:'Le parole della gente',x:['Abbiamo respinto i predoni, ma torneranno. Una caserma ci darà dei soldati; una merceria e una locanda ci porteranno carovane e viandanti.','Sono queste le tre cose che ti chiediamo.']},
+  {t:'Le parole della gente',x:['Il commercio ci ha arricchiti. Ora vorremmo una piazza con la fontana e una sala per le feste: sono i luoghi dove un borgo si riconosce.','Ci serviranno denari: apri qualche rotta con le città vicine.']},
+  {t:'Le parole della gente',x:['Il Re ci teme. Non chiediamo nulla di nuovo: rinforziamo le torri e le caserme intorno al centro, e teniamo scorte per ricostruire.']}];
+function citizenMsg(r){
+  const c=CITIZEN[r];if(!c)return null;
+  const acq=S.mode==='river'?'al fiume':'al lago';
+  return {t:c.t,f:'I tuoi abitanti',x:c.x.map(p=>p.replace('{acqua}',acq)),proj:0,btn:'Continua',openProj:r<=5};
+}
 let envBusy=false,envPrev=1;
 function projNames(r){return Sim.PROJ.filter(p=>p.rank===r).map(p=>prName(p.id)).join(', ');}
 function openEnvoy(o){
   envBusy=true;envPrev=speed;setSpeed(0);
   $('evTitle').textContent=o.t;$('evFrom').textContent=o.f;
   $('evText').innerHTML=o.x.map(p=>`<p>${esc(p)}</p>`).join('');
-  $('evNew').innerHTML=o.proj?`<b>Nuovi progetti concessi:</b> ${esc(projNames(o.proj))}.`:'';
+  const lp=o.list||o.proj;$('evNew').innerHTML=lp?`<b>Nuovi progetti concessi:</b> ${esc(projNames(lp))}.`:'';
   const bt=$('evBtns');bt.innerHTML='';
   const mk=(txt,fn)=>{const b=document.createElement('button');b.className='btn';b.type='button';b.textContent=txt;b.addEventListener('click',fn);bt.appendChild(b);};
   if(o.proj)mk('Vedi i progetti',()=>{closeEnvoy();openProjects(true);});
-  mk(o.btn||'Continua',closeEnvoy);
+  if(o.openProj)mk('Apri i progetti',()=>{closeEnvoy();openProjects(true);});
+  mk(o.btn||'Continua',()=>{closeEnvoy();if(o.next)openEnvoy(o.next);});
   $('envoy').hidden=false;
 }
 function closeEnvoy(){$('envoy').hidden=true;envBusy=false;setSpeed(envPrev===0?1:envPrev);}
 function showMsg(m){
-  if(m.k==='rank'){openEnvoy({t:`Titolo di ${Sim.RANK_NAMES[m.r]}`,f:'Il messo del Re',x:RANK_MSG[m.r]||[],proj:m.r<=6?m.r:0,btn:'Continua'});return;}
+  if(m.k==='rank'){openEnvoy({t:`Titolo di ${Sim.RANK_NAMES[m.r]}`,f:'Il messo del Re',x:RANK_MSG[m.r]||[],proj:(adviceOn&&citizenMsg(m.r))?0:(m.r<=6?m.r:0),list:m.r<=6?m.r:0,next:adviceOn?citizenMsg(m.r):null,btn:'Continua'});return;}
   const o=MSGS[m.k];if(o)openEnvoy(o);
 }
 function pollEnvoy(){

@@ -15,7 +15,7 @@ global.ResizeObserver=class{observe(){}};
 global.setTimeout=setTimeout;
 process.on('uncaughtException',e=>{console.log('ERRORE',e.stack);process.exit(1)});
 const fs=require('fs');
-eval(fs.readFileSync(__dirname+'/../dist/all.js','utf8').replace('requestAnimationFrame(frame);\n})();','global.__g={guideLine,adviceLine,alertLine,setAdvice,ADVICE,TIPS,GUIDE,SEASON_TIP,on:()=>adviceOn};global.__begin=begin;requestAnimationFrame(frame);\n})();')+';global.Sim=Sim;');
+eval(fs.readFileSync(__dirname+'/../dist/all.js','utf8').replace('requestAnimationFrame(frame);\n})();','global.__g={CITIZEN,citizenMsg,guideLine,adviceLine,alertLine,setAdvice,ADVICE,TIPS,GUIDE,SEASON_TIP,on:()=>adviceOn};global.__begin=begin;requestAnimationFrame(frame);\n})();')+';global.Sim=Sim;');
 
 let fails=0,n=0;const ok=(c,m)=>{n++;if(!c){fails++;console.log('FALLITO:',m);}};
 const G=global.__g,S=Sim.S;
@@ -48,4 +48,14 @@ ok(G.guideLine({...base,hungry:3},Sim.regnoInfo(st0())).t==='','nessun consiglio
 S.war.phase='warn';S.war.at=S.t+Sim.DAY*2;
 const al=G.guideLine(base,Sim.regnoInfo(st0()));ok(al.war&&/guerra/.test(al.t),'la guerra si legge anche con i consigli spenti');
 S.war.phase='none';G.setAdvice(true);ok(G.on()===true,'si riaccendono');
+console.log('4) i cittadini chiedono solo ciò che reputano necessario');
+const forbid=/guardaboschi|magazzino\b|granaio|mulino|scuola|fucina|miniera|ospizio/i;
+for(let r=1;r<=6;r++){const c=G.citizenMsg(r);ok(c&&c.x.length>=1&&c.f==='I tuoi abitanti','pergamena dei cittadini al titolo '+r);ok(!forbid.test(c.x.join(' ')),'titolo '+r+': i cittadini non chiedono edifici non necessari');}
+const c1=G.citizenMsg(1).x.join(' ');
+ok(/acqua fresca/.test(c1)&&/pozzo/.test(c1)&&/mercato/.test(c1)&&/barattare|scambiar/.test(c1),'titolo 1: acqua fresca, pozzo e mercato');
+ok(/fiume/.test(c1),'in partita sul fiume si parla del fiume');
+ok(G.citizenMsg(7)===null,'nessuna pergamena dei cittadini a titolo 7');
+S.rank=1;S.war.phase='none';S.proj={};for(const id of ['d1','wood','quarry','select','road','well','d3','store','d4','forester'])S.proj[id]=true;
+for(const d of [0,2,4,6,8,10,12,14]){S.day=d;S.season=(d/2)%4|0;const l=G.adviceLine({...base,pop:99,dc:[0,99,99,99,99,99],houses:9,built:{wood:1,quarry:1,well:1}},Sim.regnoInfo(st0()));ok(!/guardaboschi|magazzin/i.test(l.t),'titolo 1, giorno '+d+': nessun consiglio su guardaboschi o magazzino: '+l.t);}
+ok(!/guardaboschi|magazzin/i.test(G.adviceLine({...base,sites:2},Sim.regnoInfo(st0())).t),'legno finito: niente guardaboschi');
 console.log(fails?`${fails} FALLITI su ${n}`:`GUIDA_OK ${n} controlli`);process.exit(fails?1:0);
