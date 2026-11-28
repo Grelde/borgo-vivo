@@ -1420,6 +1420,7 @@ function treeTarget(cell,maxd,deep){
 const NOISY={wood:1,quarry:1,mine:1};
 function quietSpot(x,y,r){for(const b of buildings.values())if(NOISY[b.type]&&Math.hypot(b.x-x,b.y-y)<=r)return false;return true;}
 function huntOK(x,y){return countNear(tree,x,y,15)>=16&&quietSpot(x,y,36);}
+function woodOK(x,y){return countNear(tree,x,y,15)>=8;}
 function fishOK(x,y){return countNear(water,x,y,18,1)>=27;}
 function startErrand(v,h){
   let kind=null,tgt=-1,tocc=0,src=0,mg=null;
@@ -2178,7 +2179,7 @@ function trySpawnHouse(){
       if(rs[cd.dr]!==rstamp||!doorsAfterFlood(bx0,by0,bx1,by1,marks))continue;
       // v23: circa il 12% delle case (una ogni 8) ha il giardino della legna: la sua coltura è la legna da ardere, al posto di ortaggi, uova o allevamento. La domanda di legna è piccola (1 al giorno per casa, solo d'inverno): con più giardini della legna non troverebbero chi baratta il cibo.
       // Serve una zona mercato (la famiglia baratta la legna con il cibo) e le prime due case coltivano cibo.
-      const wood=mk>0&&nh>=2&&nw<Math.ceil((nh+1)*0.12);
+      const wood=mk>0&&nh>=2&&nw<Math.ceil((nh+1)*0.12)&&woodOK(cd.x,cd.y); // v81: la legna da ardere si raccoglie solo vicino a un bosco
       let crop=wood?'wood':veg<eggs?'veg':eggs<veg?'eggs':(hash(cd.x,cd.y)<.5?'veg':'eggs');
       // attività secondaria (indipendente dal giardino): pesca vicino all'acqua, caccia vicino a un bosco tranquillo; altrimenti nessuna
       const r=hash(cd.x*5,cd.y*3);let side='none';

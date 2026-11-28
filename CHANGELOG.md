@@ -1,5 +1,12 @@
 # Changelog
 
+## v81 – 2026-11-28
+Regola nuova: il giardino della legna da ardere nasce solo vicino a un bosco.
+- Una casa può diventare raccoglitrice di legna (`crop==='wood'`) solo se ha almeno 8 alberi entro 15 celle (`woodOK`); prima la scelta non guardava il bosco e certe famiglie dovevano andare lontano. Il resto non cambia: serve la zona mercato, circa una casa su otto, non è obbligatorio.
+- Pesca e caccia rispettavano già la regola (`fishOK`: acqua vicina; `huntOK`: bosco folto e tranquillo). Le bacche non esistono ancora nella simulazione (c'è solo la grafica del giardino, v73.2): vanno legate ai cespugli quando arriveranno.
+- Le case già esistenti o salvate non cambiano.
+- Test: nuovo `tests/legna-bosco.js` (nessun giardino della legna lontano dal bosco su tre mappe, circa 5 minuti; fallisce se si toglie la regola).
+
 ## v80 – 2026-11-28
 Cambio di regole: editto delle tasse, bilancio della cassa, conseguenze degli stipendi arretrati.
 - **Editto delle tasse** (registro dei commerci, cliccando sulla cassa): aliquota **Bassa** (0, 1, 2, 5, 10 d'argento a settimana per livello della casa, abitanti +2 di felicità), **Normale** (1, 3, 5, 10, 20, copre circa 3/4 degli stipendi) o **Alta** (2, 6, 10, 20, 40, abitanti −6 di felicità e più famiglie rinunciano a migliorare la casa). L'effetto sulla felicità c'è solo se un ufficio delle tasse è aperto. Salvato nella partita (`S.taxRate`).
