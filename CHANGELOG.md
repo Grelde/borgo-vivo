@@ -1,5 +1,18 @@
 # Changelog
 
+## v82 – 2026-11-28
+Funzione nuova: concia e cuoio (conceria, calzolaio, pelli, cuoio, scarpe). Punto 6 delle filiere.
+- **Pelli:** il cacciatore (1 per ciclo) e il macellaio (1 per ciclo) ora danno anche pelli, che vanno nelle scorte (massimo 30).
+- **Conceria** (sulla riva, 2 posti; vasche di mattoni e calce nel costo): 2 pelli + 1 calce + 1 legno → 2 cuoio ogni 11 s. Usa la calce del calcinaio senza toccare quella dei cantieri e lavora solo con almeno 20 legni. La concia **puzza**: abbassa l'attrattiva delle case entro 24 celle (come cava e miniera).
+- **Bottega del calzolaio:** 1 cuoio → 2 scarpe ogni 9 s (scorta massima 30).
+- **Scarpe:** si consumano (1 ogni 10 abitanti al giorno). Con scarpe per almeno il 40% degli abitanti il paese guadagna **fino a +3 di benessere** (proporzionale alla copertura).
+- **Cuoio e scarpe nel commercio:** Valmora e Campomaggio comprano cuoio e scarpe, Porto Fiorito cuoio e pelli, Rocca Alta scarpe. Pelli, cuoio e scarpe stanno nel Magazzino e nel centro.
+- **Livelli nell'albero:** il ramo Tessile si chiama ora **«Tessile e cuoio»**: conceria (titolo 5) → calzolaio (titolo 6, dopo la conceria). Le pelli vengono dal cacciatore (Campi) e la calce dal calcinaio (Legno): sono dipendenze di produzione e di costo di cantiere, perché i prerequisiti restano nello stesso ramo. Il cuoio è la materia prima per la filiera delle armi (impugnature, foderi, faretre).
+- Paghe: conceria e calzolaio 2.
+- Test: nuovo `tests/cuoio.js`; `tests/storage.js` aggiornato.
+- Da fare: calzolaio/sellaio per selle e finimenti (con la filiera del carradore), imbottiture e foderi per le armi.
+- Non verificato in un browser WebGL: i due modelli 3D, i pannelli, l'effetto del benessere.
+
 ## v81 – 2026-11-28
 Regola nuova: il giardino della legna da ardere nasce solo vicino a un bosco.
 - Una casa può diventare raccoglitrice di legna (`crop==='wood'`) solo se ha almeno 8 alberi entro 15 celle (`woodOK`); prima la scelta non guardava il bosco e certe famiglie dovevano andare lontano. Il resto non cambia: serve la zona mercato, circa una casa su otto, non è obbligatorio.

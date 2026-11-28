@@ -910,6 +910,20 @@ const BUILD={
     chim(g,.4,2.2,-1.0,.9);cyl(g,.45,.45,.8,10,MAT.timber,2.2,.4,.8);cyl(g,.45,.45,.8,10,MAT.timber,2.2,.4,-.7,0,0);cyl(g,.4,.4,.7,10,MAT.timber,1.4,.35,1.4);
     for(const y of[.2,.6])cyl(g,.47,.47,.04,10,MAT.iron,2.2,y,.8);
     return g;},
+  tannery(b){const g=new THREE.Group();
+    bx(g,1.8,1.0,1.5,MAT.logD,-1.2,.5,-.9);for(const y of[.2,.5,.8])bx(g,1.86,.05,1.56,MAT.timber,-1.2,y,-.9);
+    gab(g,2.0,1.6,.65,MAT.thatch,1.0,-1.2,-.9);bx(g,.5,.8,.06,MAT.door,-1.2,.4,-.12);
+    // vasche di concia rivestite di mattoni, telai con le pelli tese e mucchio di corteccia
+    for(const [x,z] of[[.6,.6],[1.8,.6],[.6,1.6],[1.8,1.6]]){bx(g,1.0,.2,.9,MAT.brick,x,.1,z);bx(g,.86,.05,.76,MAT.soil,x,.22,z);}
+    for(const x of[1.2,1.8,2.4]){bx(g,.06,1.1,.06,MAT.timber,x,.55,-.5);bx(g,.5,.7,.04,MAT.log,x,.8,-.5);}
+    sph(g,.4,MAT.fw,2.5,.18,1.1,1.3,.5,1);
+    return g;},
+  cobbler(b){const g=new THREE.Group();
+    bx(g,2.0,1.0,1.6,MAT.plaster,-.5,.5,-.8);bx(g,2.1,.1,1.7,MAT.timber,-.5,1.0,-.8);gab(g,2.3,1.6,.65,MAT.tile,1.1,-.5,-.8);bx(g,.5,.8,.06,MAT.door,-.9,.4,.02);
+    // banco con scarpe e rotoli di cuoio, insegna con lo stivale
+    bx(g,1.4,.5,.6,MAT.log,1.5,.25,.9);for(const x of[1.1,1.5,1.9])bx(g,.3,.15,.14,MAT.door,x,.58,.9);
+    cyl(g,.18,.18,.5,8,MAT.fw,2.6,.25,.8,0,Math.PI/2);bx(g,.06,1.3,.06,MAT.timber,.6,.65,1.1);bx(g,.4,.3,.05,MAT.fw,.6,1.3,1.1);
+    return g;},
   winery(b){const g=new THREE.Group();
     bx(g,2.4,1.2,1.9,MAT.stone,-.6,.6,-.9);bx(g,2.5,.1,2.0,MAT.timber,-.6,1.2,-.9);gab(g,2.7,1.8,.75,MAT.tile,1.1,-.6,-.9);bx(g,.6,.9,.06,MAT.door,-.8,.45,.07);
     // filari di vite davanti e botti all'ingresso
@@ -1263,6 +1277,8 @@ const TOOLS=[
   {id:'smokehouse',label:'Affumicatoio',key:'',hint:"Con il pesce in eccedenza, sale e legna in abbondanza fa 4 conserve da 2 pesci. Il fumo richiede un comignolo di mattoni."},
   {id:'dairy',label:'Caseificio',key:'',hint:"Serve un ovile con i pastori vicino: il latte e il sale diventano formaggio. Il formaggio sfama le case come le conserve."},
   {id:'brewery',label:'Birrificio',key:'',hint:"Con il grano in eccedenza (oltre la riserva del mulino) e legna fa 3 birre da 2 grani. La taverna serve un boccale al giorno e rende più contento il vicinato."},
+  {id:'tannery',label:'Conceria',key:'',hint:"Sulla riva di un lago o di un fiume (la concia puzza: abbassa l'attrattiva attorno). 2 pelli di cacciatore e macellaio + 1 calce + 1 legno → 2 cuoio. Vasche di mattoni e calce."},
+  {id:'cobbler',label:'Bottega del calzolaio',key:'',hint:"Dal cuoio della conceria fa 2 scarpe per cuoio. Le scarpe si consumano (1 ogni 10 abitanti al giorno); con scarpe per almeno il 40% degli abitanti tutto il paese è più contento (fino a +3)."},
   {id:'winery',label:'Cantina',key:'',hint:"Spremi l'uva delle fattorie con la coltura vigna: 3 uve diventano 2 vini. Il vino rende la taverna ancora più allegra e si vende bene in città. Volta di mattoni e calce."},
   {id:'dyehouse',label:'Tintoria',key:'',hint:'Sulla riva di un lago o di un fiume. Tinge il tessuto del telaio con le piante tintorie delle fattorie (1 pezza per pianta ogni 10 s). Il sarto ricava 3 abiti da una pezza tinta, invece di 2.'},
   {id:'tailor',label:'Sartoria',key:'',hint:'Cuce abiti (2 per tessuto ogni 10 s) con il tessuto del telaio e li porta alle case dal livello 3: +3 di felicità. Serve un telaio.'},
@@ -1296,7 +1312,7 @@ const CATS=[
   {id:'tools',label:'Strumenti',ids:['select','pan','demolish']},
   {id:'zone',label:'Zone e strade',ids:['d1','d2','d3','d4','d5','d6','undistrict','road']},
   {id:'prod',label:'Produzione',ids:['wood','quarry','mine','forester','granary','mill']},
-  {id:'shop',label:'Botteghe',ids:['carpenter','mason','claypit','brickworks','limekiln','saltworks','butcher','smokehouse','dairy','brewery','winery','smithy','bakery','sheepfold','charcoal','smelter','retting','ropewalk','dyehouse','weaver','tailor','fisher','hunter','mercery']},
+  {id:'shop',label:'Botteghe',ids:['carpenter','mason','claypit','brickworks','limekiln','saltworks','butcher','smokehouse','dairy','brewery','winery','tannery','cobbler','smithy','bakery','sheepfold','charcoal','smelter','retting','ropewalk','dyehouse','weaver','tailor','fisher','hunter','mercery']},
   {id:'serv',label:'Servizi',ids:['store','well','dowse','school','infirmary','surgeon','church','inn','tavern','hall','taxoffice']},
   {id:'deco',label:'Decorazioni',ids:['plaza','flowers','statue']},
   {id:'def',label:'Difesa',ids:['watchtower','barracks']}];
@@ -1387,6 +1403,8 @@ function refreshSel(){
       smokehouse:`Un affumicatore fa 4 conserve con 2 pesci, 1 sale e 1 legno ogni ${spec.t} s, con almeno ${Sim.FISH_KEEP+2} pesci nei Granai e 20 legni. Pesce ${S.stock.fish|0} · sale ${S.stock.salt|0} · conserve ${S.stock.cured|0}/${Sim.CURED_CAP}.`,
       dairy:`Un casaro fa 2 formaggi con 2 latte e 1 sale ogni ${spec.t} s. Il latte lo danno gli ovili vicini (entro ${Sim.BAND} celle). Sale ${S.stock.salt|0} · formaggi ${S.stock.cheese|0}/${Sim.CHEESE_CAP}.`,
       brewery:`Un birraio fa 3 birre con 2 grani e 1 legno ogni ${spec.t} s, con almeno ${Sim.GRAIN_KEEP+2} grani nei Granai e 20 legni. Grano ${S.stock.grain|0} · birra ${S.stock.beer|0}/${Sim.BEER_CAP}. La taverna ne serve una al giorno.`,
+      tannery:`Un conciatore ricava 2 cuoio da 2 pelli, 1 calce e 1 legno ogni ${spec.t} s (con almeno 20 legni). Pelli ${S.stock.hides|0} · calce ${S.stock.lime|0} · cuoio ${S.stock.leather|0}/${Sim.LEATHER_CAP}. Le pelli le danno il cacciatore e il macellaio.`,
+      cobbler:`Un calzolaio fa 2 scarpe con 1 cuoio ogni ${spec.t} s. Cuoio ${S.stock.leather|0} · scarpe ${S.stock.shoes|0}/${Sim.SHOE_CAP}. Copertura del paese: ${Math.round(Sim.shoeCover()*100)}% (benessere fino a +3 a copertura piena).`,
       winery:`Un vinaio spreme 3 uve in 2 vini ogni ${spec.t} s. Uva in attesa: ${(b.inp||{}).vine|0} (max ${Sim.RET_CAP}) · vino ${S.stock.wine|0}/${Sim.WINE_CAP}. Scegli la coltura vigna in una fattoria; la taverna serve il vino prima della birra.`,
       dyehouse:`Un tintore tinge 1 pezza di tessuto con 1 pianta tintoria ogni ${spec.t} s. Piante in attesa: ${(b.inp||{}).dye|0} (max ${Sim.RET_CAP}) · pezze tinte pronte: ${b.out.dyed|0}. Il tessuto lo prende dal telaio vicino; il sarto con una pezza tinta cuce 3 abiti invece di 2. Le piante le portano i contadini delle fattorie con la coltura tintorie.`,
       ropewalk:`Un cordaio trasforma 1 fibra di canapa in 3 corde ogni ${spec.t} s. Corde nel magazzino: ${S.stock.rope|0}. Le corde si vendono ai mercanti e rinforzano le riparazioni (+50%).`,
@@ -1466,7 +1484,7 @@ function refreshSel(){
 }
 function selB(){return sel&&Sim.buildings().get(sel);}
 // v36: pannello di accettazione e massimali di Magazzino e Granaio (le righe si creano una volta per edificio, poi si aggiornano solo i numeri)
-const STKNAME={weapons:'Armi',wood:'Legno',stone:'Pietra',iron:'Ferro',planks:'Assi',tools:'Attrezzi',cloth:'Tessuto',clothes:'Abiti',rope:'Corde',charcoal:'Carbone',bars:'Barre di ferro',clay:'Argilla',bricks:'Mattoni',lime:'Calce',salt:'Sale',cured:'Conserve',cheese:'Formaggio',beer:'Birra',wine:'Vino',grain:'Grano',flour:'Farina',bread:'Pane',fish:'Pesce',meat:'Carne'};
+const STKNAME={weapons:'Armi',wood:'Legno',stone:'Pietra',iron:'Ferro',planks:'Assi',tools:'Attrezzi',cloth:'Tessuto',clothes:'Abiti',rope:'Corde',charcoal:'Carbone',bars:'Barre di ferro',clay:'Argilla',bricks:'Mattoni',lime:'Calce',salt:'Sale',hides:'Pelli',leather:'Cuoio',shoes:'Scarpe',cured:'Conserve',cheese:'Formaggio',beer:'Birra',wine:'Vino',grain:'Grano',flour:'Farina',bread:'Pane',fish:'Pesce',meat:'Carne'};
 let stkCfgFor=null;
 function updStoreCfg(b){
   const box=$('selStore');
