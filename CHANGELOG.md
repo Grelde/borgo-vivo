@@ -1,5 +1,12 @@
 # Changelog
 
+## v86.1 – 2026-11-28
+Ritocco ai giardini: niente più giardini a striscia larga una cella.
+- Il giardino cresce preferendo le celle che si appoggiano a quelle già fatte e che chiudono blocchi 2x2; alla fine almeno il 75% delle celle deve far parte di un blocco 2x2, altrimenti si riprova (fino a 5 volte con semi diversi). Prima circa 3 giardini su 4 nelle prove avevano zone a striscia.
+- Se non c'è spazio per un giardino abbastanza largo la casa resta con l'orto piccolo: in zone molto fitte succede più spesso (in prova circa metà delle case al livello 2).
+- Fusione delle case: bastano anche lotti separati da una sola cella libera (annessa al giardino unico).
+- `tests/giardini-lavori.js`: controllo anti-strisce. Note: `tests/save-render.js` fallisce già senza queste modifiche (`renderPets`, DOM finto).
+
 ## v86 – 2026-11-28
 Ritocco dell'interfaccia: nel pannello di Magazzino e Granaio l'elenco «Cosa accettare» è diviso in gruppi che si comprimono ed espandono con un clic (Materiali da costruzione, Metalli e armi, Tessuti, pelli e corde, Cibo; le merci nuove non classificate finiscono in «Altro»). Accanto al titolo di ogni gruppo si vede quanto ne contiene l'edificio; lo stato aperto/chiuso resta tra una selezione e l'altra. Nuove merci: basta aggiungerle a `STK_GROUPS` in `render.js`. Test: `tests/magazzino-gruppi.js` (DOM vero in Chromium). Non verificato nel gioco completo in un browser WebGL.
 

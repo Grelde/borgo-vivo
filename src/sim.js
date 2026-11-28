@@ -2019,8 +2019,20 @@ function expandGarden(b){
 }
 // v43: il giardino cresce dalla casa cella per cella, come toft e croft medievali: la casa sta sul fronte (verso il sentiero, dove si apre la porta), l'orto/giardino
 // si allunga DIETRO la casa con fronte stretto (poco oltre la larghezza della casa), il cortile davanti è piccolo. Si appoggia ai sentieri vicini e non tocca altri lotti.
+// v83.1: un giardino è accettabile se quasi tutte le sue celle fanno parte di un blocco 2x2 di giardino (niente strisce sottili)
+function gardenThick(g){
+  const set=new Set(g);let ok=0;
+  for(const c of g){const x=c%N,y=(c/N)|0;let in2=false;
+    for(const[sx,sy]of[[0,0],[-1,0],[0,-1],[-1,-1]]){const x0=x+sx,y0=y+sy;if(x0<0||y0<0||x0+1>=N||y0+1>=N)continue;if(set.has(y0*N+x0)&&set.has(y0*N+x0+1)&&set.has((y0+1)*N+x0)&&set.has((y0+1)*N+x0+1)){in2=true;break;}}
+    if(in2)ok++;}
+  return ok>=g.length*0.75;
+}
 function growGarden(hcs,doorCell,hx,hy,hw,hh,target,seed,pp,start,minLen,selfId){
-  const g=start?start.slice():[],lot=new Set(hcs.concat(g)),cx=hx+(hw-1)/2,cy=hy+(hh-1)/2;
+  for(let tr=0;tr<5;tr++){const r=growGarden1(hcs,doorCell,hx,hy,hw,hh,target,seed+tr*977,pp,start,minLen,selfId);if(r)return r;}
+  return null;
+}
+function growGarden1(hcs,doorCell,hx,hy,hw,hh,target,seed,pp,start,minLen,selfId){
+  let growSet=null;const g=start?start.slice():[],lot=new Set(hcs.concat(g)),cx=hx+(hw-1)/2,cy=hy+(hh-1)/2;
   const dxr=doorCell%N-cx,dyr=((doorCell/N)|0)-cy,horiz=Math.abs(dxr)>Math.abs(dyr);
   const ux=horiz?Math.sign(dxr):0,uy=horiz?0:Math.sign(dyr);        // verso il fronte (la porta)
   const hd=(horiz?hw:hh)/2,hwid=(horiz?hh:hw)/2;                  // mezza profondità e mezza larghezza della casa rispetto al fronte
@@ -2033,13 +2045,16 @@ function growGarden(hcs,doorCell,hx,hy,hw,hh,target,seed,pp,start,minLen,selfId)
       const i=nbr(c,k);if(i<0||seen.has(i))continue;seen.add(i);if(!okc(i))continue;
       const x=i%N,y=(i/N)|0,rx=x-cx,ry=y-cy,f=rx*ux+ry*uy,a=Math.abs(horiz?ry:rx);
       let nb=0;for(let m=0;m<4;m++){const j=nbr(i,m);if(j>=0&&lot.has(j))nb++;}
-      const sc=hash(i,seed)*1.0+0.9*Math.max(0,a-(hwid+0.5))+(f>hd?2.6*(f-hd):0)+0.25*Math.max(0,-f-hd)+0.3*Math.hypot(rx,ry)-(nb-1)*0.55-(rect(pp,x-2,y-2,5,5)>0?1.2:0);
+      // v83.1: niente strisce larghe una cella: si preferiscono le celle che si appoggiano al giardino già fatto e quelle che chiudono un blocco 2x2
+      const gset=growSet||(growSet=new Set(g));let gn=0;for(let m=0;m<4;m++){const j=nbr(i,m);if(j>=0&&gset.has(j))gn++;}
+      let sq=0;for(const[sx,sy]of[[1,1],[1,-1],[-1,1],[-1,-1]]){const xa=x+sx,ya=y+sy;if(xa<0||ya<0||xa>=N||ya>=N)continue;if(gset.has(y*N+xa)&&gset.has(ya*N+x)&&gset.has(ya*N+xa))sq=1;}
+      const sc=hash(i,seed)*1.0-0.7*Math.min(2,gn)-(sq?1.6:0)+0.9*Math.max(0,a-(hwid+0.5))+(f>hd?2.6*(f-hd):0)+0.25*Math.max(0,-f-hd)+0.3*Math.hypot(rx,ry)-(nb-1)*0.55-(rect(pp,x-2,y-2,5,5)>0?1.2:0);
       if(sc<bs){bs=sc;best=i;}
     }
     if(best<0)break;
-    lot.add(best);g.push(best);
+    lot.add(best);g.push(best);growSet.add(best);
   }
-  return g.length>=(minLen||9)?g:null;
+  return g.length>=(minLen||9)&&gardenThick(g)?g:null;
 }
 // v44: le celle di passaggio tra due lotti (a contatto con l'altro lotto) che per un anno intero nessuno ha calpestato diventano giardino
 function claimLane(b){
@@ -2133,7 +2148,13 @@ function mergeTick(){
       if(B===A||B.level>A.level)continue;
       const cb=B.cells.concat(B.ext||[]);let touch=false;
       for(const i of cb){const x=i%N,y=(i/N)|0;for(let k=0;k<4&&!touch;k++){const nx=x+GX[k],ny=y+GY[k];if(nx>=0&&ny>=0&&nx<N&&ny<N&&lotA.has(ny*N+nx))touch=true;}if(touch)break;}
-      if(!touch)continue;
+      // v83.1: bastano anche lotti separati da una sola cella libera (la corsia di passaggio): quella cella viene annessa al giardino unico
+      const bridge=[];
+      if(!touch){const lotB=new Set(cb);
+        for(const i of cb)for(let k=0;k<4;k++){const x=i%N+GX[k],y=((i/N)|0)+GY[k];if(x<0||y<0||x>=N||y>=N)continue;const j=y*N+x;
+          if(lotA.has(j)||lotB.has(j)||occ[j]||dist[j]!==1||road[j]||plev[j]>=PATH||bridge.includes(j))continue;
+          for(let m=0;m<4;m++){const x2=x+GX[m],y2=y+GY[m];if(x2>=0&&y2>=0&&x2<N&&y2<N&&lotA.has(y2*N+x2)){bridge.push(j);break;}}}
+        if(!bridge.length)continue;}
       const mem=B.members.map(id=>vmap.get(id)).filter(Boolean);
       let tgt=null;
       if(mem.length){
@@ -2147,7 +2168,7 @@ function mergeTick(){
       }
       for(const v of mem)transfer(v,B,tgt.h,'La sua casa è stata accorpata a quella accanto: si trasferisce.');
       removeBuilding(B.id,true);
-      A.ext=(A.ext||[]).concat(cb.filter(i=>!occ[i]&&dist[i]===1));
+      A.ext=(A.ext||[]).concat(cb.filter(i=>!occ[i]&&dist[i]===1),bridge.filter(i=>!occ[i]));
       for(const i of A.ext)occ[i]=A.id;
       A.merged=(A.merged|0)+1;occStamp++;stCache=null;acc.attr=99;
       hooks.regarden(A);hooks.ground();

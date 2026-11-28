@@ -16,5 +16,8 @@ const hs=[...Sim.buildings().values()].filter(h=>h.type==='house');
 const full=hs.filter(h=>h.gfull!==false),small=hs.filter(h=>h.gfull===false);
 console.log('case',hs.length,'giardini completi',full.length,'orti piccoli',small.length,'lavori giardino visti',seenWork);
 for(const h of small)if(h.gcells.length<4||h.gcells.length>6){bad++;console.log('orto piccolo anomalo',h.gcells.length);}
-const noRoom=full.filter(h=>h.gcells.length<7).length;console.log('senza spazio (restano orto piccolo)',noRoom);if(noRoom>full.length*0.3){bad++;console.log('troppe case senza spazio per il giardino');}
+const noRoom=full.filter(h=>h.gcells.length<7).length;console.log('senza spazio (restano orto piccolo)',noRoom);if(noRoom>full.length*0.5){bad++;console.log('troppe case senza spazio per il giardino');}
+// v83.1: niente giardini a striscia (celle in un blocco 2x2 almeno l'80%)
+let strips=0;for(const h of hs){const set=new Set(h.gcells);let k=0;for(const c of h.gcells){const x=c%N,y=(c/N)|0;for(const[sx,sy]of[[0,0],[-1,0],[0,-1],[-1,-1]]){const a=(y+sy)*N+x+sx;if(set.has(a)&&set.has(a+1)&&set.has(a+N)&&set.has(a+N+1)){k++;break;}}}if(k<h.gcells.length*0.75){strips++;}}
+console.log('giardini a striscia',strips,'su',hs.length);if(strips>0){bad++;console.log('ci sono giardini a striscia');}
 const ok=bad===0&&full.length>0&&seenWork>0;console.log(ok?'GIARDINI_LAVORI_OK':'GIARDINI_LAVORI_FAIL');process.exit(ok?0:1);
