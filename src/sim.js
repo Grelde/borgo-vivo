@@ -124,7 +124,7 @@ const guests=[];const buildings=new Map();let villagers=[];const vmap=new Map();
 const acc={a1:0,a05:0,farm:0,attr:99};
 const told={};
 function tell(k,msg){if(told[k])return;told[k]=1;hooks.toast(msg);}
-const JOBSTATES=new Set(['toCenterT','toWhT','toTree','toRock','chop','mine','toWork','wait','toField','till','toHomeF','toGranary','toPlant','plant','toMill','mill','toShop','shop','toGraze','graze','toSupply','toInnSup','toTax','tax','toTaxDep']);
+const JOBSTATES=new Set(['toCenterT','toWhT','toTree','toRock','chop','mine','toWork','wait','toField','till','toHomeF','toGranary','toPlant','plant','toMill','mill','toShop','toShore','shop','toGraze','graze','toSupply','toInnSup','toTax','tax','toTaxDep']);
 const ERRKEY={wool:'wool',cloth:'cloth',iron:'iron',flour:'flour',wood:'firewood',hunt:'meat',fish:'fish'};
 // fabbisogno di legna da ardere per casa: scorta minima per stare tranquilli (più alta d'autunno e d'inverno)
 const fuelNeed=()=>S.season>=2?4:2;
@@ -971,6 +971,15 @@ function startShop(v,b){
     helpMode(v);return;
   }
   b.why='';
+  // v66.1: il pescatore pesca sulla riva vicino alla capanna (cella ricordata in b.shore); se non c'è una riva raggiungibile resta in bottega come prima
+  if(b.type==='fisher'){
+    if(!(b.shore>=0)&&S.t>=(b.shoreTry||0)){b.shore=shoreTarget(b.cell,40);if(b.shore<0)b.shoreTry=S.t+40;}
+    if(b.shore>=0){
+      if(v.cell===b.shore){v.inside=false;v.moving=false;v.state='shop';v.timer=sp.t;return;}
+      if(route(v,b.shore,0)){v.state='toShore';return;}
+      b.shore=-1;b.shoreTry=S.t+20;
+    }
+  }
   if(route(v,b.cell,b.id))v.state='toShop';else{v.state='wait';v.timer=3;}
 }
 function endShop(v){
@@ -1278,6 +1287,7 @@ function onArrive(v){
     case 'toTaxDep':taxDeposit(v);v.state='idle';break;
     case 'toMill':v.inside=true;v.state='mill';v.timer=6;break;
     case 'toShop':{const sb=v.job&&buildings.get(v.job),sp=sb&&WS[sb.type];if(!sp){v.state='idle';break;}v.inside=true;v.state='shop';v.timer=sp.t;break;}
+    case 'toShore':{const sb=v.job&&buildings.get(v.job),sp=sb&&WS[sb.type];if(!sp){v.state='idle';break;}v.inside=false;v.moving=false;v.state='shop';v.timer=sp.t;break;}
     case 'toDeliver':{
       const c=v.cargo,h=c&&buildings.get(c.h);
       if(c&&h&&h.type==='mercery'){h.shelf[c.g]=Math.min(SHELFCAP,h.shelf[c.g]+c.q);S.stocked=(S.stocked|0)+c.q;}
@@ -1432,7 +1442,7 @@ function updV(v,dt){
   switch(v.state){
     case 'idle':v.moving=false;decide(v);break;
     case 'toSchool':case 'toCenterT':case 'toWhT':case 'toStore':case 'toSite':case 'toTree':case 'toRock':case 'toWork':case 'toField':case 'toHomeF':case 'toGarden':case 'toStall':case 'toMarket':case 'toHomeT':
-    case 'toHomeLife':case 'toWell':case 'toChurch':case 'toPlaza':case 'toHelp':case 'toCollect':case 'toStoreC':case 'toErr':case 'toHomeErr':case 'toPlant':case 'toMill':case 'toShop':case 'toDeliver':case 'toStockG':case 'toGranary':case 'toGraze':case 'toBuild':case 'toStoreSleep':case 'toSupply':case 'toInnSup':case 'toFest':case 'toRepair':case 'toRetting':case 'toTax':case 'toTaxDep':
+    case 'toHomeLife':case 'toWell':case 'toChurch':case 'toPlaza':case 'toHelp':case 'toCollect':case 'toStoreC':case 'toErr':case 'toHomeErr':case 'toPlant':case 'toMill':case 'toShop':case 'toShore':case 'toDeliver':case 'toStockG':case 'toGranary':case 'toGraze':case 'toBuild':case 'toStoreSleep':case 'toSupply':case 'toInnSup':case 'toFest':case 'toRepair':case 'toRetting':case 'toTax':case 'toTaxDep':
       if(moveV(v,dt))onArrive(v);break;
     case 'tax':v.moving=false;v.timer-=dt;if(v.timer<=0)taxCollectAt(v);break;
     case 'war':{v.moving=false;if(!guests.some(x=>x.id===v.fid&&x.hp>0)){v.inside=false;v.state='idle';v.fid=0;}break;}
@@ -3274,7 +3284,9 @@ function roleText(v){
     case 'tax':return 'Riscuote le tasse in una casa';
     case 'toTaxDep':return "Porta le tasse all'ufficio";
     case 'toMill':case 'mill':return 'Macina il grano';
-    case 'toShop':case 'shop':{const jb=v.job&&buildings.get(v.job);return jb&&TRADENAME[jb.type]?TRADENAME[jb.type][0].toUpperCase()+TRADENAME[jb.type].slice(1)+' al lavoro':'Al lavoro in bottega';}
+    case 'toShore':return 'Va a pescare sulla riva';
+    case 'shop':if(!v.inside){const fb=v.job&&buildings.get(v.job);if(fb&&fb.type==='fisher')return 'Pesca sulla riva';}
+    case 'toShop':{const jb=v.job&&buildings.get(v.job);return jb&&TRADENAME[jb.type]?TRADENAME[jb.type][0].toUpperCase()+TRADENAME[jb.type].slice(1)+' al lavoro':'Al lavoro in bottega';}
     case 'toDeliver':{const mh=v.cargo&&buildings.get(v.cargo.h);return mh&&mh.type==='mercery'?'Porta la merce alla merceria':'Porta la merce alle famiglie';}
     case 'toStockG':{const sb=v.cargo&&buildings.get(v.cargo.s);return sb&&sb.type==='granary'?'Porta le scorte al granaio':'Porta le scorte al magazzino';}
     case 'toGranary':return 'Porta il grano al granaio';
