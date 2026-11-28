@@ -39,6 +39,8 @@ run(10,true);
 ok(done('mercery').length===1,'merceria completata');
 ok(done('mercery')[0].workers.length>=1,'la merceria ha un merciaio: '+done('mercery')[0].workers.length);
 ok(Sim.tradeStatus().ok,'stato commercio ok');
+// dalla v64 la cassa paga le paghe: dopo 10 giorni di lavoro non ha più i denari iniziali. Per provare le rotte la si rimette alla cifra di partenza.
+S.coins=Sim.COINS0;
 const bad=Sim.unlockRoute('s');ok(!bad.ok&&/denari/.test(bad.msg),'rotta costosa rifiutata con pochi denari: '+bad.msg);
 const c0=S.coins;const u1=Sim.unlockRoute('w');
 ok(u1.ok&&S.coins===c0-Sim.TOWNS.w.cost&&S.routes[0].open,'rotta di Valmora aperta, denari '+c0+' -> '+S.coins);
@@ -52,7 +54,8 @@ for(let i=0;i<4*Sim.DAY/0.2;i++){Sim.step(0.2);const cv=caravans();if(cv.length)
 ok(seen,'è comparsa una carovana');
 ok(toMerc,'la carovana è diretta alla merceria');
 ok(S.trade.visits>=1,'visite concluse: '+S.trade.visits);
-ok(S.coins>coinsA,'il paese ha guadagnato denari: '+coinsA+' -> '+S.coins);
+// dalla v64 la cassa incassa anche le tasse e paga le paghe: il saldo netto non dice nulla, conta quanto ha incassato la vendita
+ok(S.trade.sold>0&&S.routes[0].earned>0,'il paese ha incassato dalla vendita: '+S.trade.sold+' denari (cassa '+coinsA+' -> '+S.coins+')');
 ok(S.tlog.length>=1&&S.tlog[0].route==='w'&&S.tlog[0].sold.length>0,'registro: '+JSON.stringify(S.tlog[0]&&S.tlog[0].sold));
 ok(S.stock.wood>=60-5,'non si vende sotto la scorta da tenere: legno '+S.stock.wood);
 ok(S.routes[0].visits>=1&&S.routes[0].earned>0,'statistiche della rotta aggiornate');
