@@ -1,5 +1,14 @@
 # Changelog
 
+## v77 – 2026-11-28
+Cambio di regole: taratura delle tasse sugli stipendi.
+- **Tassa settimanale per livello** (`TAX_TABLE`): **1, 3, 5, 10, 20** monete d'argento (livelli 1-5), invece di 1, 2, 4, 8, 16: il raddoppio più 25% arrotondato. Il livello 1 resta a 1.
+- **Perché:** in una Città misurata (circa 175 abitanti, 30 case, 22-24 posti di lavoro in città) gli stipendi costavano circa 170 d'argento a settimana e le tasse riscosse circa 107 (0,63); con la nuova tabella le dovute salgono da 136 a circa 166 e le riscosse a circa 129, cioè **circa 3/4 degli stipendi (0,76)** con l'aliquota normale. Il resto lo coprono i mercanti.
+- **Limiti:** il rapporto dipende dalla composizione del paese (ogni posto di lavoro in più costa circa 7 a settimana, le tasse crescono soprattutto con le case di livello alto); misura fatta su una sola mappa col codice della v65, prima delle versioni 66-76. Un 22% delle tasse dovute resta non riscosso perché le case di livello 1 senza stipendio hanno la cassa vuota.
+- Il rifiuto di migliorare la casa (`TAX_MARGIN` = 1,5 volte la tassa del livello dopo) usa la tabella nuova: per il livello 5 servono 30 d'argento di reddito settimanale.
+- Test: `tests/tasse.js` aggiornato ai nuovi valori. Salvataggi: nessun cambio di formato.
+- Da fare: editto sull'aliquota (bassa / normale / alta), bilancio settimanale nel registro dei commerci, conseguenze degli arretrati sugli stipendi.
+
 ## v76 – 2026-11-28
 Cambio di regole: la fertilità conta davvero, sotto terra scorrono le falde e i pozzi si scavano dove c'è acqua. (Costruita sopra la fertilità 0-100 della v69, che era solo informativa.)
 - **La fertilità rende:** la fertilità del suolo del layer 🗺️ (`Sim.env.fert`, 0-100) ora cambia la resa con `soilF`: ×0,6 sulla terra più magra, ×1,0 a metà, ×1,4 sulla più ottima (media ≈1, l'equilibrio dell'economia non cambia). Vale per i giardini delle case (`soilOf`, media delle celle del giardino), il lavoro dei campi (si lavora più in fretta su terra buona) e la scelta delle zone delle fattorie (preferiscono la terra ottima), e la crescita dei germogli del guardaboschi. I pannelli di casa e fattoria dicono la qualità del suolo («ottimo», «buono», «povero», «arido» e il +/− % di resa).

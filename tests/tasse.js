@@ -24,7 +24,7 @@ run(12);
 console.log('Abitanti',Sim.villagers().length,'case',hs().length);
 
 console.log('1) regole e monete');
-ok([1,2,3,4,5].map(Sim.taxOf).join()==='1,2,4,8,16','la tassa settimanale raddoppia a ogni livello partendo da 1 d\'argento: 1,2,4,8,16');
+ok([1,2,3,4,5].map(Sim.taxOf).join()==='1,3,5,10,20','la tassa settimanale per livello è 1, 3, 5, 10, 20 d\'argento (il raddoppio 1,2,4,8,16 più 25%, arrotondato)');
 ok(Sim.TAX_WEEK===7&&Sim.WAGE===1&&Sim.SILVER_GOLD===10,'contatore di 7 giorni, paga di 1 d\'argento, 1 oro = 10 argento');
 ok(Sim.money(7)==='7 arg'&&Sim.money(10)==='1 oro'&&Sim.money(25)==='2 oro 5 arg'&&Sim.money(0)==='0 arg','formato oro/argento');
 ok(!!Sim.BT.taxoffice&&Sim.BT.taxoffice.name==='Ufficio delle Tasse'&&Sim.TRADENAME.taxoffice==='esattore','Ufficio delle Tasse e mestiere di esattore definiti');
@@ -60,7 +60,7 @@ ok(S.coins-c1===S.fin.tax,'la cassa del paese cresce esattamente di ciò che è 
 ok(off.collected===S.fin.tax&&off.visits===S.fin.visits,'l\'ufficio tiene il conto: incassato '+off.collected+', visite '+off.visits);
 const visited=hs().filter(h=>h.lastTax);
 ok(visited.length>0&&visited.every(h=>h.lastTax.pay<=h.lastTax.due),'ogni casa visitata paga al massimo la sua tassa');
-ok(visited.every(h=>h.lastTax.due>=1&&(h.lastTax.due&(h.lastTax.due-1))===0),'tasse sempre potenze di 2 (1,2,4,8,16)');
+ok(visited.every(h=>Sim.TAX_TABLE.includes(h.lastTax.due)),'tasse sempre uno dei valori della tabella (1,3,5,10,20)');
 ok(visited.every(h=>h.taxT>=0&&h.taxT<=Sim.TAX_WEEK),'dopo la visita il contatore riparte da 7');
 
 console.log('4) contatore di 7 giorni e case non visitate');

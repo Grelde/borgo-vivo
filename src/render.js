@@ -1269,7 +1269,7 @@ const TOOLS=[
   {id:'hunter',label:'Capanna del cacciatore',key:'',hint:'Vicino a un bosco fitto. Porta carne alle famiglie (2 ogni 8 s per cacciatore); d\'inverno la selvaggina è scarsa.'},
   {id:'sheepfold',label:'Ovile',key:'',hint:'Costruisci l\'ovile dentro una zona Pascolo (tasto P): la zona intorno si chiude con un recinto, i pastori portano le pecore a brucare lì dentro e producono la lana per il tessitore.'},
   {id:'mercery',label:'Merceria',key:'',hint:'Con un merciaio istruito (ci lavora solo chi ha studiato): le botteghe portano qui attrezzi, pane, tessuto e abiti (fino a 40 per merce) e le famiglie entro 135 celle vengono a ritirare ciò che manca. Se è chiusa o lo scaffale è pieno, le botteghe consegnano alle case.'},
-  {id:'taxoffice',label:'Ufficio delle Tasse',key:'',hint:'Con un esattore istruito (ci lavora solo chi ha studiato): ogni casa ha un contatore di 7 giorni; quando scade l\'esattore passa a riscuotere la tassa (1 moneta d\'argento a settimana al livello 1, il doppio a ogni livello) e porta tutto all\'ufficio. Le case che non riesce a visitare non pagano. Chi paga troppo può decidere di non migliorare la casa.'},
+  {id:'taxoffice',label:'Ufficio delle Tasse',key:'',hint:'Con un esattore istruito (ci lavora solo chi ha studiato): ogni casa ha un contatore di 7 giorni; quando scade l\'esattore passa a riscuotere la tassa (1 moneta d\'argento a settimana al livello 1, poi 3, 5, 10 e 20) e porta tutto all\'ufficio. Le case che non riesce a visitare non pagano. Chi paga troppo può decidere di non migliorare la casa.'},
   {id:'tavern',label:'Taverna',key:'',hint:'Con un taverniere: chi abita entro 36 celle ha +4 di felicità. Attrae nuovi abitanti.'},
   {id:'hall',label:'Sala delle feste',key:'',hint:'Con un musicante: chi abita entro 45 celle ha +6 di felicità. Molto piacevole.'},
   {id:'granary',label:'Granaio',key:'b',hint:'Le fattorie portano qui il grano in eccedenza. Il mulino lo macina.'},
@@ -1401,7 +1401,7 @@ function refreshSel(){
     const w=Sim.villagers().filter(v=>v.job===b.id),ts=Sim.taxStats();
     info=`Esattori: ${w.length}/${b.want} · case da visitare ora: ${ts.due}/${ts.houses} · incassato qui: ${Sim.money(b.collected|0)} (${b.visits|0} visite)`;
     list=w.map((v,i)=>`<div>Esattore ${i+1}: ${esc(Sim.roleText(v))}${v.pouch?` · in borsa ${Sim.money(v.pouch)}`:''}</div>`).join('')
-      +`<div>Ogni casa ha un contatore di ${Sim.TAX_WEEK} giorni. A zero l'esattore la visita, incassa la tassa (livello 1: 1 arg, livello 2: 2, livello 3: 4, livello 4: 8, livello 5: 16 a settimana) e porta il gruzzolo all'ufficio, che lo versa nella cassa del paese.</div>`
+      +`<div>Ogni casa ha un contatore di ${Sim.TAX_WEEK} giorni. A zero l'esattore la visita, incassa la tassa (livello 1: 1 arg, livello 2: 3, livello 3: 5, livello 4: 10, livello 5: 20 a settimana) e porta il gruzzolo all'ufficio, che lo versa nella cassa del paese.</div>`
       +`<div>Tasse dovute in una settimana: ${Sim.money(ts.weekly)} · riscosse in tutto: ${Sim.money(ts.tax)} · mancate per cassa vuota: ${Sim.money(ts.short)}.</div>`
       +(w.length===0?'<div>Nessun esattore: servono abitanti liberi. Senza esattore non si pagano tasse.</div>':'');
   }

@@ -3423,7 +3423,7 @@ function attractTick(capD){
 // Paghe: chi ha un posto in un edificio della città (non nella fattoria o nell'ovile di una famiglia) riceve WAGE (1 d'argento) per ogni giorno di lavoro vero,
 // cioè con almeno WAGE_SEC secondi di lavoro quel giorno. Paga il Re (non la cassa del giocatore) e i soldi vanno alla cassa della famiglia (b.cash).
 // Tasse: ogni casa ha un contatore di TAX_WEEK giorni (b.taxT); a zero è da riscuotere. L'esattore dell'Ufficio delle Tasse la visita di persona, incassa
-// taxOf(livello) = 2^(livello-1) d'argento a settimana (quanto ha in cassa, se meno), porta il gruzzolo all'ufficio e lo versa nelle casse del paese.
+// taxOf(livello) = 1, 3, 5, 10, 20 d'argento a settimana (TAX_TABLE) (quanto ha in cassa, se meno), porta il gruzzolo all'ufficio e lo versa nelle casse del paese.
 // Le case che l'esattore non riesce a visitare non pagano. Senza ufficio aperto non c'è tassazione e le case salgono di livello come prima.
 // Chi non lavora per il Re può vendere alla Merceria ciò che produce (attrezzi, pane, tessuto, abiti): la Merceria lo rifiuta se ne ha già in abbondanza.
 const WAGE_SEC=DAY*0.2,TAX_MARGIN=1.5,TAX_THRIFT=0.2;
@@ -3439,7 +3439,9 @@ const wageOf=(v,jb)=>{const w=wageJob(jb.type);return EDU_JOBS.has(jb.type)&&!v.
 const wagePayer=()=>S.story&&S.rank>=CITY_RANK?'town':'king';
 const MSELL={tools:3,bread:1,cloth:2,clothes:5},MSELL_KEEP={tools:2,bread:3,cloth:2,clothes:1},MSELL_PROD={tools:'smithy',bread:'bakery',cloth:'weaver',clothes:'tailor'},MSELL_LIM=[12,30],MSELL_LOT=4;
 function mkFin(){return {wages:0,king:0,town:0,unpaid:0,bill:0,tax:0,due:0,short:0,visits:0,bought:0,refused:0,sold:0};}
-const taxOf=lv=>Math.pow(2,Math.max(1,lv|0)-1);
+// v77: tassa settimanale per livello della casa (d'argento): il raddoppio 1, 2, 4, 8, 16 più 25% (arrotondato), così con l'aliquota normale le tasse coprono circa 3/4 degli stipendi di una Città media
+const TAX_TABLE=[1,3,5,10,20];
+const taxOf=lv=>TAX_TABLE[Math.min(TAX_TABLE.length,Math.max(1,lv|0))-1];
 const money=n=>{n=Math.max(0,Math.floor(n)|0);const g=Math.floor(n/SILVER_GOLD),a=n%SILVER_GOLD;return g?g+' oro'+(a?' '+a+' arg':''):a+' arg';};
 const taxOpen=o=>o.type==='taxoffice'&&o.state==='done'&&o.workers.length>0;
 const taxActive=()=>{for(const o of buildings.values())if(taxOpen(o))return true;return false;};
@@ -3850,7 +3852,7 @@ function importState(d){
 return {dowse,soilOf,soilF,soilName,AQ_FIND_R,AQ_COST,TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWanted,WEAPON_PER_POST,startHouseWork,mergeTick,trySpawnDense,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,EDUREQ,EDU_BLD,IMM_LIT,HIRE_COST,canWorkAt,eduBld,hireEducated,hireNeeded,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,NEEDS,NEED_LOW,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
-  TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,WAGE_JOB,EDU_JOBS,CITY_RANK,WAGE_OWE_CAP,wageJob,wageOf,wagePayer,TAX_WEEK,TAX_POUCH,WAGE,WAGE_SEC,SILVER_GOLD,TAX_MARGIN,MSELL,MSELL_KEEP,MSELL_LIM,taxOf,money,taxActive,taxStats,taxDue,taxRefuses,merceryTakes,merceryBuy,merceryBuyer,jobless,kingJob,cityMakes,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
+  TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,WAGE_JOB,EDU_JOBS,CITY_RANK,WAGE_OWE_CAP,wageJob,wageOf,wagePayer,TAX_TABLE,TAX_WEEK,TAX_POUCH,WAGE,WAGE_SEC,SILVER_GOLD,TAX_MARGIN,MSELL,MSELL_KEEP,MSELL_LIM,taxOf,money,taxActive,taxStats,taxDue,taxRefuses,merceryTakes,merceryBuy,merceryBuyer,jobless,kingJob,cityMakes,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
   setFarmCrop,fibreCrop,sinkOf,CHAR_CAP,BAR_CAP,CLAY_CAP,BRICK_CAP,LIME_CAP,MATS,BAND,SALT_CAP,CURED_CAP,CHEESE_CAP,BEER_CAP,WINE_CAP,MILK_CAP,MEAT_KEEP,FISH_KEEP,GRAIN_KEEP,retInfo,RET_CAP,DIFFS,diffOf,maintStats,condOf,condLabel,maintainable,REPAIR_BELOW,WORN_AT,
   STORE_KEYS,GRAN_KEYS,GRAN_TOTAL,CENTER_CAP,setPolicy,storeInfo,stockRoom,capRes,reconcileStock,extraTotal,festTakeFood,
   _t:{eatOne,drinkTick,FISH_CYCLE,FAM_FISH_RATE,FAM_FISH_Q,famFishTime,jobNeed,jobSurplus,rebalanceJobs,JOBRES,JOB_MARGIN,JOB_DWELL,tradeTick,doTrade,chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
