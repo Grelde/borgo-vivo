@@ -1,5 +1,14 @@
 # Changelog
 
+## v47 – 2026-11-28
+Funzione nuova: manutenzione degli edifici con gli attrezzi del fabbro, secondo il livello di difficoltà scelto all'inizio.
+- **Difficoltà (Facile, Normale, Difficile)** si sceglie nella schermata iniziale, prima di lago/fiume, e si salva con la partita (`S.diff`). I vecchi salvataggi ripartono in Facile.
+- **Condizione 0-100** per ogni edificio finito (esclusi piazza, pozzo, fiori, statua, cimitero, banco, centro). Cala col tempo: 1,5 / 3 / 5 punti al giorno (Facile / Normale / Difficile).
+- **Effetti:** sotto 60 si lavora all'85%, sotto 30 al 60%; a zero Facile lavora a metà ritmo, Normale al 15%, Difficile si ferma e l'edificio **crolla** (senza rimborso). Solo a Difficile crolla qualcosa.
+- **Riparazione:** muratori e abitanti senza lavoro portano 1 attrezzo dal magazzino all'edificio più logoro (sotto 70) e lo riparano in 8 s (+30, i muratori +45). Le case usano gli attrezzi che hanno in dispensa. Senza attrezzi non si ripara: il fabbro diventa indispensabile.
+- **Interfaccia:** riga «condizione» nel pannello dell'edificio, avviso quando un edificio è in rovina (sotto 25), nel pannello del villaggio edifici logori / riparazioni / difficoltà.
+- Test: `tests/manutenzione.js`.
+
 ## v46 – 2026-11-27
 Funzione nuova: regole dei cantieri (un costruttore alla volta finché mancano i materiali, costruzione che avanza con i materiali, il costruttore va a prenderli).
 - **Un solo costruttore per cantiere finché mancano materiali.** Con tutti i materiali presenti si possono aggiungere fino a 3 costruttori, come prima. Il primo che arriva a un cantiere con materiali da usare ne diventa il costruttore.

@@ -251,8 +251,8 @@ function terrainOK(mode){
   return mw>=(mode==='lake'?11:9)&&wc>=1500&&wc<=3600&&t26>=330&&t18>=100&&r26>=200&&r18>=60&&oT>=30&&o32>=12;
 }
 
-function init(sd,mode){
-  seed=sd||7;S.mode=mode==='river'?'river':'lake';
+function init(sd,mode,diff){
+  seed=sd||7;S.mode=mode==='river'?'river':'lake';S.diff=DIFFS[diff]?diff:'normale';S.repairs=0;S.ruined=0;
   for(const a of [tree,rock,ore,water,sap,road,dist,door,cen])a.fill(0);
   gate.fill(0);gatedSet.clear();
   occ.fill(0);field.fill(0);lastStep.fill(0);wear.fill(0);plev.fill(0);phit.fill(0);pexp.fill(0);attr.fill(0);sapT.fill(0);
@@ -462,11 +462,11 @@ function release(vid){
   if((v.state==='toCenterT'||v.state==='toWhT')&&v.xr){S.xf[v.xr]=Math.max(0,S.xf[v.xr]-1);v.xr=null;}
   if(JOBSTATES.has(v.state)){resv.delete(v.target);plantResv.delete(v.target);v.path=[];v.carry=null;v.state='idle';v.moving=false;v.inside=false;}
 }
-function removeBuilding(id){
+function removeBuilding(id,noRefund){
   const b=buildings.get(id);if(!b)return;
   const t=BT[b.type];
   if(b.state==='site'){S.stock.wood+=b.got.wood;S.stock.stone+=b.got.stone;S.stock.planks+=b.got.planks||0;}
-  else if(!b.center){S.stock.wood+=Math.floor(t.cost.wood/2);S.stock.stone+=Math.floor(t.cost.stone/2);S.stock.planks+=Math.floor((t.cost.planks||0)/2);}
+  else if(!b.center&&!noRefund){S.stock.wood+=Math.floor(t.cost.wood/2);S.stock.stone+=Math.floor(t.cost.stone/2);S.stock.planks+=Math.floor((t.cost.planks||0)/2);}
   for(const vid of b.workers.slice())release(vid);
   for(const v of villagers){
     if(v.home===id)v.home=null;
@@ -704,7 +704,7 @@ function findBuild(v,first){
   return false;
 }
 function helpMode(v){
-  if(findBuild(v,true))return;if(findHaul(v))return;if(findBuild(v))return;if(tryCollect(v))return;if(helpFamily(v))return;
+  if(findBuild(v,true))return;if(findHaul(v))return;if(findBuild(v))return;if(tryRepair(v))return;if(tryCollect(v))return;if(helpFamily(v))return;
   v.state='wait';v.timer=4;
 }
 function plantTarget(b){
@@ -750,6 +750,58 @@ const OUTCAP=30,BAND=135,PROD={smithy:'tools',bakery:'bread',weaver:'cloth',tail
 // v38: Merceria. Con un merciaio al lavoro, le botteghe portano qui attrezzi, pane, tessuto e abiti (scaffali fino a SHELFCAP per merce) invece di consegnarli alle case; le famiglie
 // mandano un adulto a ritirare ciò che manca (commissione 'merc'). Pesce e carne restano consegne dirette. Se la merceria è chiusa o lo scaffale è pieno si consegna alle case come prima.
 const MERC=['tools','bread','cloth','clothes'],SHELFCAP=40,MERC_LOT=6,MERC_LOW={tools:1,bread:2,cloth:2,clothes:1};
+// v47: manutenzione. Ogni edificio finito ha una condizione 0-100 che cala col tempo (più in fretta ai livelli difficili).
+// Gli attrezzi del fabbro (magazzino) servono a ripararli: muratori e abitanti senza lavoro li portano agli edifici più logori; le case usano i propri attrezzi.
+const DIFFS={facile:{n:'Facile',decay:1.5,min:0.5,ruin:false,d:'Gli edifici si logorano piano e, anche rovinati, lavorano a metà ritmo. Nulla crolla.'},
+  normale:{n:'Normale',decay:3,min:0.15,ruin:false,d:'Gli edifici si logorano e, se non riparati, quasi smettono di lavorare. Nulla crolla.'},
+  difficile:{n:'Difficile',decay:5,min:0,ruin:true,d:'Gli edifici si logorano in fretta: senza riparazioni smettono di lavorare e poi crollano.'}};
+const MAINT_SKIP=new Set(['flowers','statue','plaza','well','cemetery','stall']);
+const REPAIR_AMT=30,REPAIR_MASON=45,REPAIR_T=8,REPAIR_BELOW=70,WORN_AT=60,WARN_AT=25;
+const diffOf=()=>DIFFS[S.diff]||DIFFS.normale;
+const maintainable=b=>!!b&&b.state==='done'&&!b.center&&!MAINT_SKIP.has(b.type);
+const condOf=b=>b.cond===undefined?100:b.cond;
+function condF(b){
+  if(!maintainable(b))return 1;const c=condOf(b);
+  if(c>=WORN_AT)return 1;if(c>=30)return 0.85;if(c>0)return 0.6;return diffOf().min;
+}
+function condLabel(b){const c=condOf(b);return c>=80?'ottimo':c>=WORN_AT?'buono':c>=30?'logoro':c>0?'in rovina':'a pezzi';}
+function maintTick(){
+  const D=diffOf(),r=D.decay*0.5/DAY;
+  for(const b of [...buildings.values()]){
+    if(!maintainable(b))continue;
+    if(b.cond===undefined)b.cond=100;
+    b.cond=Math.max(0,b.cond-r);
+    // le famiglie riparano la propria casa con gli attrezzi che hanno
+    if(b.type==='house'&&b.goods.tools>=1&&b.cond<REPAIR_BELOW&&(b.fixAt||0)<=S.t){b.goods.tools--;b.cond=Math.min(100,b.cond+REPAIR_AMT);b.fixAt=S.t+10;S.repairs=(S.repairs|0)+1;}
+    if(b.cond>=WORN_AT)b.warn=false;
+    if(b.cond<WARN_AT&&!b.warn){b.warn=true;hooks.toast((BT[b.type].name)+(b.type==='house'?' di una famiglia':'')+' è in rovina: servono attrezzi del fabbro per ripararla'+(D.ruin?', o crollerà.':'.'));}
+    if(b.cond<=0&&D.ruin){hooks.toast((BT[b.type].name)+' è crollata per mancanza di manutenzione.');S.ruined=(S.ruined|0)+1;removeBuilding(b.id,true);}
+  }
+}
+function maintStats(){
+  let worn=0,total=0,sum=0;
+  for(const b of buildings.values()){if(!maintainable(b))continue;total++;const c=condOf(b);sum+=c;if(c<WORN_AT)worn++;}
+  return {worn,total,avg:total?Math.round(sum/total):100,repairs:S.repairs|0,ruined:S.ruined|0,diff:S.diff,tools:S.stock.tools|0};
+}
+function tryRepair(v){
+  if(S.stock.tools<1)return false;
+  let best=null,bs=1e9;
+  for(const b of buildings.values()){
+    if(!maintainable(b)||b.type==='house'&&b.goods.tools>=1)continue;
+    const c=condOf(b);if(c>=REPAIR_BELOW||(b.fixUntil||0)>S.t)continue;
+    const sc=c+cellDist(v.cell,b.cell)*0.15;if(sc<bs){bs=sc;best=b;}
+  }
+  if(!best||!route(v,best.cell,best.id))return false;
+  S.stock.tools--;best.fixUntil=S.t+90;v.rep={id:best.id};v.state='toRepair';return true;
+}
+function endRepair(v){
+  const r=v.rep,b=r&&buildings.get(r.id);
+  if(b&&maintainable(b)){
+    const jb=v.job&&buildings.get(v.job);
+    b.cond=Math.min(100,condOf(b)+(jb&&jb.type==='mason'?REPAIR_MASON:REPAIR_AMT));b.fixUntil=0;S.repairs=(S.repairs|0)+1;if(b.cond>=WORN_AT)b.warn=false;
+  }else S.stock.tools++;
+  v.rep=null;v.state='idle';
+}
 const merceryOpen=o=>o.type==='mercery'&&o.state==='done'&&o.workers.length>0;
 function merceryFor(cell,g){let best=null,bd=1e9;for(const o of buildings.values()){if(!merceryOpen(o))continue;const d=cellDist(o.cell,cell);if(d>BAND||o.shelf[g]>=SHELFCAP)continue;if(d<bd){bd=d;best=o;}}return best;}
 function merceryErrand(h){
@@ -1160,6 +1212,7 @@ function onArrive(v){
     case 'toChurch':v.state='pray';v.timer=6;break;
     case 'toFest':{const fb=buildings.get(v.festB),f=fb&&fb.fest;if(f&&f.st==='on'){v.festSeq=f.seq;f.att++;v.state='fest';v.timer=20+Math.random()*30;v.moving=false;}else v.state='idle';break;}
     case 'toHelp':v.state='helpTend';v.timer=5;break;
+    case 'toRepair':v.state='repair';v.timer=REPAIR_T;v.moving=false;break;
     case 'toGranary':S.stock.grain+=Math.min(v.cq||1,stockRoom('grain'));v.carry=null;v.state='idle';break;
     case 'toStockG':{const c=v.cargo;
       if(c){const room=Math.min(c.q,stockRoom(c.g));S.stock[c.g]+=room;const fb=buildings.get(c.from);if(c.q>room&&fb&&fb.out)fb.out[c.g]+=c.q-room;}
@@ -1266,6 +1319,7 @@ function abortTask(v){
     case 'toWork':{const b=v.job&&buildings.get(v.job);if(b&&b.buf!==undefined)b.buf=Math.min(BUFCAP+2,b.buf+1);break;}
     case 'toInnSup':{const b=v.job&&buildings.get(v.job);if(b&&b.type==='inn')b.pantry=Math.min(20,b.pantry+(v.cq||1));break;}
     case 'toSupply':break;
+    case 'toRepair':case 'repair':{const rb=v.rep&&buildings.get(v.rep.id);S.stock.tools++;if(rb)rb.fixUntil=0;break;}
     case 'toDeliver':{const c=v.cargo;if(c){const fb=buildings.get(c.from);if(fb&&fb.out)fb.out[c.g]+=c.q-(c.stk|0);S.stock[c.g]+=c.stk|0;}break;}
     case 'shop':v.inside=false;break;
     case 'toCenterT':case 'toWhT':if(v.xr){S.xf[v.xr]=Math.max(0,S.xf[v.xr]-1);v.xr=null;}break;
@@ -1273,7 +1327,7 @@ function abortTask(v){
     case 'toPlant':case 'plant':plantResv.delete(v.target);break;
     case 'toStall':case 'keep':{const st=buildings.get(v.stall);if(st){st.open=false;st.keeper=null;}v.stall=null;break;}
   }
-  v.carry=null;v.cargo=null;v.err=null;v.task=null;v.sup=null;v.path=[];v.moving=false;v.state='idle';
+  v.carry=null;v.cargo=null;v.err=null;v.task=null;v.sup=null;v.rep=null;v.path=[];v.moving=false;v.state='idle';
 }
 const NIGHTOK=new Set(['toHomeLife','sleep','toStoreSleep','idle','wait']);
 function updV(v,dt){
@@ -1283,7 +1337,7 @@ function updV(v,dt){
   switch(v.state){
     case 'idle':v.moving=false;decide(v);break;
     case 'toSchool':case 'toCenterT':case 'toWhT':case 'toStore':case 'toSite':case 'toTree':case 'toRock':case 'toWork':case 'toField':case 'toHomeF':case 'toGarden':case 'toStall':case 'toMarket':case 'toHomeT':
-    case 'toHomeLife':case 'toWell':case 'toChurch':case 'toHelp':case 'toCollect':case 'toStoreC':case 'toErr':case 'toHomeErr':case 'toPlant':case 'toMill':case 'toShop':case 'toDeliver':case 'toStockG':case 'toGranary':case 'toGraze':case 'toBuild':case 'toStoreSleep':case 'toSupply':case 'toInnSup':case 'toFest':
+    case 'toHomeLife':case 'toWell':case 'toChurch':case 'toHelp':case 'toCollect':case 'toStoreC':case 'toErr':case 'toHomeErr':case 'toPlant':case 'toMill':case 'toShop':case 'toDeliver':case 'toStockG':case 'toGranary':case 'toGraze':case 'toBuild':case 'toStoreSleep':case 'toSupply':case 'toInnSup':case 'toFest':case 'toRepair':
       if(moveV(v,dt))onArrive(v);break;
     case 'fest':{v.moving=false;v.timer-=dt;const fb=buildings.get(v.festB);if(v.timer<=0||!fb||!fb.fest||fb.fest.st!=='on')v.state='idle';break;}
     case 'chop':case 'mine':case 'till':
@@ -1311,6 +1365,7 @@ function updV(v,dt){
     case 'learn':{v.moving=false;const sc=v.sch&&buildings.get(v.sch);{const tc=sc&&sc.workers.length?vmap.get(sc.workers[0]):null;v.edu+=dt*(S.edicts.schoolMandatory?1.6:1)*(1+SK_WORK*(tc?skLevel(tc,'school'):0));}if(!inClass()||!sc||sc.state!=='done'||!sc.workers.length){v.inside=false;v.sd=!(S.edicts.schoolMandatory&&S.ph==='meal');v.sch=null;v.state='idle';}break;}
     case 'draw':v.timer-=dt;if(v.timer<=0){v.drew=true;v.carry='water';goHomeAfter(v);}break;
     case 'pray':v.timer-=dt;if(v.timer<=0){v.prayed=true;v.prayT=S.t;goHomeAfter(v);}break;
+    case 'repair':v.moving=false;v.timer-=dt;if(v.timer<=0)endRepair(v);break;
     case 'helpTend':v.timer-=dt;if(v.timer<=0){const h=buildings.get(v.helpH);if(h){if(h.crop!=='wood'){const k=gardenGood(h.crop);h.goods[k]=Math.min(gardenCap(h.crop),h.goods[k]+2);}S.helps++;}v.state='idle';}break;
     case 'eat':v.timer-=dt;if(v.timer<=0){v.inside=false;v.state='idle';}break;
     case 'sleep':if(S.ph!==v.sleepPh){v.inside=false;v.state='idle';}break;
@@ -1688,7 +1743,7 @@ function skillTick(v){
   if(after>before){logV(v,'Diventa '+SKNAME[after].toLowerCase()+' come '+TRADENAME[t]+' (livello '+after+').');if(after>=SKMAX)tell('master','Un abitante è diventato maestro del suo mestiere: lavora molto meglio e chi ha quel mestiere lo riprende volentieri.');}
 }
 const jobSkill=v=>{const jb=v.job&&buildings.get(v.job);return jb?skLevel(v,jb.type):0;};
-const workRate=v=>(v.trait==='pigro'?0.6:1)*(v.joy<35?0.8:1)*(v.schooled?EDU_WORK:1)*(1+SK_WORK*jobSkill(v));
+const workRate=v=>(v.trait==='pigro'?0.6:1)*(v.joy<35?0.8:1)*(v.schooled?EDU_WORK:1)*(1+SK_WORK*jobSkill(v))*(v.job?condF(buildings.get(v.job)):1);
 function birthTick(b){
   if(S.t<b.birthT)return;
   const bonus=S.edicts.birthBonus;
@@ -2353,6 +2408,7 @@ function decay(){
     if(L>0&&now>=pexp[i]){const nl=L-1;plev[i]=nl;phit[i]=0;pexp[i]=nl>0?now+DUR[nl]:0;any=true;}
   }
   if(any)hooks.ground();
+  maintTick();
 }
 function step(dt){
   S.t+=dt;countBuilders();
@@ -2383,6 +2439,7 @@ function roleText(v){
     case 'toChurch':case 'pray':return 'Prega in chiesa';
     case 'toFest':case 'fest':return 'Alla festa di paese';
     case 'toHelp':case 'helpTend':return "Aiuta un'altra famiglia";
+    case 'toRepair':case 'repair':return 'Ripara un edificio con gli attrezzi';
     case 'toCollect':case 'toStoreC':return 'Porta i materiali al magazzino';
     case 'toStore':return v.task?'Va al magazzino a prendere '+RESNAME[v.task.res]+(v.task.own?' per il suo cantiere':' per un cantiere'):'Va al magazzino a prendere i materiali';
     case 'toSite':return v.task?'Porta '+RESNAME[v.task.res]+(v.task.own?' al suo cantiere':' al cantiere'):'Porta i materiali al cantiere';
@@ -2479,7 +2536,7 @@ function importState(d){
   S.edicts=Object.assign(EDICT0(),S.edicts);S.stock=Object.assign({wood:0,stone:0,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0},S.stock);
   for(const k of ['wh','xf','inflight'])S[k]=Object.assign({wood:0,stone:0,iron:0},S[k]);
   S.coins=Number.isFinite(S.coins)?S.coins:COINS0;{const rt=Array.isArray(S.routes)?S.routes:[];S.routes=mkRoutes().map(r=>Object.assign(r,rt.find(x=>x&&x.id===r.id)||{}));}S.tradeOpt=Object.assign({sell:true,buy:true},S.tradeOpt);S.tlog=Array.isArray(S.tlog)?S.tlog:[];S.trade=Object.assign({sold:0,bought:0,visits:0},S.trade);
-  S.mode=S.mode==='river'?'river':'lake';
+  S.mode=S.mode==='river'?'river':'lake';S.diff=DIFFS[S.diff]?S.diff:'facile';S.repairs=S.repairs|0;S.ruined=S.ruined|0;
   for(const k of Object.keys(acc))delete acc[k];Object.assign(acc,{a1:0,a05:0,farm:0,attr:99},ac);
   for(const k of Object.keys(told))delete told[k];Object.assign(told,tl);
   gatedSet.clear();for(const i of ga)gatedSet.add(i);
@@ -2501,6 +2558,7 @@ return {lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
   TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
+  DIFFS,diffOf,maintStats,condOf,condLabel,maintainable,REPAIR_BELOW,WORN_AT,
   STORE_KEYS,GRAN_KEYS,GRAN_TOTAL,CENTER_CAP,setPolicy,storeInfo,stockRoom,capRes,
   _t:{tradeTick,doTrade,chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},
   grids:{tree,rock,ore,water,sap,sapT,road,dist,occ,wear,plev,field,door,attr,cen},guests:()=>guests,buildings:()=>buildings,villagers:()=>villagers};

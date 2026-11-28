@@ -1139,6 +1139,7 @@ function refreshSel(){
     info=`Erboristi: ${w.length}/${b.want} · malati nel raggio di cura: ${near} · guariti finora: ${S.cured}`;
     list=w.map(v=>`<div>Erborista: ${esc(Sim.roleText(v))}</div>`).join('')+'<div>Cura i malati delle case entro 45 celle: guariscono più in fretta e rischiano meno di morire. Frena anche il contagio.</div>'+(w.length===0?'<div>Senza erborista l\'ospizio non cura.</div>':'');}
   else if(b.type==='cemetery'){info=`Sepolti: ${S.buried} · defunti senza sepoltura: ${S.unburied||0}`;list='<div>I defunti ricevono sepoltura qui: senza un cimitero i morti rendono la zona meno piacevole.</div>';}
+  if(b.state==='done'&&Sim.maintainable(b)){const cv=Math.round(Sim.condOf(b));info+=` · condizione ${cv}/100 (${Sim.condLabel(b)})`+(cv<Sim.REPAIR_BELOW?(S.stock.tools>0||(b.type==='house'&&b.goods.tools>0)?' · in attesa di riparazione':' · servono attrezzi del fabbro'):'');}
   $('selName').textContent=name;$('selInfo').textContent=info;if(selCacheList!==list){selCacheList=list;$('selList').innerHTML=list;}
   updStoreCfg((b.type==='granary'||(b.type==='store'&&!b.center))&&b.state==='done'?b:null);
   $('selJobs').hidden=!(b.state==='done'&&t.slots>0&&!(b.type==='sheepfold'&&b.owner));
@@ -1548,7 +1549,7 @@ function whyV(v){
 const popRow=(a,b)=>`<div class="row"><span>${a}</span><b>${b}</b></div>`;
 function popPeople(st){
   const vs=Sim.villagers(),S2=Sim.S,adults=vs.filter(v=>!v.child);
-  let h=`<div class="kv"><div>Abitanti<b>${st.pop}/${st.cap}</b></div><div>Bambini<b>${st.children}</b></div><div>Adulti<b>${adults.length}</b></div><div>Istruiti<b>${st.schooled}</b></div><div>Malati<b>${st.sick}${st.plague?' ☣':''}</b></div><div>Al lavoro<b>${st.jobs}/${st.slots}</b></div></div>`;
+  let h=`<div class="kv"><div>Abitanti<b>${st.pop}/${st.cap}</b></div><div>Bambini<b>${st.children}</b></div><div>Adulti<b>${adults.length}</b></div><div>Istruiti<b>${st.schooled}</b></div><div>Malati<b>${st.sick}${st.plague?' ☣':''}</b></div><div>Al lavoro<b>${st.jobs}/${st.slots}</b></div>${(()=>{const m=Sim.maintStats();return `<div>Edifici logori<b>${m.worn}/${m.total}</b></div><div>Riparazioni<b>${m.repairs}</b></div><div>Difficoltà<b>${Sim.DIFFS[m.diff]?Sim.DIFFS[m.diff].n:'-'}</b></div>`;})()}</div>`;
   const at=st.att;
   h+='<h4>Capacità e attrattiva</h4>'+popRow('Posti nelle case',st.capHouses)+popRow('Bonus di attrattiva',`+${st.capBonus}`)+popRow('Adulti senza lavoro',at.unemp)+popRow('Attrattiva (felicità ÷ disoccupati)',Math.round(at.a*100)+'%');
   h+='<p style="opacity:.75;font-size:12px">Più gli abitanti sono felici e meno adulti sono senza lavoro, più gente vuole trasferirsi, anche oltre i posti delle case (in case un po\' affollate).</p>';
@@ -1787,10 +1788,17 @@ $('svList').addEventListener('click',e=>{
 function autoSave(){if(started)writeSlot('auto',true);}
 addEventListener('pagehide',autoSave);
 if(document.addEventListener)document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')autoSave();});
-let sIdx=0;
+let sIdx=0,curDiff='normale';
 function showStory(){
   const sc=STORY[sIdx];$('sTitle').textContent=sc.t;$('sText').textContent=sc.x;$('sBtns').innerHTML='';
   if(sc.choice){
+    // v47: livello di difficoltà (decide quanto in fretta si logorano gli edifici)
+    const dw=document.createElement('div');dw.style.cssText='width:100%;margin-bottom:8px';
+    const dd=document.createElement('p');dd.style.cssText='margin:6px 0;font-size:14px';
+    const dbs=[];
+    const showD=()=>{dbs.forEach(([k,bt])=>bt.classList.toggle('on',k===curDiff));dd.textContent='Manutenzione degli edifici — '+Sim.DIFFS[curDiff].d;};
+    for(const k of ['facile','normale','difficile']){const bt=document.createElement('button');bt.className='btn';bt.type='button';bt.textContent=Sim.DIFFS[k].n;bt.addEventListener('click',()=>{curDiff=k;showD();});dbs.push([k,bt]);dw.appendChild(bt);dw.appendChild(document.createTextNode(' '));}
+    dw.appendChild(dd);$('sBtns').appendChild(dw);showD();
     for(const [m,l] of[['lake','Il lago'],['river','Il fiume']]){const b=document.createElement('button');b.className='btn';b.type='button';b.textContent=l;b.addEventListener('click',()=>begin(m));$('sBtns').appendChild(b);}
   }else{
     const mk=(txt,fn)=>{const b=document.createElement('button');b.className='btn';b.type='button';b.textContent=txt;b.addEventListener('click',fn);$('sBtns').appendChild(b);};
@@ -1808,7 +1816,7 @@ function begin(mode){
   // v42: ogni partita ha una mappa nuova; con ?seme=1234 nell'indirizzo si rivede una mappa già giocata
   let sd=0;try{if(typeof location!=='undefined'){const q=new URLSearchParams(location.search).get('seme');if(q&&/^\d{1,9}$/.test(q))sd=+q;}}catch(e){}
   if(!sd)sd=1+((Math.random()*999999999)|0);
-  Sim.init(sd,mode);started=true;setTimeout(()=>toast('Valle n. '+sd+'. Per rivederla: aggiungi ?seme='+sd+' all\'indirizzo.'),1500);if(COARSE)setTimeout(()=>toast('Un dito: sposta la mappa. Due dita: pizzica per zoomare, ruota per girare. Scegli una categoria e uno strumento in basso.'),7000);
+  Sim.init(sd,mode,curDiff);started=true;setTimeout(()=>toast('Valle n. '+sd+'. Per rivederla: aggiungi ?seme='+sd+' all\'indirizzo.'),1500);if(COARSE)setTimeout(()=>toast('Un dito: sposta la mappa. Due dita: pizzica per zoomare, ruota per girare. Scegli una categoria e uno strumento in basso.'),7000);
   if(treesDirty)rebuildTrees();if(rocksDirty)rebuildRocks();if(sapsDirty)rebuildSaps();groundDirty=true;
   showLevel();
 }
