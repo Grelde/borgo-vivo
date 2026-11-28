@@ -1,5 +1,14 @@
 # Changelog
 
+## v58 – 2026-11-28
+Cambio di ritmo: il giorno dura il doppio, la notte resta uguale.
+- **Giorno da 300 s** (era 150): `DAY=300`. La notte dura ancora **27 s** (9 s dopo la mezzanotte e 18 s prima), quindi in percentuale passa dal 18% al 9% del giorno. Il giorno "con la luce" passa da 123 s a 273 s.
+- **Ore del giorno ridistribuite** su una sola tabella `TL` in `sim.js` (usata anche dal render per la luce): alba 20 s (la luce sale), lavoro mattina 100 s, pranzo 40 s, lavoro pomeriggio 73 s (dal tramonto, a 215 s, i lavori si fermano e si va a casa), sera 40 s (la luce scende fino alla notte). Le fasi diurne sono le vecchie rimappate in proporzione, quindi l'ordine e le abitudini degli abitanti non cambiano: notte, lavoro, pranzo, lavoro, sera. Scuola (fino a pranzo, o fino al tramonto con l'obbligo) e festa (dopo pranzo) usano la stessa tabella.
+- **Ritmi "per giorno" invariati:** `TK`/`DK` seguono `DAY` come dalla v26, quindi malattie, rischi, immigrazione, durata delle stagioni (6 giorni) ed eventi misurati in giorni (preparativi della festa, guerra, incursioni) restano gli stessi *in giorni*, che ora durano il doppio in secondi. Quello che è misurato in secondi (camminare, costruire, un ciclo di bottega) resta uguale: in un giorno si fa quindi più lavoro di prima.
+- **Effetto sul bilanciamento:** il tempo di lavoro per giorno sale dal 58% al 64% (la notte pesa meno), cioè circa +11% di produzione per giorno a parità di ritmi.
+- **Salvataggi:** le partite salvate prima della v58 contano il tempo in secondi: al caricamento i giorni risultano dimezzati (la stagione può cambiare) e l'ora del giorno non corrisponde più. I salvataggi nuovi sono a posto.
+- Test: nuovo `tests/giorno.js` (misura sulla simulazione i secondi di ogni fase: notte 27 s = 9%, pranzo e sera 40 s, ordine delle fasi, tramonto a 215 s). Gli altri test usano `Sim.DAY`: girano il doppio più lenti perché simulano il doppio dei secondi. Non guardato in un browser: la curva della luce (alba più lunga, giorno pieno più lungo) usa la stessa tabella ma conviene vederla a occhio.
+
 ## v57 – 2026-11-28
 Funzione nuova: lavori edili sulle case (livelli e giardini fatti dai costruttori) e fumo dai camini.
 - **Miglioramento di livello = lavoro:** la casa non si migliora più da sola consumando subito il materiale: la casa diventa un cantiere (`b.work`), un costruttore porta legno/pietra dal magazzino e costruisce; il livello sale solo a lavori finiti (impalcatura con più traverse con l'avanzare dei lavori, materiale accatastato). Stessi costruttori, carretti e muratori dei cantieri normali.

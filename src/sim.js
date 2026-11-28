@@ -4,7 +4,8 @@ const SC=3,N=64*SC,W=128,CS=W/N;
 // Sentieri a livelli (v19): 0 erba, 1-3 terreno che si scolorisce, 4 sentiero vero. NEEDP[L] = passaggi necessari nella finestra del livello L per salire a L+1; DUR[L] = secondi di durata del livello L prima di scendere a L-1.
 const PATH=3,ROADT=20,WMAX=28,MAXP=4,NEEDP=[1,2,4,8],DUR=[0,20,40,80,240],PCOST=[1,0.92,0.8,0.62,0.5],PSPD=[1,1.04,1.1,1.2,1.25];
 // v26: il giorno dura DAY secondi (era 100). TK riporta ai ritmi 'per giorno' di prima i fenomeni calcolati a ogni secondo (produzione, malattie, rischi, immigrazione).
-const DAY=150,DK=DAY/100,TK=100/DAY,STORE_CAP=1000,CENTER_CAP=80,BUFCAP=8,GRAIN_CAP=1000,FLOUR_CAP=40,SAPLING_T=140;
+// v58: il giorno dura 300 s (era 150) ma la notte resta di 27 s (9 dopo la mezzanotte + 18 prima): in percentuale è il 9% del giorno invece del 18%. Le ore del giorno si ridistribuiscono sui 273 s restanti (tabella TL più sotto).
+const DAY=300,DK=DAY/100,TK=100/DAY,STORE_CAP=1000,CENTER_CAP=80,BUFCAP=8,GRAIN_CAP=1000,FLOUR_CAP=40,SAPLING_T=140;
 const TYPES=['veg','eggs','grain','fish','meat','bread'];
 const GN={veg:'ortaggi',eggs:'uova',grain:'grano',fish:'pesce',meat:'carne',bread:'pane',firewood:'legna da ardere',tools:'attrezzi',iron:'ferro',flour:'farina',wool:'lana',cloth:'tessuto',clothes:'abiti'};
 const GOODS=TYPES.concat(['firewood','tools','iron','flour','wool','cloth','clothes']);
@@ -64,7 +65,10 @@ const NOGATE={house:1,stall:1,flowers:1,statue:1,plaza:1,well:1,cemetery:1,tent:
 // Tempo (v20): 1 anno di vita = AGEY secondi; un'annata del calendario (4 stagioni) = YEARL secondi = 10 anni di vita.
 const AGEY=240*DK;
 const UPC={2:{wood:4,stone:0},3:{wood:4,stone:4},4:{wood:6,stone:8},5:{wood:8,stone:14}};
-const SEASON_DAYS=6,SEASONS=['Primavera','Estate','Autunno','Inverno'],DUSK=0.68;
+const SEASON_DAYS=6,SEASONS=['Primavera','Estate','Autunno','Inverno'];
+// Tabella delle ore del giorno (frazioni di DAY). Le frazioni "vecchie" (giorno da 150 s: notte 0-0.06 e 0.88-1, pranzo 0.42-0.54, tramonto 0.68, sera 0.76) vengono rimappate linearmente sulla parte diurna, così la notte dura sempre 27 s.
+const NIGHT_AM=9/DAY,NIGHT_PM=1-18/DAY,dayF=o=>NIGHT_AM+(o-0.06)*(NIGHT_PM-NIGHT_AM)/0.82;
+const TL={nAm:NIGHT_AM,dawn:dayF(0.12),lunch0:dayF(0.42),lunch1:dayF(0.54),dusk:dayF(0.68),eve:dayF(0.76),nPm:NIGHT_PM},DUSK=TL.dusk;
 const YEARL=SEASON_DAYS*4*DAY;
 const SCHOOL_CAP=12,HEAL_R=45;
 // malattie: durata [min,max] in secondi, mortalità al secondo
@@ -195,7 +199,7 @@ function setPolicy(id,k,patch){
   return true;
 }
 function storeInfo(b){const {L}=layout(),e=L.get(b.id)||{inv:{},tot:0};return {keys:keysOf(b),inv:e.inv,tot:e.tot,total:totalOf(b),pol:keysOf(b).map(k=>({k,on:b.center?true:polOf(b)[k].on,max:polMax(b,k)||(b.center?0:polOf(b)[k].max),held:e.inv[k]||0}))};}
-function phaseOf(f){if(f<0.06||f>=0.88)return 'night';if(f<0.42)return 'work';if(f<0.54)return 'meal';if(f<0.76)return 'work';return 'evening';}
+function phaseOf(f){if(f<TL.nAm||f>=TL.nPm)return 'night';if(f<TL.lunch0)return 'work';if(f<TL.lunch1)return 'meal';if(f<TL.eve)return 'work';return 'evening';}
 const SEASON_MSG=['Primavera: il ghiaccio si scioglie e i giardini tornano a produrre.','Estate: giornate lunghe e raccolti abbondanti.','Autunno: ultimo raccolto. Fate scorta di cibo e di legna da ardere prima del gelo!','Inverno: lago e fiume ghiacciano, i giardini rendono poco e le case hanno bisogno di legna da ardere.'];
 function updClock(){const tt=S.t+6;S.day=Math.floor(tt/DAY);S.f=(tt%DAY)/DAY;S.ph=phaseOf(S.f);
   const si=Math.floor(S.day/SEASON_DAYS)%4;S.year=Math.floor(S.day/(SEASON_DAYS*4))+1;
@@ -959,7 +963,7 @@ function funOf(h){
 // Si indice cliccando sulla piazza. Per FEST.prep secondi (6 giorni di gioco = una stagione: "un paio di settimane" con la settimana di gioco di 3 giorni) il paese
 // raccoglie legno (dal magazzino) e cibo (dalle case che ne hanno in più di KEEP). Poi la festa dura dal dopopranzo alla notte: gli abitanti si radunano attorno
 // alla piazza e chi abita entro FEST.r celle è più contento (FEST.joy durante la festa, FEST.glow per FEST.glowT dopo), in proporzione ai preparativi (q = 0..1).
-const FEST={prep:6*DAY,need:{wood:8,food:16},joy:12,glow:8,glowT:2*DAY,cool:SEASON_DAYS*2*DAY,r:45,minPop:6,maxExt:3,from:0.54};
+const FEST={prep:6*DAY,need:{wood:8,food:16},joy:12,glow:8,glowT:2*DAY,cool:SEASON_DAYS*2*DAY,r:45,minPop:6,maxExt:3,from:TL.lunch1};
 let festSeq=0;
 const festQ=f=>(Math.min(1,f.have.wood/FEST.need.wood)+Math.min(1,f.have.food/FEST.need.food))/2;
 function festSync(){
@@ -1183,7 +1187,7 @@ function goHomeAfter(v){
   if(h&&route(v,h.cell,h.id))v.state='toHomeLife';else{v.carry=null;v.state='idle';}
 }
 // lezioni: al mattino; con la scuola obbligatoria anche al pomeriggio
-const inClass=()=>S.ph==='work'&&(S.f<0.42||(S.edicts.schoolMandatory&&S.f<DUSK));
+const inClass=()=>S.ph==='work'&&(S.f<TL.lunch0||(S.edicts.schoolMandatory&&S.f<DUSK));
 function schoolFor(v){let best=null,bd=1e9;for(const b of buildings.values()){if(b.type!=='school'||b.state!=='done'||!b.workers.length||(b.pupils|0)>=SCHOOL_CAP)continue;const d=Math.hypot(b.cell%N-v.cell%N,(b.cell/N|0)-(v.cell/N|0));if(d<bd){bd=d;best=b;}}return best;}
 function decide(v){
   const h=v.home&&buildings.get(v.home),ph=S.ph,dusk=ph==='work'&&S.f>=DUSK&&!!h;
@@ -2932,7 +2936,7 @@ function importState(d){
   for(const g of guests)hooks.villager(g);
   hooks.trees();hooks.rocks();hooks.saps();hooks.ground();
 }
-return {startHouseWork,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
+return {TL,startHouseWork,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
   TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,

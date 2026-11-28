@@ -2184,7 +2184,7 @@ function frame2(now){
   DAYC.setHex(SKYS[S.season]);outer.material.color.setHex(OUTS[S.season]);
   snow.visible=S.season===3;
   if(snow.visible){const pa=snowG.attributes.position.array;for(let i=0;i<SNOWN;i++){pa[i*3+1]-=dt*(5+(i%5));pa[i*3]+=Math.sin(clock+i)*dt*0.6;if(pa[i*3+1]<0)pa[i*3+1]=55;}snowG.attributes.position.needsUpdate=true;snow.position.set(cam.x,0,cam.z);}
-  {const f=((S.t+6)%Sim.DAY)/Sim.DAY;let Lh;if(f<0.06)Lh=0;else if(f<0.12)Lh=(f-0.06)/0.06;else if(f<0.76)Lh=1;else if(f<0.88)Lh=1-(f-0.76)/0.12;else Lh=0;
+  {const f=((S.t+6)%Sim.DAY)/Sim.DAY;const T=Sim.TL;let Lh;if(f<T.nAm)Lh=0;else if(f<T.dawn)Lh=(f-T.nAm)/(T.dawn-T.nAm);else if(f<T.eve)Lh=1;else if(f<T.nPm)Lh=1-(f-T.eve)/(T.nPm-T.eve);else Lh=0;
    hemi.intensity=0.32+0.53*Lh;sun.intensity=0.08+0.77*Lh;skyC.copy(NIGHT).lerp(DAYC,Lh);scene.background.copy(skyC);scene.fog.color.copy(skyC);}
   renderer.render(scene,camera);
 }

@@ -78,7 +78,7 @@ let sawD=false;while(Sim.msgCount()){if(Sim.takeMsg().k==='defeat')sawD=true;}ok
 ok(S.war.at>S.t+Sim.DAY*1.5,'la nuova ondata è tra circa due giorni');
 
 console.log('7) salvataggio: titolo, progetti e truppe in marcia');
-story(19);S.rank=4;Sim.buyProject('well');S.rank=4;S.raid.next=1;let gs=0;while(!mil('raid').length&&gs++<2000)Sim.step(0.2);
+story(19);S.rank=4;Sim.buyProject('well');S.rank=4;S.raid.next=1;let gs=0;while(!mil('raid').length&&gs++<Sim.DAY*2/0.2)Sim.step(0.2); // se la prima incursione cade di notte viene rimandata di 1,5 giorni: il tetto è in giorni, non in secondi
 ok(mil('raid').length>0,'ci sono predoni in marcia');
 const raiders=mil('raid').length,proj=Object.keys(S.proj).join(),rk=S.rank;
 const json=JSON.stringify(Sim.exportState());
