@@ -1,5 +1,12 @@
 # Changelog
 
+## v70 – 2026-11-28
+Funzione nuova: i nuovi abitanti arrivano in città a piedi.
+- Chi si trasferisce non compare più alla porta di casa: nasce su una cella libera del **bordo della mappa** (il lato più vicino alla casa scelta, con ripiego sugli altri lati) e cammina fino alla casa. Se nessun lato ha un cammino, compare alla porta come prima.
+- Durante il viaggio è già membro della casa (il posto è prenotato e conta nel CAP); il ruolo mostra "Sta arrivando in paese, in cerca di casa e lavoro"; all'arrivo comincia la sua giornata (bisogni, lavoro). Registro: "Arriva in paese dalla strada…" / "Arriva alla sua nuova casa". Avviso la prima volta.
+- Misura (`tests/arrivi.js`, 5 giorni di gioco): 34 nuovi abitanti, tutti partiti dal bordo e giunti alla loro casa, circa 25 s di cammino medio.
+- Limiti: gli arrivati non portano né cavalli né bagagli e non c'è una porta o un posto di frontiera dedicato (sarebbe il passo successivo, anche per controlli di quarantena all'ingresso). I test lenti `save` e `lotti` falliscono o scadono anche nella versione precedente. Grafica non provata in un browser WebGL.
+
 ## v69.1 – 2026-11-28
 Correzione: `uncommitted()` (scorte libere per il commercio e i cantieri) dava NaN per corde, barre di ferro e armi quando c'era un cantiere aperto, perché `b.got` e `b.fly` non hanno quelle chiavi; il commercio ne ricavava denari NaN. Ora i valori mancanti valgono 0. Il bug c'era già nella v63 (il test `tests/commercio.js` passava o falliva a caso a seconda di un cantiere aperto durante la visita).
 

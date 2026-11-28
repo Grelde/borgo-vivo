@@ -1443,7 +1443,11 @@ function onArrive(v){
       v.cargo=null;v.carry=null;v.state='idle';break;}
     case 'toWork':{const b=buildings.get(v.job)||null;if(b&&b.buf!==undefined)b.buf=Math.min(BUFCAP+2,b.buf+1);v.carry=null;v.state='idle';break;}
     case 'toHomeF':{const h=buildings.get(v.home);if(h)h.goods.grain=Math.min(12,h.goods.grain+(v.cq||1));v.carry=null;v.state='idle';break;}
-    case 'toHomeLife':{const h=buildings.get(v.home);if(h)arriveHome(v,h);else{v.carry=null;v.state='idle';}break;}
+    case 'toHomeLife':{
+      if(v.newc){ // nuovo arrivato: è giunto a piedi in paese, ora comincia la sua vita (casa, bisogni, lavoro)
+        v.newc=false;v.path=[];v.moving=false;v.state='idle';logV(v,'Arriva alla sua nuova casa.');S.arrived=(S.arrived||0)+1;break;
+      }
+      const h=buildings.get(v.home);if(h)arriveHome(v,h);else{v.carry=null;v.state='idle';}break;}
     case 'toErr':{
       const h=buildings.get(v.home);if(!h){v.state='idle';break;}
       const k=v.err.kind;
@@ -3436,6 +3440,21 @@ function merceryBuy(m,h,g){
   const pay=q*MSELL[g];S.coins-=pay;h.cash=(h.cash|0)+pay;h.wk=(h.wk|0)+pay;S.fin.bought+=pay;S.fin.sold+=q;h.msTry=S.t+20;
   return q;
 }
+// v69: chi si trasferisce non compare dal nulla: arriva a piedi dal bordo della mappa (dal lato più vicino alla casa scelta) e cammina fino alla porta
+function arriveNewcomer(pk){
+  const hx=pk.door%N,hy=(pk.door/N)|0,dist={w:hx,e:N-1-hx,n:hy,s:N-1-hy};
+  const sides=['w','e','n','s'].sort((a,b)=>dist[a]-dist[b]);
+  let c=-1,path=null;
+  for(const sd of sides){const e=edgeCell(sd);if(e<0)continue;const p=astar(e,pk.cell,pk.id);if(p&&p.length){c=e;path=p;break;}}
+  const age=18+Math.random()*18;
+  if(!path){ // nessun cammino dal bordo (mappa chiusa): compare alla porta come prima
+    const v=addVillager(cx2w(pk.door%N),cy2w((pk.door/N)|0),age);v.home=pk.id;pk.members.push(v.id);logV(v,'Arriva in paese in cerca di casa e lavoro.');return;
+  }
+  const v=addVillager(cx2w(c%N),cy2w((c/N)|0),age);
+  v.home=pk.id;pk.members.push(v.id);v.newc=true;v.path=path;v.state='toHomeLife';v.moving=true;v.next='sleep';
+  logV(v,'Arriva in paese dalla strada in cerca di casa e lavoro.');
+  tell('newcomer','I nuovi abitanti arrivano a piedi dai confini della mappa e raggiungono le case libere: più il paese è felice e ha lavoro, più gente arriva.');
+}
 function tick1(){
   updClock();
   taxDayTick();
@@ -3491,7 +3510,7 @@ function tick1(){
     if(!pk&&villagers.length>=capD)for(const b of buildings.values())if(b.type==='house'&&b.state==='done'&&b.members.length<capOf(b)+2&&b.attr>-4.5){
       const sc=b.attr+(capOf(b)-b.members.length)*0.3+lone(b)+b.well*0.01+imm(b);if(sc>ps){ps=sc;pk=b;}
     }
-    if(pk){S.grow=0;const v=addVillager(cx2w(pk.door%N),cy2w((pk.door/N)|0),18+Math.random()*18);v.home=pk.id;pk.members.push(v.id);logV(v,'Arriva in paese in cerca di casa e lavoro.');}
+    if(pk){S.grow=0;arriveNewcomer(pk);}
     else tell('noisy','Nessuno vuole trasferirsi nelle case più rumorose: costruisci pozzi, mercati o chiese per rendere le zone più attraenti.');
   }
 }
@@ -3533,7 +3552,7 @@ function roleText(v){
     case 'war':return 'Combatte contro i nemici';
     case 'sleep':return 'Riposa a casa';
     case 'eat':return 'Mangia a casa';
-    case 'toHomeLife':return v.ill?'Torna a casa, malato':v.next==='eat'?'Torna a casa per il pasto':'Torna a casa';
+    case 'toHomeLife':return v.newc?'Sta arrivando in paese, in cerca di casa e lavoro':v.ill?'Torna a casa, malato':v.next==='eat'?'Torna a casa per il pasto':'Torna a casa';
     case 'toWell':case 'draw':return "Prende l'acqua al pozzo";
     case 'toPlaza':case 'chat':return 'Si ferma a chiacchierare in piazza';
     case 'toChurch':case 'pray':return 'Prega in chiesa';
