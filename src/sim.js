@@ -3038,12 +3038,12 @@ const PROJ=[
   {id:'tannery',br:'tessile',rank:5,cost:{wood:16,stone:8,coins:30}},{id:'cobbler',br:'tessile',rank:6,req:['tannery'],cost:{wood:14,stone:6,coins:40}},
   {id:'dyehouse',br:'tessile',rank:6,req:['retting','weaver'],cost:{wood:20,stone:10,coins:40}},
   {id:'flowers',br:'decoro',rank:6,req:['plaza'],cost:{wood:4,coins:10}},{id:'statue',br:'decoro',rank:6,req:['plaza'],cost:{stone:16,coins:50}},
-  // v87: gli editti si sbloccano nell'albero (ramo «Editti del Re»). Resta sempre disponibile solo il divieto di avanzamento delle case (`noUpgrade`).
-  {id:'e_noImmig',ed:'noImmig',br:'editti',rank:2,cost:{wood:6,stone:4}},{id:'e_woodDuty',ed:'woodDuty',br:'editti',rank:2,cost:{wood:8}},
+  // v87: gli editti si sbloccano nell'albero (ramo «Editti del Re»). Restano sempre disponibili il divieto di avanzamento delle case (`noUpgrade`) e il blocco dell'immigrazione (`noImmig`).
+  {id:'e_woodDuty',ed:'woodDuty',br:'editti',rank:2,cost:{wood:8}},
   {id:'e_birthBonus',ed:'birthBonus',br:'editti',rank:3,cost:{wood:10,stone:6}},{id:'e_schoolMandatory',ed:'schoolMandatory',br:'editti',rank:3,cost:{wood:12,stone:8}},
-  {id:'e_quarantine',ed:'quarantine',br:'editti',rank:4,req:['e_noImmig'],cost:{wood:14,stone:10}}
+  {id:'e_quarantine',ed:'quarantine',br:'editti',rank:4,cost:{wood:14,stone:10}}
 ];
-const EXTRA_NAMES={dowse:'Rabdomante',nocut:'Bosco protetto',e_noImmig:'Editto: blocco immigrazione',e_woodDuty:'Editto: obbligo di legna',e_birthBonus:'Editto: incentivo nascite',e_schoolMandatory:'Editto: istruzione obbligatoria',e_quarantine:'Editto: quarantena'};
+const EXTRA_NAMES={dowse:'Rabdomante',nocut:'Bosco protetto',e_woodDuty:'Editto: obbligo di legna',e_birthBonus:'Editto: incentivo nascite',e_schoolMandatory:'Editto: istruzione obbligatoria',e_quarantine:'Editto: quarantena'};
 const PROJ_BY=Object.fromEntries(PROJ.map(p=>[p.id,p]));
 const PROJ_NAMES=Object.fromEntries(PROJ.map(p=>[p.id,EXTRA_NAMES[p.id]||({d2:'Zona agricola',d3:'Zona di mercato',d4:'Zona forestale',d5:'Zona di pascolo',d6:'Zona ad alta densità'})[p.id]||(BT[p.id]?BT[p.id].name:p.id)]));
 // strumenti che si possiedono insieme a un altro progetto (togliere la protezione dal bosco si può se si può metterla)

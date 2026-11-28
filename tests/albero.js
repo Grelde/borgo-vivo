@@ -90,32 +90,33 @@ r=Sim.buyProject('mill');ok(!r.ok&&/già tuo/.test(r.msg),'e non si compra due v
 Math.random=mulberry(11);Sim.init(11,'lake');
 ok(Sim.PROJ.every(p=>Sim.projectState(p.id).need.length===0),'fuori dalla modalità storia nessun prerequisito manca');
 
-console.log('7) editti nell\'albero (v87)');
+console.log('7) editti nell\'albero (v87.1)');
+const FREE_ED=['noUpgrade','noImmig']; // sempre disponibili, fuori dall'albero
 const EDP=Sim.PROJ.filter(p=>p.ed);
 story(12);
-ok(EDP.length===5&&EDP.every(p=>p.br==='editti'&&p.id==='e_'+p.ed),'cinque editti nel ramo «Editti del Re», id e_<chiave>');
-ok(Object.keys(S.edicts).every(k=>k==='noUpgrade'||EDP.some(p=>p.ed===k)),'ogni editto, tranne il divieto di avanzamento, ha il suo progetto');
-ok(!EDP.some(p=>p.ed==='noUpgrade'),'il divieto di avanzamento delle case non è nell\'albero');
+ok(EDP.length===4&&EDP.every(p=>p.br==='editti'&&p.id==='e_'+p.ed),'quattro editti nel ramo «Editti del Re», id e_<chiave>');
+ok(Object.keys(S.edicts).every(k=>FREE_ED.includes(k)||EDP.some(p=>p.ed===k)),'ogni editto, tranne i due sempre disponibili, ha il suo progetto');
+ok(!EDP.some(p=>FREE_ED.includes(p.ed)),'divieto di avanzamento delle case e blocco dell\'immigrazione non sono nell\'albero');
 ok(EDP.every(p=>Sim.PROJ_NAMES[p.id]&&/^Editto: /.test(Sim.PROJ_NAMES[p.id])),'nomi leggibili «Editto: …»');
-ok(Sim.setEdict('noUpgrade',true)&&S.edicts.noUpgrade===true,'il divieto di avanzamento si emana subito, senza comprare nulla');
-ok(Sim.setEdict('noUpgrade',false)&&S.edicts.noUpgrade===false,'e si ritira');
+for(const k of FREE_ED){ok(Sim.setEdict(k,true)&&S.edicts[k]===true,k+' si emana subito, senza comprare nulla');ok(Sim.setEdict(k,false)&&S.edicts[k]===false,k+' si ritira');}
+ok(Sim.owns('e_noImmig'),'il blocco dell\'immigrazione risulta sempre posseduto (nessun progetto)');
 for(const p of EDP){ok(!Sim.setEdict(p.ed,true)&&S.edicts[p.ed]===false,'senza il progetto non si emana: '+p.ed);}
 ok(Sim.setEdict('nonEsiste',true)===false,'un editto sconosciuto è ignorato');
-S.rank=1;r=Sim.buyProject('e_noImmig');ok(!r.ok&&/Villaggio/.test(r.msg),'prima il titolo del Re: '+r.msg);
-S.rank=2;S.stock.wood=0;r=Sim.buyProject('e_noImmig');ok(!r.ok&&/Non basta/.test(r.msg),'servono le risorse: '+r.msg);
+S.rank=1;r=Sim.buyProject('e_woodDuty');ok(!r.ok&&/Villaggio/.test(r.msg),'prima il titolo del Re: '+r.msg);
+S.rank=2;S.stock.wood=0;r=Sim.buyProject('e_woodDuty');ok(!r.ok&&/Non basta/.test(r.msg),'servono le risorse: '+r.msg);
 S.stock.wood=500;S.stock.stone=500;
-const w1=S.stock.wood;r=Sim.buyProject('e_noImmig');ok(r.ok&&/editto/i.test(r.msg)&&S.stock.wood===w1-6,'il blocco immigrazione costa 6 legno: '+r.msg);
-ok(Sim.setEdict('noImmig',true)&&S.edicts.noImmig===true,'ora si emana');
-ok(Sim.setEdict('noImmig',false)&&S.edicts.noImmig===false,'e si ritira');
-ok(!Sim.setEdict('woodDuty',true),'gli altri restano bloccati');
+ok(!Sim.setEdict('woodDuty',true),'finché non è comprato l\'obbligo di legna non si emana');
+const w1=S.stock.wood;r=Sim.buyProject('e_woodDuty');ok(r.ok&&/editto/i.test(r.msg)&&S.stock.wood===w1-8,'l\'obbligo di legna costa 8 legno: '+r.msg);
+ok(Sim.setEdict('woodDuty',true)&&S.edicts.woodDuty===true,'ora si emana');
+ok(Sim.setEdict('woodDuty',false)&&S.edicts.woodDuty===false,'e si ritira');
+ok(!Sim.setEdict('birthBonus',true),'gli altri restano bloccati');
 r=Sim.buyProject('e_quarantine');ok(!r.ok&&/Borgo fortificato/.test(r.msg),'la quarantena è del titolo Borgo fortificato: '+r.msg);
-S.rank=4;S.proj={};r=Sim.buyProject('e_quarantine');ok(!r.ok&&r.need&&r.need[0]==='e_noImmig','la quarantena vuole il blocco dell\'immigrazione: '+r.msg);
-Sim.buyProject('e_noImmig');r=Sim.buyProject('e_quarantine');ok(r.ok,'poi si compra');
+S.rank=4;S.proj={};r=Sim.buyProject('e_quarantine');ok(r.ok,'a Borgo fortificato la quarantena si compra (nessun prerequisito)');
 ok(Sim.setEdict('quarantine',true)&&S.edicts.quarantine,'e si emana');
 // ritirare è sempre permesso, anche se (per un salvataggio strano) l'editto è attivo e non è tuo
-S.edicts.woodDuty=true;ok(Sim.setEdict('woodDuty',false)&&!S.edicts.woodDuty,'un editto attivo ma non posseduto si può sempre ritirare');
+S.edicts.birthBonus=true;ok(Sim.setEdict('birthBonus',false)&&!S.edicts.birthBonus,'un editto attivo ma non posseduto si può sempre ritirare');
 // il badge del pulsante non dipende dagli editti (controllato in render): qui verifichiamo solo che projectState esponga il tipo
-ok(Sim.projectState('e_noImmig').ed==='noImmig'&&Sim.projectState('well').ed===null,'projectState dice se è un editto');
+ok(Sim.projectState('e_woodDuty').ed==='woodDuty'&&Sim.projectState('well').ed===null,'projectState dice se è un editto');
 // la strada dei titoli non dipende da nessun editto
 ok(!EDP.some(p=>Object.values(NEED_BLDG).flat().includes(p.id)),'nessun titolo del Re richiede un editto');
 
@@ -126,7 +127,7 @@ Math.random=mulberry(77);Sim.importState(old);
 ok(S.edp===1,'il salvataggio viene marcato come migrato');
 ok(Sim.owns('dowse'),'il Rabdomante, prima sempre disponibile, resta tuo');
 ok(Sim.owns('nocut')&&Sim.owns('cutok'),'il bosco protetto (e togliere la protezione), prima sempre disponibili, restano tuoi');
-ok(['e_noImmig','e_woodDuty','e_birthBonus','e_schoolMandatory'].every(id=>Sim.owns(id)),'editti dei titoli già raggiunti (fino a Borgo) concessi');
+ok(['e_woodDuty','e_birthBonus','e_schoolMandatory'].every(id=>Sim.owns(id)),'editti dei titoli già raggiunti (fino a Borgo) concessi');
 ok(Sim.owns('e_quarantine')&&S.edicts.quarantine===true,'e quello in vigore resta tuo e in vigore');
 ok(S.edicts.noUpgrade===true,'il divieto di avanzamento resta com\'era');
 const again=JSON.parse(JSON.stringify(Sim.exportState()));Math.random=mulberry(78);Sim.importState(again);

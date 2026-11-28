@@ -1,5 +1,13 @@
 # Changelog
 
+## v87.1 – 2026-11-28
+Ritocco alla regola degli editti (v87): anche il **blocco dell'immigrazione** è sempre disponibile fin dall'inizio, come il divieto di avanzamento delle case.
+- `e_noImmig` esce dall'albero: ora il ramo «Editti del Re» ha 4 progetti (obbligo di legna, incentivo nascite, istruzione obbligatoria, quarantena). Restano sempre disponibili (si emanano e si ritirano dal pannello 📜 senza comprare nulla) `noUpgrade` e `noImmig`.
+- La quarantena (Borgo fortificato) non richiede più il blocco dell'immigrazione: non ha prerequisiti.
+- Salvataggi: nessuna migrazione necessaria. Chi aveva già comprato `e_noImmig` nella v87 ha una chiave in più in `S.proj` che non fa nulla; il blocco dell'immigrazione si emana comunque.
+- Test: `tests/albero.js` a 89 controlli (editti sempre disponibili, esempio di acquisto con l'obbligo di legna, quarantena senza prerequisiti).
+- Non verificato in un browser WebGL: aspetto del pannello 📜.
+
 ## v87 – 2026-11-28
 Funzione nuova: gli editti si sbloccano nell'albero dei progetti. Revisione dell'albero rispetto alle novità di v68-v86.
 - **Editti nell'albero:** nuovo ramo «Editti del Re» con 5 progetti. Blocco immigrazione (Villaggio, 6 legno + 4 pietra), Obbligo di legna (Villaggio, 8 legno), Incentivo alle nascite (Borgo, 10 legno + 6 pietra), Istruzione obbligatoria (Borgo, 12 legno + 8 pietra), Quarantena (Borgo fortificato, 14 legno + 10 pietra, richiede il blocco dell'immigrazione). Comprato il progetto, l'editto si emana e si ritira quando si vuole dal pannello 📜, come prima.

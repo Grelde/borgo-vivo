@@ -1600,7 +1600,7 @@ function renderEdicts(){
       return `<div class="edC lock"><div class="ic">🔒</div><div><b>${e.t}</b><span class="d">${e.d}</span><span class="fx">${why}.</span></div><button class="btn" type="button" data-edp="${pid}">Nell'albero</button><div class="seal">✠</div></div>`;
     }
     return `<div class="edC${E[e.k]?' on':''}"><div class="ic">${e.ic}</div><div><b>${e.t}</b><span class="d">${e.d}</span><span class="fx">${E[e.k]?'In vigore · ':''}${e.fx}</span></div><button class="btn" type="button" data-ed="${e.k}">${E[e.k]?'Ritira':'Emana'}</button><div class="seal">✠</div></div>`;
-  }).join('')+(inf.story?'<div class="edC lock"><div class="ic">🏛️</div><div><b>Gli altri editti</b><span class="d">Si sbloccano nell\'albero dei progetti del Re (🏛️), ramo «Editti del Re». Il divieto di avanzamento delle case è sempre a tua disposizione.</span></div></div>':'');
+  }).join('')+(inf.story?'<div class="edC lock"><div class="ic">🏛️</div><div><b>Gli altri editti</b><span class="d">Si sbloccano nell\'albero dei progetti del Re (🏛️), ramo «Editti del Re». Il divieto di avanzamento delle case e il blocco dell\'immigrazione sono sempre a tua disposizione.</span></div></div>':'');
 }
 function openEdicts(v){$('edicts').hidden=!v;$('edictBtn').classList.toggle('on',!!v);if(v)renderEdicts();}
 $('edictBtn').addEventListener('click',()=>openEdicts($('edicts').hidden));
