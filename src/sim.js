@@ -140,7 +140,7 @@ const T_KEEP={salt:12,cured:16,cheese:10,beer:10,wine:10,weapons:99,bars:10,rope
 const mkRoutes=()=>ROUTE_IDS.map(id=>({id,open:false,next:0,visits:0,earned:0,spent:0,last:-1,blocked:false}));
 const S={t:0,mode:'lake',extra:{},stock:{wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0},inflight:{wood:0,stone:0,iron:0},grow:0,barters:0,helps:0,visits:0,settled:0,season:0,year:1,frozen:false,day:0,f:0.06,ph:'work',wh:{wood:0,stone:0,iron:0},xf:{wood:0,stone:0,iron:0},edicts:EDICT0(),births:0,deaths:0,buried:0,unburied:0,
   deathsBy:{age:0,cold:0,hunger:0,ill:0},plague:{on:false,since:0,dead:0},inherits:0,cured:0,sickTot:0,moves:0,left:0,att:{joy:0,unemp:0,a:0,bonus:0},made:{},delivered:0,
-  coins:COINS0,fin:mkFin(),taxDay:-1,routes:mkRoutes(),tradeOpt:{sell:true,buy:true},tlog:[],trade:{sold:0,bought:0,visits:0},
+  coins:COINS0,fin:mkFin(),taxDay:-1,taxRate:'normal',ledger:{snap:null,rows:[]},routes:mkRoutes(),tradeOpt:{sell:true,buy:true},tlog:[],trade:{sold:0,bought:0,visits:0},
   story:false,rank:0,proj:{},msgs:[],raid:{next:0,repelled:0,killed:0,lost:0,stolen:0,bands:{},seq:0},wolf:{next:0,seq:0,arm:0,killed:0,lost:0,eaten:0,bitten:0,dead:0,bands:{}},war:{phase:'none',at:0,wave:0,hold:0,defeats:0,killed:0},rk:0};
 const guests=[];const buildings=new Map();let villagers=[];const vmap=new Map();const resv=new Map();const plantResv=new Set();let nextId=1;
 const acc={a1:0,a05:0,farm:0,attr:99};
@@ -252,7 +252,7 @@ function genTerrain(mode,sd,att){
   const R=mulberry((Math.imul(sd|0,2654435761)^Math.imul(att+1,40503))>>>0);
   const rr=(a,b)=>a+(b-a)*R(),ri=(a,b)=>Math.floor(rr(a,b+1)),cl=(v,a,b)=>Math.max(a,Math.min(b,v));
   const M=N/SC,CX=CT,CY=CT,K=M/64,K2=Math.round(K*K);
-  const seaSide=S.sea?Math.floor(R()*4):-1;   // v79: il lato del mare si sceglie prima, perché il fiume sfocia in mare
+  const seaSide=S.sea?Math.floor(R()*4):-1;   // v80: il lato del mare si sceglie prima, perché il fiume sfocia in mare
   for(const a of [tree,rock,ore,water])a.fill(0);
   // boschi e rocce di fondo: soglia e scala del rumore cambiano da mappa a mappa (valli più fitte o più aperte)
   const tth=rr(0.585,0.655),rth=rr(0.70,0.76),fq=rr(0.10,0.15);
@@ -418,7 +418,7 @@ function computeEnv(nat){
   let mx=0,my=0;for(const i of ws){mx+=i%N;my+=(i/N)|0;}mx/=ws.length;my/=ws.length;
   let sxx=0,syy=0,sxy=0;for(const i of ws){const dx=(i%N)-mx,dy=((i/N)|0)-my;sxx+=dx*dx;syy+=dy*dy;sxy+=dx*dy;}
   const ang=0.5*Math.atan2(2*sxy,sxx-syy);let gx=Math.cos(ang),gy=Math.sin(ang);
-  if(S.sea&&S.seaSide>=0){const sx=[1,0,-1,0][S.seaSide],sy=[0,1,0,-1][S.seaSide];if(gx*sx+gy*sy<0){gx=-gx;gy=-gy;}}   // v79: con il mare il fiume scorre verso il mare
+  if(S.sea&&S.seaSide>=0){const sx=[1,0,-1,0][S.seaSide],sy=[0,1,0,-1][S.seaSide];if(gx*sx+gy*sy<0){gx=-gx;gy=-gy;}}   // v80: con il mare il fiume scorre verso il mare
   else if(hash(11,17)<0.5){gx=-gx;gy=-gy;}                // il seme decide da che parte scorre il fiume
   const dB=distField(i=>!water[i]),RW=14;
   let sum=0;
@@ -477,7 +477,7 @@ function init(sd,mode,diff,opt){
   occ.fill(0);field.fill(0);lastStep.fill(0);wear.fill(0);plev.fill(0);phit.fill(0);pexp.fill(0);attr.fill(0);sapT.fill(0);
   buildings.clear();stCache=null;villagers=[];vmap.clear();reg.clear();resv.clear();plantResv.clear();nextId=1;guests.length=0;
   S.t=0;S.festA=[];S.fests=0;festSeq=0;S.edicts=EDICT0();S.births=0;S.deaths=0;S.buried=0;S.unburied=0;S.extra={};S.wh={wood:0,stone:0,iron:0};S.xf={wood:0,stone:0,iron:0};S.stock={wood:40,stone:10,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,rope:0,charcoal:0,bars:0,weapons:0,clay:0,bricks:0,lime:0,salt:0,cured:0,cheese:0,beer:0,wine:0};S.inflight={wood:0,stone:0,iron:0};S.grow=0;S.left=0;S.att={joy:0,unemp:0,a:0,bonus:0};S.barters=0;S.helps=0;S.visits=0;S.settled=0;S.season=0;S.year=1;S.frozen=false;acc.a1=0;acc.a05=0;acc.farm=0;acc.attr=99;for(const k in told)delete told[k];
-  S.deathsBy={age:0,cold:0,hunger:0,ill:0};S.plague={on:false,since:0,dead:0};S.inherits=0;S.cured=0;S.sickTot=0;S.moves=0;S.made={};S.delivered=0;S.coins=COINS0;S.fin=mkFin();S.taxDay=-1;S.routes=mkRoutes();S.tradeOpt={sell:true,buy:true};S.tlog=[];S.trade={sold:0,bought:0,visits:0};
+  S.deathsBy={age:0,cold:0,hunger:0,ill:0};S.plague={on:false,since:0,dead:0};S.inherits=0;S.cured=0;S.sickTot=0;S.moves=0;S.made={};S.delivered=0;S.coins=COINS0;S.fin=mkFin();S.taxDay=-1;S.taxRate='normal';S.ledger={snap:null,rows:[]};S.routes=mkRoutes();S.tradeOpt={sell:true,buy:true};S.tlog=[];S.trade={sold:0,bought:0,visits:0};
   S.story=!!(opt&&opt.story);S.rank=0;S.proj={};S.msgs=[];S.raid=raid0();S.wolf=wolf0();S.war=war0();S.rk=0;
   let okT=false,att=0;const base=(sd||7)|0;
   for(;att<48&&!okT;att++){genTerrain(S.mode,base,att);okT=terrainOK(S.mode);}
@@ -2265,6 +2265,8 @@ function joyOf(v){
   if(h&&h.level>=2&&h.flags.church&&v.n.church>=40)s+=6; // andare in chiesa consola
   for(const k of NK)if(v.n[k]<25)s-=(25-v.n[k])*0.4; // bisogni insoddisfatti pesano (fino a 10 punti ciascuno)
   if(h&&h.state==='done'){s+=h.fun||0;s+=festJoy(h);if(h.level>=3&&h.goods.clothes>=1)s+=3;} // v32: taverna e sala delle feste vicine, abiti in casa
+  if(taxAct)s+=TAX_JOY[S.taxRate]||0; // v80: editto delle tasse
+  if(h&&(h.owed|0)>0&&wagePayer()==='town')s-=h.owed>=WAGE_OWE_CAP?15:h.owed>=11?10:4; // v80: stipendi arretrati
   if(v.trait==='brontolone')s-=18;
   else if(v.trait==='litigioso')s-=6;
   if(h){let q=0;for(const id of h.members){if(id===v.id)continue;const o=vmap.get(id);if(o&&o.trait==='litigioso')q++;}s-=Math.min(3,q)*5;}
@@ -3455,7 +3457,28 @@ const MSELL={tools:3,bread:1,cloth:2,clothes:5},MSELL_KEEP={tools:2,bread:3,clot
 function mkFin(){return {wages:0,king:0,town:0,unpaid:0,bill:0,tax:0,due:0,short:0,visits:0,bought:0,refused:0,sold:0};}
 // v77: tassa settimanale per livello della casa (d'argento): il raddoppio 1, 2, 4, 8, 16 più 25% (arrotondato), così con l'aliquota normale le tasse coprono circa 3/4 degli stipendi di una Città media
 const TAX_TABLE=[1,3,5,10,20];
-const taxOf=lv=>TAX_TABLE[Math.min(TAX_TABLE.length,Math.max(1,lv|0))-1];
+// v80: editto delle tasse. Aliquota bassa (la gente è più contenta), normale (copre circa 3/4 degli stipendi), alta (doppia, scontenta e fa rinunciare a migliorare la casa)
+const TAX_RATES={low:[0,1,2,5,10],normal:TAX_TABLE,high:[2,6,10,20,40]},TAX_JOY={low:2,normal:0,high:-6};
+const taxOf=lv=>(TAX_RATES[S.taxRate]||TAX_TABLE)[Math.min(TAX_TABLE.length,Math.max(1,lv|0))-1];
+function setTaxRate(k){if(!TAX_RATES[k])return {ok:false};S.taxRate=k;taxAct=taxActive();return {ok:true};}
+// v80: registro settimanale della cassa (ultime 8 settimane): entrate e uscite ricavate dai contatori
+const LEDGER_KEEP=8;
+const ledgerSnap=()=>({day:S.day,coins:S.coins,tax:S.fin.tax,sold:S.trade.sold,tbought:S.trade.bought,town:S.fin.town,mbought:S.fin.bought,hired:S.fin.hired|0});
+function ledgerTick(){
+  if(!S.ledger)S.ledger={snap:null,rows:[]};const L=S.ledger;
+  if(!L.snap){L.snap=ledgerSnap();return;}
+  if(S.day-L.snap.day<TAX_WEEK)return;
+  const a=L.snap,b=ledgerSnap();
+  const r={wk:L.rows.length?L.rows[0].wk+1:1,day:b.day,tax:b.tax-a.tax,trade:b.sold-a.sold,wages:b.town-a.town,buy:b.mbought-a.mbought,spent:b.tbought-a.tbought,hired:b.hired-a.hired,rate:S.taxRate};
+  r.in=r.tax+r.trade;r.out=r.wages+r.buy+r.spent+r.hired;r.net=Math.round(b.coins-a.coins);r.other=r.net-(r.in-r.out);
+  L.rows.unshift(r);if(L.rows.length>LEDGER_KEEP)L.rows.length=LEDGER_KEEP;L.snap=b;
+}
+// previsione: tasse attese (circa 78% di quanto dovuto) contro il conto degli stipendi di una settimana
+function taxForecast(){
+  let weekly=0;for(const o of buildings.values())if(o.type==='house'&&o.state==='done')weekly+=taxOf(o.level);
+  const exp=Math.round(weekly*0.78),wages=((S.fin&&S.fin.bill)|0)*TAX_WEEK;
+  return {weekly,expect:exp,wages,cover:wages>0?exp/wages:null};
+}
 const money=n=>{n=Math.max(0,Math.floor(n)|0);const g=Math.floor(n/SILVER_GOLD),a=n%SILVER_GOLD;return g?g+' oro'+(a?' '+a+' arg':''):a+' arg';};
 const taxOpen=o=>o.type==='taxoffice'&&o.state==='done'&&o.workers.length>0;
 const taxActive=()=>{for(const o of buildings.values())if(taxOpen(o))return true;return false;};
@@ -3465,10 +3488,13 @@ function wageTick(v){
   if(!jb||jb.state!=='done'||jb.owner||!v.home||v.child||v.ill||v.state==='war'||LIFEST.has(v.state))return;
   v.wsec=(v.wsec|0)+1;
 }
+let taxAct=false;
 function taxDayTick(){
+  taxAct=taxActive();
   if(!Number.isFinite(S.taxDay)||S.taxDay<0){S.taxDay=S.day;S.payer=wagePayer();return;}
   const n=S.day-S.taxDay;if(n<=0)return;S.taxDay=S.day;
   if(!S.fin)S.fin=mkFin();
+  ledgerTick();
   const town=wagePayer()==='town';
   if(S.payer!==undefined&&S.payer!==wagePayer()&&town)tell('cityPays',"Siete diventati una Città: il Re non paga più gli stipendi, d'ora in poi li paga la cassa del paese con le tasse e il commercio. Se la cassa non basta, gli stipendi restano arretrati.");
   S.payer=wagePayer();
@@ -3841,7 +3867,7 @@ function importState(d){
   Object.assign(S,Sx);lastStep.fill(S.t||0);
   S.extra=(S.extra&&typeof S.extra==='object')?S.extra:{};S.edicts=Object.assign(EDICT0(),S.edicts);S.stock=Object.assign({wood:0,stone:0,iron:0,grain:0,flour:0,planks:0,tools:0,cloth:0,clothes:0,bread:0,fish:0,meat:0,rope:0,charcoal:0,bars:0,weapons:0,clay:0,bricks:0,lime:0,salt:0,cured:0,cheese:0,beer:0,wine:0},S.stock);
   for(const k of ['wh','xf','inflight'])S[k]=Object.assign({wood:0,stone:0,iron:0},S[k]);
-  S.coins=Number.isFinite(S.coins)?S.coins:COINS0;S.fin=Object.assign(mkFin(),S.fin);S.taxDay=Number.isFinite(S.taxDay)?S.taxDay:-1;{const rt=Array.isArray(S.routes)?S.routes:[];S.routes=mkRoutes().map(r=>Object.assign(r,rt.find(x=>x&&x.id===r.id)||{}));}S.tradeOpt=Object.assign({sell:true,buy:true},S.tradeOpt);S.tlog=Array.isArray(S.tlog)?S.tlog:[];S.trade=Object.assign({sold:0,bought:0,visits:0},S.trade);
+  S.coins=Number.isFinite(S.coins)?S.coins:COINS0;S.fin=Object.assign(mkFin(),S.fin);if(!TAX_RATES[S.taxRate])S.taxRate='normal';if(!S.ledger||!Array.isArray(S.ledger.rows))S.ledger={snap:null,rows:[]};S.taxDay=Number.isFinite(S.taxDay)?S.taxDay:-1;{const rt=Array.isArray(S.routes)?S.routes:[];S.routes=mkRoutes().map(r=>Object.assign(r,rt.find(x=>x&&x.id===r.id)||{}));}S.tradeOpt=Object.assign({sell:true,buy:true},S.tradeOpt);S.tlog=Array.isArray(S.tlog)?S.tlog:[];S.trade=Object.assign({sold:0,bought:0,visits:0},S.trade);
   S.mode=S.mode==='river'?'river':'lake';S.diff=DIFFS[S.diff]?S.diff:'facile';S.repairs=S.repairs|0;S.ruined=S.ruined|0;
   windP=null;computeEnv(naturalTerrain());   // v64: fertilità e corrente si ricavano dall'acqua e dal seme, il vento dal seme: niente da salvare
   for(const k of Object.keys(acc))delete acc[k];Object.assign(acc,{a1:0,a05:0,farm:0,attr:99},ac);
@@ -3867,7 +3893,7 @@ function importState(d){
 return {MT,CT,CEN,dowse,soilOf,soilF,soilName,AQ_FIND_R,AQ_COST,TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWanted,WEAPON_PER_POST,startHouseWork,mergeTick,trySpawnDense,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,EDUREQ,EDU_BLD,IMM_LIT,HIRE_COST,canWorkAt,eduBld,hireEducated,hireNeeded,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,NEEDS,NEED_LOW,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
-  TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,WAGE_JOB,EDU_JOBS,CITY_RANK,WAGE_OWE_CAP,wageJob,wageOf,wagePayer,TAX_TABLE,TAX_WEEK,TAX_POUCH,WAGE,WAGE_SEC,SILVER_GOLD,TAX_MARGIN,MSELL,MSELL_KEEP,MSELL_LIM,taxOf,money,taxActive,taxStats,taxDue,taxRefuses,merceryTakes,merceryBuy,merceryBuyer,jobless,kingJob,cityMakes,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
+  TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,WAGE_JOB,EDU_JOBS,CITY_RANK,WAGE_OWE_CAP,wageJob,wageOf,wagePayer,TAX_TABLE,TAX_WEEK,TAX_POUCH,WAGE,WAGE_SEC,SILVER_GOLD,TAX_MARGIN,MSELL,MSELL_KEEP,MSELL_LIM,taxOf,joyOf,TAX_RATES,TAX_JOY,setTaxRate,taxForecast,ledgerTick,money,taxActive,taxStats,taxDue,taxRefuses,merceryTakes,merceryBuy,merceryBuyer,jobless,kingJob,cityMakes,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
   setFarmCrop,fibreCrop,sinkOf,CHAR_CAP,BAR_CAP,CLAY_CAP,BRICK_CAP,LIME_CAP,MATS,BAND,SALT_CAP,CURED_CAP,CHEESE_CAP,BEER_CAP,WINE_CAP,MILK_CAP,MEAT_KEEP,FISH_KEEP,GRAIN_KEEP,retInfo,RET_CAP,DIFFS,diffOf,maintStats,condOf,condLabel,maintainable,REPAIR_BELOW,WORN_AT,
   STORE_KEYS,GRAN_KEYS,GRAN_TOTAL,CENTER_CAP,setPolicy,storeInfo,stockRoom,capRes,reconcileStock,extraTotal,festTakeFood,
   _t:{eatOne,drinkTick,FISH_CYCLE,FAM_FISH_RATE,FAM_FISH_Q,famFishTime,jobNeed,jobSurplus,rebalanceJobs,JOBRES,JOB_MARGIN,JOB_DWELL,tradeTick,doTrade,chooseTier,startPlague,fallIll,killV,tick1,addVillager,addBuilding,vmap,buildings:()=>buildings},

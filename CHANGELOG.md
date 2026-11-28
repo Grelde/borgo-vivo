@@ -1,5 +1,12 @@
 # Changelog
 
+## v80 – 2026-11-28
+Cambio di regole: editto delle tasse, bilancio della cassa, conseguenze degli stipendi arretrati.
+- **Editto delle tasse** (registro dei commerci, cliccando sulla cassa): aliquota **Bassa** (0, 1, 2, 5, 10 d'argento a settimana per livello della casa, abitanti +2 di felicità), **Normale** (1, 3, 5, 10, 20, copre circa 3/4 degli stipendi) o **Alta** (2, 6, 10, 20, 40, abitanti −6 di felicità e più famiglie rinunciano a migliorare la casa). L'effetto sulla felicità c'è solo se un ufficio delle tasse è aperto. Salvato nella partita (`S.taxRate`).
+- **Bilancio settimanale:** nel registro dei commerci una tabella delle ultime 8 settimane (tasse, commercio, stipendi, altre spese, saldo) e una previsione (tasse attese ≈78% del dovuto contro gli stipendi di una settimana, con la percentuale di copertura). Dati in `S.ledger`.
+- **Arretrati:** quando paga la cassa del paese (Città) e non basta, la famiglia in credito è scontenta: −4 di felicità, −10 da 11 d'argento di arretrato, −15 al tetto (21). Lo dice il pannello della casa.
+- Test nuovo: `tests/bilancio.js`. Non verificato in un browser WebGL (solo smoke test in Node).
+
 ## v79 – 2026-11-28
 Ritocco di regole: la grandezza della mappa si sceglie, e con il mare il fiume sfocia in mare.
 - **Mappa grande o normale:** nel menu di nuova partita due pulsanti, «Mappa grande» (128×128 tile, la v78) e «Mappa normale» (64×64, più raccolta e leggera per i telefoni). Le griglie hanno una misura fissa, quindi la scelta si salva (`bv_mt` in localStorage) e la pagina si **ricarica** tornando subito al menu (`setMapSize`, `sessionStorage` `bv_menu`). Il predefinito resta la mappa grande.

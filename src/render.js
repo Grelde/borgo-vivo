@@ -1566,6 +1566,10 @@ function renderTrade(force){
   const hasHub=[...Sim.buildings().values()].some(b=>b.type==='mercery'&&b.state==='done');
   let h=`<div class="trTop"><div class="trPurse">Denari in cassa: <b>${Sim.money(S.coins)}</b></div><div class="trOpt"><button class="btn${O.sell?'':' off'}" type="button" data-topt="sell">Vendi eccedenze: ${O.sell?'sì':'no'}</button><button class="btn${O.buy?'':' off'}" type="button" data-topt="buy">Compra il necessario: ${O.buy?'sì':'no'}</button></div></div>`;
   {const ts=Sim.taxStats();h+=`<p class="trRule">${ts.payer==='king'?'Gli stipendi li paga il Re finché il paese non diventa una Città; poi li paga la cassa del paese.':'Gli stipendi li paga la cassa del paese.'} Stipendi di ieri: ${Sim.money(ts.bill)}${ts.owed?` · arretrati dovuti alle famiglie: ${Sim.money(ts.owed)}`:''} · tasse di una settimana: ${Sim.money(ts.weekly)}.</p>`;}
+  {const R=S.taxRate||'normal',N={low:'Bassa',normal:'Normale',high:'Alta'},D={low:'tasse ridotte, gli abitanti sono un po\' più contenti',normal:'copre circa i 3/4 degli stipendi',high:'tasse doppie: più entrate, ma gli abitanti sono scontenti e rinunciano a migliorare la casa'};
+    h+=`<div class="trTax"><b>Aliquota delle tasse</b> `+['low','normal','high'].map(k=>`<button class="btn${R===k?'':' off'}" type="button" data-trate="${k}" title="${Sim.TAX_RATES[k].join(', ')} d'argento a settimana per livello">${N[k]}</button>`).join('')+` <small>${D[R]}</small></div>`;
+    const fc=Sim.taxForecast(),rows=(S.ledger&&S.ledger.rows)||[];
+    h+=`<div class="trLedger"><h4>Bilancio settimanale della cassa</h4><p class="trRule">Previsione: tasse attese ${Sim.money(fc.expect)} a settimana contro stipendi per ${Sim.money(fc.wages)}${fc.cover!==null?` (copertura ${Math.round(fc.cover*100)}%)`:''}.</p>`+(rows.length?`<table><tr><th>Sett.</th><th>Tasse</th><th>Commercio</th><th>Stipendi</th><th>Altre spese</th><th>Saldo</th></tr>`+rows.map(r=>`<tr><td>${r.wk}</td><td>+${r.tax}</td><td>+${r.trade-r.spent}</td><td>−${r.wages}</td><td>−${r.buy+r.hired+Math.max(0,-r.other)}</td><td><b>${r.net>=0?'+':'−'}${Math.abs(r.net)}</b></td></tr>`).join('')+`</table>`:'<p class="trRule">Il primo bilancio arriva dopo una settimana.</p>')+`</div>`;}
   h+=`<p class="trRule">${tradeRule()}</p>`;
   if(!st.ok)h+=`<div class="trWarn">${esc(st.why)}</div>`;
   h+=Sim.ROUTE_IDS.map(id=>{
@@ -1588,7 +1592,7 @@ function taxHtml(b){
   const tx=Sim.taxOf(b.level),left=Number.isFinite(b.taxT)?b.taxT:Sim.TAX_WEEK;
   const st=!Sim.taxActive()?'nessun ufficio delle tasse aperto':(left>0?`prossima visita dell'esattore fra ${Math.ceil(left)} giorni`:'in attesa dell\'esattore');
   const lt=b.lastTax?` · ultima: ${Sim.money(b.lastTax.pay)} su ${Sim.money(b.lastTax.due)}`:'';
-  return `<div>Cassa della famiglia: <b>${Sim.money(b.cash|0)}</b> · tassa: ${Sim.money(tx)} a settimana (${st})${lt}</div>`+(b.noUp?'<div>La famiglia non vuole migliorare la casa: la tassa sarebbe troppo alta.</div>':'');
+  return `<div>Cassa della famiglia: <b>${Sim.money(b.cash|0)}</b> · tassa: ${Sim.money(tx)} a settimana (${st})${lt}</div>`+((b.owed|0)>0&&Sim.wagePayer()==='town'?`<div>La cassa del paese le deve ${Sim.money(b.owed)} di stipendi: la famiglia è scontenta.</div>`:'')+(b.noUp?'<div>La famiglia non vuole migliorare la casa: la tassa sarebbe troppo alta.</div>':'');
 }
 function openTrade(v){$('trade').hidden=!v;$('tradeBtn').classList.toggle('on',!!v);if(v)renderTrade(true);}
 $('tradeBtn').addEventListener('click',()=>openTrade($('trade').hidden));
@@ -1598,6 +1602,8 @@ $('trade').addEventListener('click',ev=>{
   if(ev.target===$('trade')){openTrade(false);return;}
   const rt=ev.target.closest&&ev.target.closest('[data-route]');
   if(rt){const res=Sim.unlockRoute(rt.getAttribute('data-route'));toast(res.msg,!res.ok);renderTrade(true);return;}
+  const tr=ev.target.closest&&ev.target.closest('[data-trate]');
+  if(tr){Sim.setTaxRate(tr.getAttribute('data-trate'));renderTrade(true);return;}
   const op=ev.target.closest&&ev.target.closest('[data-topt]');
   if(op){const k=op.getAttribute('data-topt');Sim.setTradeOpt(k,!S.tradeOpt[k]);renderTrade(true);}
 });
@@ -2341,7 +2347,7 @@ function readSlot(k){
 function newestSave(){let best=null;for(const k of SAVE_SLOTS){const w=readSlot(k);if(w&&(!best||w.at>best.at))best=w;}return best;}
 function applySave(w){
   if(!w||w.app!==SAVE_APP||!w.sim)throw new Error('Questo file non è un salvataggio di Borgo Vivo.');
-  // v79: il salvataggio ha la dimensione della mappa in cui è stato giocato; se è diversa dalla mappa attuale si può ricaricare il gioco con quella
+  // v80: il salvataggio ha la dimensione della mappa in cui è stato giocato; se è diversa dalla mappa attuale si può ricaricare il gioco con quella
   const sn=(w.sim&&w.sim.n)||192;
   if(sn!==Sim.N){const mt=sn/Sim.SC;
     if(askOk('Questo salvataggio è di una mappa '+(mt<=64?'normale':'grande')+' ('+mt+'×'+mt+' tile), quella attuale è '+(Sim.MT<=64?'normale':'grande')+'. Ricaricare il gioco con la mappa '+(mt<=64?'normale':'grande')+'? Poi caricalo di nuovo.')){setMapSize(mt);return;}
@@ -2421,7 +2427,7 @@ function autoSave(){if(started)writeSlot('auto',true);}
 addEventListener('pagehide',autoSave);
 if(document.addEventListener)document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')autoSave();});
 let sIdx=0,curDiff='normale';
-// v79: dimensione della mappa a scelta (grande 128×128, normale 64×64): le griglie hanno la misura fissa, quindi si salva la scelta e si ricarica la pagina
+// v80: dimensione della mappa a scelta (grande 128×128, normale 64×64): le griglie hanno la misura fissa, quindi si salva la scelta e si ricarica la pagina
 function setMapSize(mt){try{localStorage.setItem('bv_mt',String(mt));sessionStorage.setItem('bv_menu','1');}catch(e){toast('Il browser non permette di salvare la scelta: la mappa non cambia.',true);return;}location.reload();}
 try{if(sessionStorage.getItem('bv_menu')==='1'){sessionStorage.removeItem('bv_menu');sIdx=Math.max(0,STORY.findIndex(x=>x.choice));}}catch(e){}
 function showStory(){
@@ -2441,7 +2447,7 @@ function showStory(){
     const showA=()=>{abs.forEach(([k,bt])=>bt.classList.toggle('on',k===adviceOn));ad.textContent=adviceOn?'I cittadini ti suggeriscono cosa fare a ogni passo, per tutta la partita.':'Nessun suggerimento: i cittadini parlano solo di guerra e predoni. Restano visibili i requisiti del Re.';};
     for(const [k,l] of [[true,'Consigli dei cittadini: sì'],[false,'No, decido io']]){const bt=document.createElement('button');bt.className='btn';bt.type='button';bt.textContent=l;bt.addEventListener('click',()=>{setAdvice(k);showA();});abs.push([k,bt]);aw.appendChild(bt);}
     aw.appendChild(ad);$('sBtns').appendChild(aw);showA();
-    // v79: grandezza della mappa
+    // v80: grandezza della mappa
     const zw=document.createElement('div');zw.style.cssText='width:100%;margin-bottom:8px';
     const zd=document.createElement('p');zd.style.cssText='margin:6px 0;font-size:14px';
     zd.textContent=Sim.MT>64?'Mappa grande: 128×128 tile, molto spazio per crescere (più pesante per il telefono).':'Mappa normale: 64×64 tile, più raccolta e leggera.';
