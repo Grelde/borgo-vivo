@@ -1,5 +1,8 @@
 # Changelog
 
+## v73.1 – 2026-11-28
+Ritocco grafico: il giardino delle case che si specializzano nella pesca mostra una rete appesa, pesce ad essiccare e un cesto; quello delle case che cacciano mostra pelli tese, selvaggina appesa e un arco. Solo grafica (non verificata in un browser WebGL).
+
 ## v73 – 2026-11-28
 Funzione nuova: Istruzione. Alcuni edifici funzionano solo con chi ha studiato, la scuola ha un numero chiuso di posti e le botteghe con un addetto istruito rendono di più.
 - **Scuola a 10 posti (`SCHOOL_CAP`, prima 12):** dai 6 anni un bambino si **iscrive** (`v.seat`) alla scuola più vicina con maestro, se ha un posto libero, e lo tiene fino ai 14 anni; chi non trova posto **non studia** (`edu` resta 0) e a 14 anni non sarà istruito. Per gli altri serve un'altra scuola. Va a lezione solo nella scuola dove è iscritto. `enrolPass()` ricalcola le iscrizioni a ogni passo (`b.enr` = iscritti). Il pannello della scuola mostra «iscritti x/10» e «a lezione ora».

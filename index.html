@@ -4632,6 +4632,25 @@ function fenceDiag(g,b,fx,fz,mat){
 function shopSign(g,x,z,col){cyl(g,.04,.05,1.25,6,MAT.timber,x,.62,z);bx(g,.34,.04,.04,MAT.timber,x-.15,1.2,z);bx(g,.42,.24,.04,col,x-.2,1.02,z);bx(g,.46,.04,.06,MAT.timber,x-.2,1.16,z);}
 function shopRoof(g,hh,col){for(const sx of[-.72,.72])for(const sz of[.34,.9])bx(g,.07,hh,.07,MAT.timber,sx,hh/2,sz);bx(g,1.7,.07,.7,col,0,hh+.04,.62).rotation.x=.14;}
 function shopProps(g,b){
+  if(b.side==='fish'){ // v74: la casa che pesca ha un'asta con la rete, pesce che essicca sul graticcio e un cesto
+    const z0=-.58;
+    for(const sx of[-.7,.1])bx(g,.06,.95,.06,MAT.timber,sx,.48,z0);
+    bx(g,.9,.05,.05,MAT.timber,-.3,.93,z0);
+    for(let k=0;k<7;k++){const ln=.55-Math.abs(k-3)*.07;bx(g,.03,ln,.02,MAT.cream,-.67+k*.12,.9-ln/2,z0+.02);} // rete appesa
+    bx(g,.8,.04,.06,MAT.cream,-.3,.52,z0+.02);
+    for(const sx of[.45,.95])bx(g,.05,.55,.05,MAT.timber,sx,.28,z0+.1);bx(g,.62,.04,.05,MAT.timber,.7,.5,z0+.1);
+    for(let k=0;k<4;k++){bx(g,.05,.2,.03,MAT.fishM,.5+k*.12,.38,z0+.1);sph(g,.04,MAT.fishM,.5+k*.12,.28,z0+.1,1,1,.6);}
+    cyl(g,.16,.13,.14,8,MAT.fw,.1,.07,z0+.42);cyl(g,.15,.15,.02,8,MAT.fishM,.1,.15,z0+.42);
+  }
+  if(b.side==='hunt'){ // v74: la casa che caccia ha pelli tese su un telaio, un arco appeso e selvaggina appesa a un palo
+    const z0=-.58;
+    for(const sx of[-.75,-.15])bx(g,.06,.8,.06,MAT.timber,sx,.4,z0);
+    bx(g,.7,.05,.05,MAT.timber,-.45,.78,z0);bx(g,.7,.05,.05,MAT.timber,-.45,.25,z0);
+    bx(g,.52,.46,.03,MAT.rust,-.45,.52,z0+.02);bx(g,.2,.2,.035,MAT.wattle,-.52,.58,z0+.03);
+    for(const sx of[.45,.95])bx(g,.05,.9,.05,MAT.timber,sx,.45,z0);bx(g,.62,.05,.05,MAT.timber,.7,.88,z0);
+    for(let k=0;k<2;k++){const sx=.55+k*.3;bx(g,.03,.12,.03,MAT.cream,sx,.8,z0);sph(g,.1,MAT.meatM,sx,.64,z0,.8,1.2,.8);sph(g,.05,MAT.wattle,sx,.5,z0,1,1,1);}
+    const bw=bx(g,.03,.5,.03,MAT.timber,.1,.32,z0+.35);bw.rotation.z=.4;bx(g,.015,.52,.015,MAT.cream,.04,.32,z0+.35).rotation.z=.4;
+  }
   if(b.craft){
     bx(g,1.6,.04,.62,MAT.stoneD,0,.02,.62);shopRoof(g,.95,MAT.thatch);
     bx(g,.55,.42,.42,MAT.stoneD,-.4,.21,.55);bx(g,.4,.08,.3,MAT.fire,-.4,.44,.55);cyl(g,.08,.1,.85,7,MAT.stoneD,-.4,.85,.4);
