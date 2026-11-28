@@ -1,5 +1,13 @@
 # Changelog
 
+## v73 – 2026-11-28
+Funzione nuova: Istruzione. Alcuni edifici funzionano solo con chi ha studiato, la scuola ha un numero chiuso di posti e le botteghe con un addetto istruito rendono di più.
+- **Scuola a 10 posti (`SCHOOL_CAP`, prima 12):** dai 6 anni un bambino si **iscrive** (`v.seat`) alla scuola più vicina con maestro, se ha un posto libero, e lo tiene fino ai 14 anni; chi non trova posto **non studia** (`edu` resta 0) e a 14 anni non sarà istruito. Per gli altri serve un'altra scuola. Va a lezione solo nella scuola dove è iscritto. `enrolPass()` ricalcola le iscrizioni a ogni passo (`b.enr` = iscritti). Il pannello della scuola mostra «iscritti x/10» e «a lezione ora».
+- **Edifici solo per istruiti (`EDUREQ`):** Ufficio delle Tasse (esattore), Scuola (maestro), Merceria (merciaio) e Bottega del cerusico (la v67 la limitava già agli istruiti: ora usa la stessa regola `EDUREQ`). Chi non è istruito non viene assegnato, un non istruito rimasto lì (salvataggi vecchi, eredità) viene mandato via, l'eredità del posto passa a un familiare istruito e il mestiere di famiglia non si eredita se l'erede non potrebbe esercitarlo (`canWorkAt`). Per aggiungere un mestiere che richiede studio basta una riga in `EDUREQ`.
+- **Bonus di bottega +30% (`EDU_BLD`):** in ogni edificio di lavoro con almeno un addetto istruito **tutti** gli addetti rendono il 30% in più (`eduBld`, `eduMul` dentro `workRate`). Sostituisce il +25% personale per chi lavora in una bottega; fuori dalle botteghe (giardino, fattoria e ovile di famiglia) resta il +25% personale (`EDU_WORK`). Il pannello dell'edificio dice se la bottega ha già un istruito.
+- **Chi arriva da fuori:** i primi tre della carovana sanno leggere e scrivere (altrimenti il borgo non potrebbe avviare ufficio e merceria); viandanti e immigrati sono istruiti con probabilità `IMM_LIT` = 25% (`arrivalLit`). I nati in paese lo diventano a 14 anni se hanno studiato abbastanza (`edu` ≥ 300).
+- **Non ancora fatto:** prete, funzionario del Municipio e mercante delle carovane non hanno ancora un edificio con addetti (la chiesa non ha lavoratori, il Municipio non esiste): quando li aggiungiamo vanno messi in `EDUREQ`. Gli stipendi per mestiere della v65 (`EDU_JOBS`, 3 argento per i lavori da istruiti) restano come sono. Test: `node tests/istruzione.js`.
+
 ## v72 – 2026-11-28
 Funzione nuova: conserve e bevande (sale, macellaio, affumicatoio, caseificio, birrificio, cantina). Punto 5 delle filiere.
 - **Salina** (sulla riva, 2 posti, vasche rivestite di mattoni): +3 sale ogni 8 s, scorta massima 40. Il sale serve a macellaio, affumicatoio e caseificio; senza salina lo vendono Rocca Alta e Porto Fiorito (si compra sotto 6).

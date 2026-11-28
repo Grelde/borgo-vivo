@@ -82,7 +82,12 @@ const SEASON_DAYS=6,SEASONS=['Primavera','Estate','Autunno','Inverno'];
 const NIGHT_AM=9/DAY,NIGHT_PM=1-18/DAY,dayF=o=>NIGHT_AM+(o-0.06)*(NIGHT_PM-NIGHT_AM)/0.82;
 const TL={nAm:NIGHT_AM,dawn:dayF(0.12),lunch0:dayF(0.42),lunch1:dayF(0.54),dusk:dayF(0.68),eve:dayF(0.76),nPm:NIGHT_PM},DUSK=TL.dusk;
 const YEARL=SEASON_DAYS*4*DAY;
-const SCHOOL_CAP=12,HEAL_R=45;
+// v65: la scuola ha 10 posti (iscritti dai 6 ai 14 anni); chi non trova posto non studia. EDUREQ = edifici in cui lavora solo chi ha studiato.
+// Una bottega con almeno un addetto istruito rende il 30% in più (EDU_BLD). IMM_LIT = probabilità che chi arriva da fuori sappia già leggere e scrivere.
+const SCHOOL_CAP=10,HEAL_R=45;
+const EDUREQ={taxoffice:1,school:1,mercery:1,surgeon:1},EDU_BLD=1.3,IMM_LIT=0.25;
+const canWorkAt=(v,type)=>!EDUREQ[type]||!!v.schooled;
+function arrivalLit(v,sure){if(sure||Math.random()<IMM_LIT){v.schooled=true;v.edu=300;const r=reg.get(v.id);if(r)r.schooled=true;}}
 // malattie: durata [min,max] in secondi, mortalità al secondo
 const DIS={
   fever:{n:'Febbre invernale',dur:[40,80],mort:0.0005},
@@ -425,7 +430,7 @@ function init(sd,mode,diff,opt){
   windP=null;computeEnv();
   updClock();
   addBuilding('store',31*SC,31*SC,true,{center:true});
-  for(let k=0;k<3;k++){const v=addVillager(cx2w(31*SC+1+k*2),cy2w(31*SC+9),22+k*4);logV(v,'Partito da Rocca Nera con la carovana: uno dei primi abitanti del borgo.');}
+  for(let k=0;k<3;k++){const v=addVillager(cx2w(31*SC+1+k*2),cy2w(31*SC+9),22+k*4);arrivalLit(v,true);logV(v,'Partito da Rocca Nera con la carovana: uno dei primi abitanti del borgo.');}
   computeAttr();
   hooks.trees();hooks.rocks();hooks.saps();hooks.ground();
 }
@@ -1402,7 +1407,22 @@ function goHomeAfter(v){
 }
 // lezioni: al mattino; con la scuola obbligatoria anche al pomeriggio
 const inClass=()=>S.ph==='work'&&(S.f<TL.lunch0||(S.edicts.schoolMandatory&&S.f<DUSK));
-function schoolFor(v){let best=null,bd=1e9;for(const b of buildings.values()){if(b.type!=='school'||b.state!=='done'||!b.workers.length||(b.pupils|0)>=SCHOOL_CAP)continue;const d=Math.hypot(b.cell%N-v.cell%N,(b.cell/N|0)-(v.cell/N|0));if(d<bd){bd=d;best=b;}}return best;}
+// v65: iscrizione. Dai 6 anni un bambino prende un posto (SCHOOL_CAP per scuola) nella scuola più vicina con maestro e lo tiene fino ai 14 anni;
+// chi non trova posto non studia (serve un'altra scuola). Va a lezione solo nella scuola dove è iscritto.
+function schoolFor(v){const b=v.seat&&buildings.get(v.seat);return b&&b.type==='school'&&b.state==='done'&&b.workers.length?b:null;}
+function enrolPass(){
+  const open=[];for(const b of buildings.values())if(b.type==='school'&&b.state==='done'){b.enr=0;open.push(b);}
+  for(const v of villagers){
+    if(v.seat){const b=buildings.get(v.seat);if(!v.child||!b||b.type!=='school'||b.state!=='done')v.seat=null;else b.enr++;}
+  }
+  if(!open.length)return;
+  for(const v of villagers){
+    if(!v.child||v.age<6||v.seat)continue;
+    let best=null,bd=1e9;
+    for(const b of open){if(!b.workers.length||b.enr>=SCHOOL_CAP)continue;const d=Math.hypot(b.cell%N-v.cell%N,(b.cell/N|0)-(v.cell/N|0));if(d<bd){bd=d;best=b;}}
+    if(best){v.seat=best.id;best.enr++;logV(v,'Si iscrive alla scuola.');}
+  }
+}
 function decide(v){
   const h=v.home&&buildings.get(v.home);
   // i malati restano a letto: mangiano e dormono a casa
@@ -1733,11 +1753,13 @@ function assignJobs(){
   const reserve=0;
   const wantOf=b=>b.sur?0:(b.type==='store'&&b.center&&villagers.length<9)?Math.min(b.want,Math.max(1,Math.floor(villagers.length/3))):b.want;
   for(const b of order){const wn=wantOf(b);while(b.workers.length>wn){const id=b.workers.pop();release(id);}}
+  // v65: negli edifici per istruiti non può restare chi non ha studiato (salvataggi vecchi, eredità)
+  for(const b of order)if(EDUREQ[b.type])for(const id of b.workers.slice()){const w=vmap.get(id);if(w&&!w.schooled){b.workers=b.workers.filter(x=>x!==id);release(id);}}
   // un addetto per edificio alla volta, cosi' con pochi abitanti nessun mestiere resta scoperto
   for(let pass=1;pass<=3;pass++)for(const b of order){
     const isStore=b.type==='store',wn=Math.min(wantOf(b),pass);
     while(b.workers.length<wn&&(isStore||free.length>reserve)){
-      const cand=free.filter(v=>(v.state==='idle'||v.state==='sleep'||v.state==='eat'||v.state==='wait')&&!v.carry&&(b.type!=='surgeon'||v.schooled));if(!cand.length)break;
+      const cand=free.filter(v=>(v.state==='idle'||v.state==='sleep'||v.state==='eat'||v.state==='wait')&&!v.carry&&canWorkAt(v,b.type));if(!cand.length)break;
       // chi ha già il mestiere (o lo ha ereditato dalla famiglia) ha la precedenza
       let best=null,bd=1e9;for(const v of cand){const d=(v.x-cx2w(b.cell%N))**2+(v.z-cy2w((b.cell/N)|0))**2-(v.trade===b.type?1500:0)-(EDU_JOBS.has(b.type)?(v.schooled?2000:-2000):0)-skLevel(v,b.type)*1500+(v.trade&&v.trade!==b.type?skLevel(v,v.trade)*1200:0);if(d<bd){bd=d;best=v;}}
       setJob(best,b);b.workers.push(best.id);free=free.filter(v=>v!==best);
@@ -1747,7 +1769,8 @@ function assignJobs(){
     if(b.workers.length>0||wantOf(b)<1||free.length>0||b.type==='surgeon')continue;
     let donor=null;for(const d of order)if(d!==b&&d.type!=='store'&&d.workers.length>=2&&(!donor||d.workers.length>donor.workers.length))donor=d;
     if(!donor)break;
-    const id=donor.workers.pop();release(id);const v=vmap.get(id);if(v){setJob(v,b);b.workers.push(id);}
+    const di=donor.workers.findLastIndex(x=>{const w=vmap.get(x);return w&&canWorkAt(w,b.type);});if(di<0)continue;
+    const id=donor.workers.splice(di,1)[0];release(id);const v=vmap.get(id);if(v){setJob(v,b);b.workers.push(id);}
   }
   for(const b of buildings.values())if(b.workers.length){b.workers=b.workers.filter(id=>{const v=vmap.get(id);return v&&v.job===b.id;});}
 }
@@ -2233,8 +2256,11 @@ function doNeed(v,k,h){
   }
   return false;
 }
+// v65: in una bottega con almeno un addetto istruito tutti rendono il 30% in più (EDU_BLD); fuori dalle botteghe (famiglia, giardino) resta il +25% personale
+function eduBld(b){if(!b)return 1;if(!b.workers.length)return 0;for(const id of b.workers){const w=vmap.get(id);if(w&&w.schooled)return EDU_BLD;}return 1;}
+const eduMul=v=>{const b=v.job&&buildings.get(v.job),e=b?eduBld(b):0;return e?e:v.schooled?EDU_WORK:1;};
 const hpOf=v=>v.hp===undefined?100:v.hp;
-const workRate=v=>(hpOf(v)<100?0.6+0.4*hpOf(v)/100:1)*(v.trait==='pigro'?0.6:1)*(v.joy<35?0.8:1)*(v.schooled?EDU_WORK:1)*(1+SK_WORK*jobSkill(v))*(v.job?condF(buildings.get(v.job)):1);
+const workRate=v=>(hpOf(v)<100?0.6+0.4*hpOf(v)/100:1)*(v.trait==='pigro'?0.6:1)*(v.joy<35?0.8:1)*eduMul(v)*(1+SK_WORK*jobSkill(v))*(v.job?condF(buildings.get(v.job)):1);
 function birthTick(b){
   if(S.t<b.birthT)return;
   const bonus=S.edicts.birthBonus;
@@ -2318,9 +2344,10 @@ function inherit(v,h,jobId,wasHead){
   if(!heir)return;
   if(wasHead){h.head=heir.id;S.inherits++;logV(heir,'Diventa capofamiglia dopo la morte di '+v.name+'.');tell('heirhead','Il capofamiglia è morto: il ruolo passa al più anziano degli adulti di casa.');}
   const jb=jobId&&buildings.get(jobId);
-  if(jb&&jb.state==='done'&&BT[jb.type].slots>0&&!heir.job&&!heir.ill&&(jb.type!=='surgeon'||heir.schooled)){
-    setJob(heir,jb);heir.duty=false;heir.inh=true;jb.workers.push(heir.id);S.inherits++;
-    logV(heir,'Eredita il posto di '+TRADENAME[jb.type]+' di '+v.name+'.');
+  const jh=jb&&EDUREQ[jb.type]&&!heir.schooled?ms.find(x=>!x.ill&&!x.job&&x.schooled):heir;
+  if(jb&&jh&&jb.state==='done'&&BT[jb.type].slots>0&&!jh.job&&!jh.ill){
+    setJob(jh,jb);jh.duty=false;jh.inh=true;jb.workers.push(jh.id);S.inherits++;
+    logV(jh,'Eredita il posto di '+TRADENAME[jb.type]+' di '+v.name+'.');
     tell('heirjob','Il posto di lavoro di un defunto è passato a un familiare: il mestiere resta in famiglia.');
   }
 }
@@ -2355,7 +2382,7 @@ function lifeTick(){
     if(v.sad>=DAY*1.5&&villagers.length-leavers.length>8)leavers.push(v);
     if(v.child&&v.age>=14){
       v.child=false;v.schooled=v.edu>=300;
-      const ft=h?famTrade(h):null;
+      const ft0=h?famTrade(h):null,ft=ft0&&canWorkAt(v,ft0)?ft0:null;
       if(ft){v.trade=ft;v.inh=true;S.inherits++;v.sk[ft]=Math.max(v.sk[ft]||0,XPL);}
       logV(v,'Compie 14 anni: '+(v.schooled?'sa leggere e scrivere.':'lascia la scuola senza saper leggere e scrivere.')+(ft?' Eredita il mestiere di famiglia: '+TRADENAME[ft]+'.':''));
       tell('grown','Un bambino è diventato adulto'+(v.schooled?' e sa leggere e scrivere: una persona istruita lavora meglio, consuma meno cibo e fa migliorare la casa più in fretta.':'.')+(ft?' Ha ereditato il mestiere di famiglia.':''));
@@ -2701,7 +2728,7 @@ function settleG(g){
   let pk=null,ps=-1e9;
   for(const b of buildings.values())if(b.type==='house'&&b.state==='done'&&roomFor(b)&&b.attr>-4.5){const sc=b.attr+(capOf(b)-b.members.length)*0.3+lone(b)+b.well*0.01;if(sc>ps){ps=sc;pk=b;}}
   if(!pk)return false;
-  const v=addVillager(g.x,g.z,22+Math.random()*16);v.home=pk.id;pk.members.push(v.id);S.settled++;
+  const v=addVillager(g.x,g.z,22+Math.random()*16);arrivalLit(v);v.home=pk.id;pk.members.push(v.id);S.settled++;
   logV(v,'Viandante ospitato alla locanda: ha deciso di fermarsi in paese.');
   tell('settle','Un viandante ospitato alla locanda ha deciso di fermarsi in paese: una nuova famiglia!');
   endGuest(g);return true;
@@ -3483,9 +3510,9 @@ function arriveNewcomer(pk){
   for(const sd of sides){const e=edgeCell(sd);if(e<0)continue;const p=astar(e,pk.cell,pk.id);if(p&&p.length){c=e;path=p;break;}}
   const age=18+Math.random()*18;
   if(!path){ // nessun cammino dal bordo (mappa chiusa): compare alla porta come prima
-    const v=addVillager(cx2w(pk.door%N),cy2w((pk.door/N)|0),age);v.home=pk.id;pk.members.push(v.id);logV(v,'Arriva in paese in cerca di casa e lavoro.');return;
+    const v=addVillager(cx2w(pk.door%N),cy2w((pk.door/N)|0),age);arrivalLit(v);v.home=pk.id;pk.members.push(v.id);logV(v,'Arriva in paese in cerca di casa e lavoro.');return;
   }
-  const v=addVillager(cx2w(c%N),cy2w((c/N)|0),age);
+  const v=addVillager(cx2w(c%N),cy2w((c/N)|0),age);arrivalLit(v);
   v.home=pk.id;pk.members.push(v.id);v.newc=true;v.path=path;v.state='toHomeLife';v.moving=true;v.next='sleep';
   logV(v,'Arriva in paese dalla strada in cerca di casa e lavoro.');
   tell('newcomer','I nuovi abitanti arrivano a piedi dai confini della mappa e raggiungono le case libere: più il paese è felice e ha lavoro, più gente arriva.');
@@ -3501,6 +3528,7 @@ function tick1(){
   festTick();
   rebalanceJobs();
   assignJobs();
+  enrolPass();
   for(const b of buildings.values())if(b.type==='school')b.pupils=0;
   for(const v of villagers)if(v.sch&&(v.state==='learn'||v.state==='toSchool')){const sb=buildings.get(v.sch);if(sb)sb.pupils=(sb.pupils|0)+1;}
   reconcileStock();
@@ -3727,7 +3755,7 @@ function importState(d){
   for(const g of guests)hooks.villager(g);
   hooks.trees();hooks.rocks();hooks.saps();hooks.ground();
 }
-return {TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWanted,WEAPON_PER_POST,startHouseWork,mergeTick,trySpawnDense,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
+return {TL,hpOf,surgeonOpen,HEAL_R,HEAL_CER,HEAL_HOME,FRATIO,raidPower,weaponsWanted,WEAPON_PER_POST,startHouseWork,mergeTick,trySpawnDense,owns,PROJ,BRANCHES,PROJ_NAMES,RANK_NAMES,projectState,buyProject,regnoInfo,msgCount,peekMsg,takeMsg,TOWER_R,TOWER_DPS,SIEGE_HOLD,lotOutline,claimLane,SAVE_FMT,exportState,importState,SHAPE_NAME,diagVal,setEdict,addCemetery,AGEY,YEARL,setZone,ZONED,SC,ROTD,dimsOf,entranceOf,inHouse,UPC,SEASONS,SEASON_DAYS,canDemolish,N,CS,W,BT,PATH,ROADT,S,GN,TYPES,TRADE,CAPS,LVNAME,MAXLV,QUAL5,WELL_R,CHURCH_R,SCHOOL_R,HEAL_R,DAY,STORE_CAP,BUFCAP,SAPLING_T,SCHOOL_CAP,EDUREQ,EDU_BLD,IMM_LIT,canWorkAt,eduBld,hooks,init,step,canPlace,afford,place,demolishAt,removeBuilding,paintDistrict,paintRoad,setWant,stats,roleText,attrLabel,hash,cx2w,cy2w,
   reg,DIS,TRADENAME,TRAITS,needsOf,commuteOf,COMMUTE_OK,NEEDS,NEED_LOW,skLevel,SKNAME,XPL,SKMAX,fuelNeed,dateStr,
   WS,PROD,FUN,OUTCAP,PLANK_CAP,SHELFCAP,MERC,costOf,siteReady,FEST,callFest,cancelFest,
   TOWNS,ROUTE_IDS,TGN,T_KEEP,T_TARGET,VISIT_CAP,CARAVAN_GAP,COINS0,BUY_SHARE,WAGE_JOB,EDU_JOBS,CITY_RANK,WAGE_OWE_CAP,wageJob,wageOf,wagePayer,TAX_WEEK,TAX_POUCH,WAGE,WAGE_SEC,SILVER_GOLD,TAX_MARGIN,MSELL,MSELL_KEEP,MSELL_LIM,taxOf,money,taxActive,taxStats,taxDue,taxRefuses,merceryTakes,merceryBuy,merceryBuyer,jobless,kingJob,cityMakes,unlockRoute,setTradeOpt,tradeStatus,surplusOf,demandOf,needAll,
